@@ -12,6 +12,7 @@ export default class Camera extends Node {
   public className: string = 'Node';
   public isCamera: boolean = true;
 
+  public viewport: {x: number, y: number, w: number, h: number};
   public clearColor: [number, number, number, number];
   public colorOp: GPUStoreOp;
   public clearDepth: number;
@@ -26,6 +27,7 @@ export default class Camera extends Node {
 
   constructor(
     viewOptions: {
+      viewport?: {x: number, y: number, w: number, h: number},
       clearColor?: [number, number, number, number],
       colorOp?: GPUStoreOp,
       clearDepth?: number,
@@ -54,14 +56,38 @@ export default class Camera extends Node {
     this.colorOp = viewOptions.colorOp || 'clear';
     this.depthOp = viewOptions.depthOp || 'clear';
     this.stencilOp = viewOptions.stencilOp || 'clear';
+    this.viewport = viewOptions.viewport || {x: 0, y: 0, w: 1, h: 1};
   }
 
-  public clear(cmd: GPUCommandEncoder, target: GPUTextureView) {
 
-  }
+  public render(cmd: GPUCommandEncoder, target: {color: GPUTextureView, depthStencil?: GPUTextureView}, meshes: Mesh[]) {
+    const [r, g, b, a] = this.clearColor;
+    const {x, y, w, h} = this.viewport;
+    const {width, height} = renderEnv;
 
-  public render(cmd: GPUCommandEncoder, target: GPUTextureView, meshes: Mesh[]) {
+    const renderPassDescriptor: GPURenderPassDescriptor = {
+      colorAttachments: [{
+        view: target.color,
+        loadValue: {r, g, b, a},
+        storeOp: this.colorOp
+      }],
+      depthStencilAttachment: target.depthStencil ? {
+        view: target.depthStencil,
+        depthLoadValue: this.clearDepth,
+        stencilLoadValue: this.clearStencil,
+        depthStoreOp: this.depthOp,
+        stencilStoreOp: this.stencilOp
+      } : undefined
+    };
 
+    const pass = cmd.beginRenderPass(renderPassDescriptor);
+    pass.setViewport(x * width, y * height, w * width, h * height, 0, 1);
+
+    for (const mesh of meshes) {
+      mesh.render(pass);
+    }
+
+    pass.endPass();
   }
 
   public cull(mesh: Mesh): number {

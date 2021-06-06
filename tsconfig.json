@@ -16,7 +16,8 @@
   },
   "include": [
     "src/**/*.ts",
-    "demo/**/*.ts"
+    "demo/**/*.ts",
+    "node_modules/@webgpu/types"
   ],
   "lib": [
     "es5",

@@ -22,6 +22,10 @@ export default class Geometry {
     return this._vBuffer;
   }
 
+  get vertexLayout() {
+    return this._vertexLayout;
+  }
+
   constructor(
     protected _vertexLayout: GPUVertexBufferLayout,
     protected _vertexData: ArrayBuffer,

@@ -34,8 +34,20 @@ export default class Material {
   protected _uniformValues: (GPUBuffer | GPUSampler | GPUTexture)[];
   protected _uniforms: GPUBindGroup;
 
+  get vs() {
+    return this._vsShader;
+  }
+
+  get fs() {
+    return this._fsShader;
+  }
+
   get uniforms() {
     return this._uniforms;
+  }
+
+  get uniformLayout() {
+    return this._uniformLayout;
   }
 
   constructor(

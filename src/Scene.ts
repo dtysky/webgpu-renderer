@@ -10,7 +10,7 @@ import Node from './Node';
 import renderEnv from './renderEnv';
 import RenderTexture from './RenderTexture';
 
-export class Scene {
+export default class Scene {
   public className: string = 'Scene';
   public isScene: boolean = true;
 
@@ -22,15 +22,15 @@ export class Scene {
     this._rootNode = node;
   }
 
-  constructor() {
-
+  get rootNode() {
+    return this._rootNode;
   }
 
   public updateWorld() {
     this._rootNode.updateSubTree();
   }
 
-  public cull(camera: Camera): Mesh[] {
+  public cullCamera(camera: Camera): Mesh[] {
     const meshes: Mesh[] = [];
 
     this._rootNode.dfs<void>(node => {
@@ -58,13 +58,14 @@ export class Scene {
     this._command = renderEnv.device.createCommandEncoder();
   }
 
-  // just as a view
-  public clear(camera: Camera) {
-    camera.clear(this._command, renderEnv.swapChain.getCurrentTexture().createView());
-  }
-
   public renderCamera(camera: Camera, meshes: Mesh[]) {
-    camera.render(this._command, renderEnv.swapChain.getCurrentTexture().createView(), meshes);
+    camera.render(
+      this._command,
+      {
+        color: renderEnv.swapChain.getCurrentTexture().createView(),
+      },
+      meshes
+    );
   }
 
   public renderLight() {

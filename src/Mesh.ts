@@ -7,6 +7,7 @@
 import Node from './Node';
 import Geometry from './Geometry';
 import Material from './Material';
+import renderEnv from './renderEnv';
 
 export default class Mesh extends Node {
   public className: string = 'Mesh';
@@ -14,10 +15,46 @@ export default class Mesh extends Node {
 
   public sortZ: number = 0;
 
+  protected _pipeline: GPURenderPipeline;
+
   constructor(
     protected _geometry: Geometry,
     protected _material: Material
   ) {
     super();
+
+    const {device, swapChainFormat} = renderEnv;
+
+    this._pipeline = device.createRenderPipeline({
+      layout: device.createPipelineLayout({bindGroupLayouts: [
+        _material.uniformLayout
+      ]}),
+  
+      vertex: {
+        module: _material.vs,
+        entryPoint: "main",
+        buffers: [_geometry.vertexLayout]
+      },
+  
+      fragment: {
+        module: _material.fs,
+        targets: [
+          {format: swapChainFormat}
+        ],
+        entryPoint: "main"
+      },
+  
+      primitive: {
+        topology: 'triangle-list'
+      }
+    });
+  }
+
+  public render(pass: GPURenderPassEncoder) {
+    pass.setVertexBuffer(0, this._geometry.vertexes);
+    pass.setIndexBuffer(this._geometry.indexes, 'uint16');
+    pass.setBindGroup(0, this._material.uniforms);
+    pass.setPipeline(this._pipeline);
+    pass.drawIndexed(6, 1, 0, 0, 0);
   }
 }
