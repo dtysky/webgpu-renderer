@@ -19,6 +19,10 @@
   "pretty": true,
   "strictPropertyInitialization": true,
   "allowSyntheticDefaultImports": true,
+  "include": [
+    "src/**/*.ts",
+    "demo/**/*.ts"
+  ],
   "lib": [
     "es5",
     "es2015.promise",

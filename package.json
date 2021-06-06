@@ -7,6 +7,7 @@
     "@webgpu/glslang": "^0.0.15",
     "@webgpu/types": "^0.1.3",
     "html-webpack-plugin": "^4.5.0",
+    "raw-loader": "^4.0.2",
     "ts-loader": "^9.2.2",
     "typescript": "^4.3.2",
     "url-loader": "^2.1.0",
@@ -22,5 +23,8 @@
     "email": "dtysky@outlook.com",
     "url": "http://dtysky.moe"
   },
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "gl-matrix": "^3.3.0"
+  }
 }
