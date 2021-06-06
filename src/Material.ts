@@ -28,11 +28,13 @@ export default class Material {
 
   protected _vsShader: GPUShaderModule;
   protected _fsShader: GPUShaderModule;
+  protected _uniformLayoutDesc: GPUBindGroupLayoutDescriptor;
   protected _uniformLayout: GPUBindGroupLayout;
+  protected _uniformBindDesc: GPUBindGroupDescriptor;
+  protected _uniforms: GPUBindGroup;
   protected _uniformIndexes: {[name: string]: {index: number, type: EUniformType}};
   protected _uniformCPUValues: (TTypedArray | Texture | GPUSamplerDescriptor)[];
   protected _uniformValues: (GPUBuffer | GPUSampler | GPUTexture)[];
-  protected _uniforms: GPUBindGroup;
 
   get vs() {
     return this._vsShader;
@@ -61,7 +63,7 @@ export default class Material {
     this._fsShader = device.createShaderModule({code: _fs});
 
     this._uniformIndexes = {};
-    this._uniformLayout = device.createBindGroupLayout({entries: _uniformDesc.uniforms.map((ud, index) => {
+    this._uniformLayout = device.createBindGroupLayout(this._uniformLayoutDesc = {entries: _uniformDesc.uniforms.map((ud, index) => {
       let res: GPUBindGroupLayoutEntry = {
         binding: index,
         visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
@@ -76,13 +78,13 @@ export default class Material {
       }
 
       this._uniformIndexes[ud.name] = {index, type: ud.type};
-      
+
       return res;
     })});
 
     this._uniformCPUValues = new Array(_uniformDesc.uniforms.length);
     this._uniformValues = new Array(_uniformDesc.uniforms.length);
-    this._uniforms = device.createBindGroup({
+    this._uniforms = device.createBindGroup(this._uniformBindDesc = {
       layout: this._uniformLayout,
       entries: _uniformDesc.uniforms.map((ud, index) => {
         let value: GPUBuffer | GPUSampler | GPUTexture;
@@ -108,12 +110,14 @@ export default class Material {
   }
 
   public setUniform(name: string, value: TTypedArray | Texture | GPUSamplerDescriptor) {
-    const {index, type} = this._uniformIndexes[name];
-    const gpuValue = this._uniformValues[index];
+    const ud = this._uniformIndexes[name];
 
-    if (index === undefined) {
+    if (!ud) {
       return;
     }
+
+    const {index, type} = ud;
+    const gpuValue = this._uniformValues[index];
 
     if (type === EUniformType.Buffer) {
       value = value as TTypedArray;

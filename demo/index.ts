@@ -9,6 +9,7 @@ import * as H from '../src/index';
 class APP {
   private _scene: H.Scene;
   private _camera: H.Camera;
+  private _mesh: H.Mesh;
 
   public init() {
     this._scene = new H.Scene();
@@ -50,16 +51,16 @@ class APP {
       require('./assets/shaders/test/fragment.frag.wgsl'),
       {
         uniforms: [
-          {
-            name: 'u_model',
-            type: H.EUniformType.Buffer,
-            defaultValue: H.math.mat4.identity(new Float32Array(16)) as Float32Array
-          },
-          {
-            name: 'u_vp',
-            type: H.EUniformType.Buffer,
-            defaultValue: H.math.mat4.identity(new Float32Array(16)) as Float32Array
-          },
+          // {
+          //   name: 'u_world',
+          //   type: H.EUniformType.Buffer,
+          //   defaultValue: H.math.mat4.identity(new Float32Array(16)) as Float32Array
+          // },
+          // {
+          //   name: 'u_vp',
+          //   type: H.EUniformType.Buffer,
+          //   defaultValue: H.math.mat4.identity(new Float32Array(16)) as Float32Array
+          // },
           {
             name: 'u_sampler',
             type: H.EUniformType.Sampler,
@@ -73,12 +74,16 @@ class APP {
         ]
       }
     );
-    const mesh = new H.Mesh(geometry, material);
-    this._scene.rootNode.addChild(mesh);
+    this._mesh = new H.Mesh(geometry, material);
+    this._scene.rootNode.addChild(this._mesh);
+
+    console.log(geometry, material)
   }
   
   public loop(dt: number) {
     const {_scene} = this;
+
+    H.math.vec3.rotateZ(this._mesh.pos, this._mesh.pos, [0, 0, 1], 0.01);
 
     _scene.startFrame();
     _scene.setRenderTarget(null);

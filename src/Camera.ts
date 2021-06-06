@@ -53,9 +53,9 @@ export default class Camera extends Node {
     this.clearColor = viewOptions.clearColor || [0, 0, 0, 1];
     this.clearDepth = viewOptions.clearDepth !== undefined ? viewOptions.clearDepth : 1;
     this.clearStencil = viewOptions.clearStencil || 0;
-    this.colorOp = viewOptions.colorOp || 'clear';
-    this.depthOp = viewOptions.depthOp || 'clear';
-    this.stencilOp = viewOptions.stencilOp || 'clear';
+    this.colorOp = viewOptions.colorOp || 'store';
+    this.depthOp = viewOptions.depthOp || 'store';
+    this.stencilOp = viewOptions.stencilOp || 'store';
     this.viewport = viewOptions.viewport || {x: 0, y: 0, w: 1, h: 1};
   }
 

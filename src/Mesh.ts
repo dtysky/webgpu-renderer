@@ -51,10 +51,14 @@ export default class Mesh extends Node {
   }
 
   public render(pass: GPURenderPassEncoder) {
-    pass.setVertexBuffer(0, this._geometry.vertexes);
-    pass.setIndexBuffer(this._geometry.indexes, 'uint16');
-    pass.setBindGroup(0, this._material.uniforms);
+    const {_geometry, _material} = this;
+
+    _material.setUniform('u_world', this._worldMat);
+
+    pass.setVertexBuffer(0, _geometry.vertexes);
+    pass.setIndexBuffer(_geometry.indexes, 'uint16');
+    pass.setBindGroup(0, _material.uniforms);
     pass.setPipeline(this._pipeline);
-    pass.drawIndexed(6, 1, 0, 0, 0);
+    pass.drawIndexed(_geometry.count, 1, 0, 0, 0);
   }
 }

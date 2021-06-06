@@ -32,8 +32,8 @@ export default class Geometry {
     protected _indexData: ArrayBuffer,
     public count: number
   ) {
-    this._vBuffer = createGPUBuffer(new Float32Array(_vertexData), GPUBufferUsage.VERTEX | GPUBufferUsage.COPY_DST);
-    this._iBuffer = createGPUBuffer(new Uint16Array(_indexData), GPUBufferUsage.INDEX | GPUBufferUsage.COPY_DST);
+    this._vBuffer = createGPUBuffer(new Float32Array(_vertexData), GPUBufferUsage.VERTEX);
+    this._iBuffer = createGPUBuffer(new Uint16Array(_indexData), GPUBufferUsage.INDEX);
   }
 
   public updateVertexes() {
