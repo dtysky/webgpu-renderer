@@ -20,12 +20,8 @@
   <canvas id="mainCanvas" class="full"></canvas>
   <script>
     var canvas = document.getElementById('mainCanvas');
-    setTimeout(
-      () => {
-        canvas.width = window.innerWidth * window.devicePixelRatio;
-        canvas.height = window.innerHeight * window.devicePixelRatio;
-      }, 1000
-    )
+    canvas.width = window.innerWidth * window.devicePixelRatio;
+    canvas.height = window.innerHeight * window.devicePixelRatio;
   </script>
 </body>
 </html>

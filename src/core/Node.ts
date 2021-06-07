@@ -55,6 +55,10 @@ export default class Node {
     idx >= 0 && this._children.splice(idx, 1);
   }
 
+  public updateMatrix() {
+    this.updateWorldMatrix();
+  }
+
   public updateWorldMatrix() {
     mat4.fromRotationTranslationScale(this._worldMat, this._quat, this._pos, this._scale);
   }
@@ -75,7 +79,7 @@ export default class Node {
     }
 
     this.dfs<void>((node: Node) => {
-      node.updateWorldMatrix();
+      node.updateMatrix();
     });
   }
 }

@@ -8,7 +8,6 @@ fn main([[location(0)]] a_position: vec4<f32>, [[location(1)]] a_uv: vec2<f32>) 
   var output: VertexOutput;
 
   output.Position = uniforms.u_world * a_position;
-  // output.Position = a_position;
   output.v_uv = a_uv;
 
   return output;

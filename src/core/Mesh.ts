@@ -9,6 +9,8 @@ import Geometry from './Geometry';
 import Material from './Material';
 import renderEnv from './renderEnv';
 
+declare type Camera = import('./Camera').default;
+
 export default class Mesh extends Node {
   public className: string = 'Mesh';
   public isMesh: boolean = true;
@@ -50,9 +52,10 @@ export default class Mesh extends Node {
     });
   }
 
-  public render(pass: GPURenderPassEncoder) {
+  public render(pass: GPURenderPassEncoder, camera: Camera) {
     const {_geometry, _material} = this;
 
+    _material.setUniform('u_vp', camera.vpMat);
     _material.setUniform('u_world', this._worldMat);
 
     pass.setVertexBuffer(0, _geometry.vertexes);

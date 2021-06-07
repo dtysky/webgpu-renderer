@@ -25,7 +25,7 @@ export default class Texture {
   constructor(
     protected _width: number,
     protected _height: number,
-    protected _src: string,
+    protected _src: string | ArrayBuffer,
     protected _format: GPUTextureFormat = 'rgba8unorm'
   ) {
     this._gpuTexture = renderEnv.device.createTexture({
@@ -34,12 +34,17 @@ export default class Texture {
       usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
     });
     this._gpuTextureView = this._gpuTexture.createView();
-    this._loadImg();
+
+    if (typeof _src === 'string') {
+      this._loadImg();
+    } else {
+      this._loadBuffer();
+    }
   }
 
   protected async _loadImg() {
     const img = document.createElement('img');
-    img.src = this._src;
+    img.src = this._src as string;
 
     await img.decode();
     const bitmap = await createImageBitmap(img);  
@@ -51,6 +56,26 @@ export default class Texture {
     );
 
     bitmap.close();
+  }
+
+  protected async _loadBuffer() {
+    // const bitmap = await createImageBitmap(
+    //   new ImageData(new Uint8ClampedArray(this._src as ArrayBuffer), this._width, this._height)
+    // );
+
+    // renderEnv.device.queue.copyExternalImageToTexture(
+    //   {source: bitmap},
+    //   {texture: this._gpuTexture},
+    //   {width: bitmap.width, height: bitmap.height, depthOrArrayLayers: 1}
+    // );
+
+    // bitmap.close();
+    renderEnv.device.queue.writeTexture(
+      {texture: this._gpuTexture},
+      this._src as ArrayBuffer,
+      {},
+      {width: this._width, height: this._height}
+    );
   }
 
   public update() {

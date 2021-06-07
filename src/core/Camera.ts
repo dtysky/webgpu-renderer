@@ -4,6 +4,7 @@
  * @Link   : dtysky.moe
  * @Date   : 2021/6/6下午7:24:51
  */
+import {mat4} from 'gl-matrix';
 import Mesh from './Mesh';
 import Node from './Node';
 import renderEnv from './renderEnv';
@@ -24,6 +25,13 @@ export default class Camera extends Node {
   protected _far: number;
   protected _fov: number;
   protected _aspect: number;
+  protected _viewMat: Float32Array;
+  protected _projMat: Float32Array;
+  protected _vpMat: Float32Array;
+
+  get vpMat() {
+    return this._vpMat;
+  }
 
   constructor(
     viewOptions: {
@@ -57,13 +65,27 @@ export default class Camera extends Node {
     this.depthOp = viewOptions.depthOp || 'store';
     this.stencilOp = viewOptions.stencilOp || 'store';
     this.viewport = viewOptions.viewport || {x: 0, y: 0, w: 1, h: 1};
+    this._viewMat = mat4.identity(new Float32Array(16)) as Float32Array;
+    this._projMat = mat4.identity(new Float32Array(16)) as Float32Array;
+    this._vpMat = mat4.identity(new Float32Array(16)) as Float32Array;
   }
 
+  public updateMatrix() {
+    super.updateMatrix();
 
-  public render(cmd: GPUCommandEncoder, target: {color: GPUTextureView, depthStencil?: GPUTextureView}, meshes: Mesh[]) {
+    mat4.invert(this._viewMat, this._worldMat);
+    mat4.perspective(this._projMat, this._fov, this._aspect, this._near, this._far);
+    mat4.multiply(this._vpMat, this._projMat, this._viewMat);
+  }
+
+  public render(
+    cmd: GPUCommandEncoder,
+    target: {width: number, height: number, color: GPUTextureView, depthStencil?: GPUTextureView},
+    meshes: Mesh[]
+  ) {
     const [r, g, b, a] = this.clearColor;
     const {x, y, w, h} = this.viewport;
-    const {width, height} = renderEnv;
+    const {width, height} = target;
 
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: [{
@@ -84,7 +106,7 @@ export default class Camera extends Node {
     pass.setViewport(x * width, y * height, w * width, h * height, 0, 1);
 
     for (const mesh of meshes) {
-      mesh.render(pass);
+      mesh.render(pass, this);
     }
 
     pass.endPass();

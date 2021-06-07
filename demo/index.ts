@@ -10,13 +10,16 @@ class APP {
   private _scene: H.Scene;
   private _camera: H.Camera;
   private _mesh: H.Mesh;
+  private _rt: H.RenderTexture;
+  private _imageMesh: H.ImageMesh;
+
 
   public init() {
     this._scene = new H.Scene();
     const rootNode = this._scene.rootNode = new H.Node();
 
     this._camera = new H.Camera(
-      {},
+      {clearColor: [1, 0, 0, 1]},
       {near: 0.1, far: 100, fov: Math.PI / 3}
     );
     rootNode.addChild(this._camera);
@@ -46,6 +49,7 @@ class APP {
       new Uint16Array([0, 1, 2, 2, 1, 3]).buffer,
       6
     );
+    const texture = new H.Texture(256, 256, require('./assets/textures/uv-debug.png'));
     const effect = new H.Effect(
       require('./assets/shaders/test/vertex.vert.wgsl'),
       require('./assets/shaders/test/fragment.frag.wgsl'),
@@ -65,7 +69,7 @@ class APP {
         textures: [
           {
             name: 'u_texture',
-            defaultValue: new H.Texture(256, 256, require('./assets/textures/uv-debug.png'))
+            defaultValue: texture
           }
         ],
         samplers: [
@@ -79,6 +83,10 @@ class APP {
     const material = new H.Material(effect);
     this._mesh = new H.Mesh(geometry, material);
     this._scene.rootNode.addChild(this._mesh);
+
+    this._rt = new H.RenderTexture(H.renderEnv.width, H.renderEnv.height);
+    this._imageMesh = new H.ImageMesh(new H.Material(H.buildinEffects.blit, {u_texture: this._rt}));
+    // this._imageMesh = new H.ImageMesh(new H.Material(H.buildinEffects.blit, {u_texture: H.buildinTextures.green}));
   }
   
   public loop(dt: number) {
@@ -87,8 +95,10 @@ class APP {
     H.math.quat.rotateZ(this._mesh.quat, this._mesh.quat, 0.01);
 
     _scene.startFrame();
-    _scene.setRenderTarget(null);
+    _scene.setRenderTarget(this._rt);
     _scene.renderCamera(this._camera, _scene.cullCamera(this._camera));
+    _scene.setRenderTarget(null);
+    _scene.renderImages([this._imageMesh]);
     _scene.endFrame();
   }
 }
