@@ -3,10 +3,13 @@
  * 
  * @Author  : hikaridai(hikaridai@tencent.com)
  * @Date    : 2021/6/7下午1:51:11
-*/
+ */
+ import {createGPUBuffer, TTypedArray} from "./shared";
 import renderEnv from "./renderEnv";
-import {createGPUBuffer, TTypedArray} from "./shared";
+import RenderTexture from "./RenderTexture";
 import Texture from "./Texture";
+
+export type TUniformValue = TTypedArray | Texture | GPUSamplerDescriptor | RenderTexture;
 
 export interface IUniformsDescriptor {
   uniforms: {
@@ -27,10 +30,11 @@ export interface IUniformsDescriptor {
 }
 
 export interface IUniformBlock {
-  bindingGroup: GPUBindGroup;
+  layout: GPUBindGroupLayout;
+  entries: GPUBindGroupEntry[];
   values: {
     [name: string]: {
-      value: TTypedArray | Texture | GPUSamplerDescriptor,
+      value: TUniformValue,
       gpuValue: GPUBuffer | GPUSampler | GPUTextureView
     }
   };
@@ -79,26 +83,35 @@ export default class Effect {
   ) {
     const {device} = renderEnv;
 
-    this._shaderPrefix = '[[block]] struct Uniforms {\n';
+    let index: number = 0;
+    let bindingId: number = 0;
+    this._shaderPrefix = '';
     this._uniformsInfo = {};
 
-    const entries: GPUBindGroupLayoutEntry[] = [{
-      binding: 0,
-      visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-      buffer: {type: 'uniform' as GPUBufferBindingType}
-    }];
+    const entries: GPUBindGroupLayoutEntry[] = [];
+    
+    if (_uniformDesc.uniforms.length) {
+      this._shaderPrefix += '[[block]] struct Uniforms {\n';
+      entries.push({
+        binding: 0,
+        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
+        buffer: {type: 'uniform' as GPUBufferBindingType}
+      });
 
-    let uniformsByteLength: number = 0;
-    _uniformDesc.uniforms.forEach((ud, index) => {
-      this._uniformsInfo[ud.name] = {bindingId: 0, index, type: 'buffer', byteOffset: uniformsByteLength, defaultValue: ud.defaultValue};
-      uniformsByteLength += ud.defaultValue.byteLength;
-      this._shaderPrefix += `  ${ud.name}: ${ud.type}<${ud.format || 'f32'}>;\n`
-    });
-    this._uniformsBufferDefault = new Uint8Array(uniformsByteLength);
-    this._shaderPrefix += `};\n[[binding(0), group(0)]] var<uniform> uniforms: Uniforms;\n`
+      let uniformsByteLength: number = 0;
+      _uniformDesc.uniforms.forEach((ud) => {
+        this._uniformsInfo[ud.name] = {bindingId: 0, index, type: 'buffer', byteOffset: uniformsByteLength, defaultValue: ud.defaultValue};
+        uniformsByteLength += ud.defaultValue.byteLength;
+        this._shaderPrefix += `  ${ud.name}: ${ud.type}<${ud.format || 'f32'}>;\n`
+        index += 1;
+      });
+      this._uniformsBufferDefault = new Uint8Array(uniformsByteLength);
+      this._shaderPrefix += `};\n[[binding(0), group(0)]] var<uniform> uniforms: Uniforms;\n`
 
-    let bindingId = 1;
-    _uniformDesc.textures.forEach((ud, index) => {
+      bindingId += 1;
+    }
+
+    _uniformDesc.textures.forEach((ud) => {
       entries.push({
         binding: bindingId,
         visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
@@ -110,9 +123,10 @@ export default class Effect {
       };
       this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: texture_2d<${ud.format || 'f32'}>;\n`
       bindingId += 1;
+      index += 1;
     });
 
-    _uniformDesc.samplers.forEach((ud, index) => {
+    _uniformDesc.samplers.forEach((ud) => {
       entries.push({
         binding: bindingId,
         visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
@@ -124,6 +138,7 @@ export default class Effect {
       };
       this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: sampler;\n`
       bindingId += 1;
+      index += 1;
     });
     this._uniformLayoutDesc = {entries};
     this._uniformLayout = device.createBindGroupLayout(this._uniformLayoutDesc);
@@ -140,15 +155,19 @@ export default class Effect {
   public createDefaultUniformBlock(): IUniformBlock {
     const {_uniformDesc, _uniformsInfo, _uniformsBufferDefault} = this;
     const values: IUniformBlock['values'] = {};
+    const groupEntries: GPUBindGroupEntry[] = [];
 
-    const uniformsBuffer = createGPUBuffer(_uniformsBufferDefault, GPUBufferUsage.UNIFORM);
-    const groupEntries: GPUBindGroupEntry[] = [{
-      binding: 0,
-      resource: {buffer: uniformsBuffer}
-    }];
-    _uniformDesc.uniforms.forEach((ud) => {
-      values[ud.name] = {value: ud.defaultValue, gpuValue: uniformsBuffer};
-    });
+    if (_uniformsBufferDefault) {
+      const uniformsBuffer = createGPUBuffer(_uniformsBufferDefault, GPUBufferUsage.UNIFORM);
+      groupEntries.push({
+        binding: 0,
+        resource: {buffer: uniformsBuffer}
+      });
+      _uniformDesc.uniforms.forEach((ud) => {
+        values[ud.name] = {value: ud.defaultValue, gpuValue: uniformsBuffer};
+      });
+    }
+
     _uniformDesc.textures.forEach((ud) => {
       const view = _uniformsInfo[ud.name].defaultGpuValue;
       values[ud.name] = {value: ud.defaultValue, gpuValue: view};
@@ -165,11 +184,7 @@ export default class Effect {
         resource: sampler
       });
     });
-    const bindingGroup = renderEnv.device.createBindGroup({
-      layout: this._uniformLayout,
-      entries: groupEntries
-    });
 
-    return {bindingGroup, values};
+    return {entries: groupEntries, values, layout: this._uniformLayout};
   }
 }
