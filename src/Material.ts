@@ -4,140 +4,61 @@
  * @Link   : dtysky.moe
  * @Date   : 2021/6/6下午7:26:33
  */
+import Effect, { IUniformBlock } from "./Effect";
 import renderEnv from "./renderEnv";
-import {createGPUBuffer, TTypedArray} from "./shared";
+import {TTypedArray} from "./shared";
 import Texture from "./Texture";
-
-export enum EUniformType {
-  Buffer,
-  Sampler,
-  Texture
-}
-
-export interface IUniformsDescriptor {
-  uniforms: {
-    name: string,
-    type: EUniformType,
-    defaultValue: TTypedArray | Texture | GPUSamplerDescriptor
-  }[]
-}
 
 export default class Material {
   public className: string = 'Material';
   public isMaterial: boolean = true;
 
-  protected _vsShader: GPUShaderModule;
-  protected _fsShader: GPUShaderModule;
-  protected _uniformLayoutDesc: GPUBindGroupLayoutDescriptor;
-  protected _uniformLayout: GPUBindGroupLayout;
-  protected _uniformBindDesc: GPUBindGroupDescriptor;
-  protected _uniforms: GPUBindGroup;
-  protected _uniformIndexes: {[name: string]: {index: number, type: EUniformType}};
-  protected _uniformCPUValues: (TTypedArray | Texture | GPUSamplerDescriptor)[];
-  protected _uniformValues: (GPUBuffer | GPUSampler | GPUTexture)[];
+  protected _uniformBlock: IUniformBlock;
 
-  get vs() {
-    return this._vsShader;
+  get effect() {
+    return this._effect;
   }
 
-  get fs() {
-    return this._fsShader;
-  }
-
-  get uniforms() {
-    return this._uniforms;
-  }
-
-  get uniformLayout() {
-    return this._uniformLayout;
+  get bindingGroup() {
+    return this._uniformBlock.bindingGroup;
   }
 
   constructor(
-    protected _vs: string,
-    protected _fs: string,
-    protected _uniformDesc: IUniformsDescriptor
+    protected _effect: Effect
   ) {
-    const {device} = renderEnv;
-
-    this._vsShader = device.createShaderModule({code: _vs});
-    this._fsShader = device.createShaderModule({code: _fs});
-
-    this._uniformIndexes = {};
-    this._uniformLayout = device.createBindGroupLayout(this._uniformLayoutDesc = {entries: _uniformDesc.uniforms.map((ud, index) => {
-      let res: GPUBindGroupLayoutEntry = {
-        binding: index,
-        visibility: GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT,
-      };
-      
-      if (ud.type === EUniformType.Buffer) {
-        res.buffer = {type: 'uniform'};
-      } else if (ud.type === EUniformType.Sampler) {
-        res.sampler = {type: 'filtering'};
-      } else {
-        res.texture = {sampleType: 'float'};
-      }
-
-      this._uniformIndexes[ud.name] = {index, type: ud.type};
-
-      return res;
-    })});
-
-    this._uniformCPUValues = new Array(_uniformDesc.uniforms.length);
-    this._uniformValues = new Array(_uniformDesc.uniforms.length);
-    this._uniforms = device.createBindGroup(this._uniformBindDesc = {
-      layout: this._uniformLayout,
-      entries: _uniformDesc.uniforms.map((ud, index) => {
-        let value: GPUBuffer | GPUSampler | GPUTexture;
-        let resource: GPUBindGroupEntry['resource'];
-
-        if (ud.type === EUniformType.Buffer) {
-          value = createGPUBuffer(ud.defaultValue as TTypedArray, GPUBufferUsage.UNIFORM);
-          resource = {buffer: value};
-        } else if (ud.type === EUniformType.Sampler) {
-          value = device.createSampler(ud.defaultValue as GPUSamplerDescriptor);
-          resource = value;
-        } else {
-          value = (ud.defaultValue as Texture).gpuTexture;
-          resource = value.createView();
-        }
-
-        this._uniformCPUValues[index] = ud.defaultValue;
-        this._uniformValues[index] = value;
-
-        return {binding: index, resource};
-      })
-    });
+    this._uniformBlock = _effect.createDefaultUniformBlock();
   }
 
   public setUniform(name: string, value: TTypedArray | Texture | GPUSamplerDescriptor) {
-    const ud = this._uniformIndexes[name];
+    const info = this._effect.uniformsInfo[name];
 
-    if (!ud) {
+    if (!info) {
       return;
     }
 
-    const {index, type} = ud;
-    const gpuValue = this._uniformValues[index];
+    const {index, type, byteOffset} = info;
+    const values = this._uniformBlock.values[name];
 
-    if (type === EUniformType.Buffer) {
+    if (type === 'buffer') {
       value = value as TTypedArray;
       renderEnv.device.queue.writeBuffer(
-        gpuValue as GPUBuffer,
-        0,
+        values.gpuValue as GPUBuffer,
+        byteOffset,
         value.buffer,
         value.byteOffset,
         value.byteLength
       );
-    } else if (type === EUniformType.Sampler) {
+      values.value = value;
+    } else if (type === 'sampler') {
       console.warn('Not implemented!');
     } else {
+      value = value as Texture;
       console.warn('Not implemented!');
     }
-    
-    this._uniformCPUValues[index] = value;
+  
   }
 
   public getUniform(name: string):TTypedArray | Texture | GPUSamplerDescriptor {
-    return this._uniformCPUValues[name];
+    return this._uniformBlock.values[name]?.value;
   }
 }

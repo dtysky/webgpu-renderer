@@ -22,3 +22,15 @@ export function createGPUBuffer(array: TTypedArray, usage: GPUBufferUsageFlags) 
 
   return buffer;
 }
+
+export function createGPUBufferBySize(size: number, usage: GPUBufferUsageFlags) {
+  const buffer = renderEnv.device.createBuffer({
+    size: size,
+    usage: usage | GPUBufferUsage.COPY_DST,
+    mappedAtCreation: true
+  });
+
+  buffer.unmap();
+
+  return buffer;
+}

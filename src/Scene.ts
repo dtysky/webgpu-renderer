@@ -55,6 +55,7 @@ export default class Scene {
   }
 
   public startFrame() {
+    this.updateWorld();
     this._command = renderEnv.device.createCommandEncoder();
   }
 
