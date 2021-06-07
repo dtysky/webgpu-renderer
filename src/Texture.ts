@@ -12,9 +12,14 @@ export default class Texture {
 
   protected _bitmap: ImageBitmap;
   protected _gpuTexture: GPUTexture;
+  protected _gpuTextureView: GPUTextureView;
 
   get gpuTexture() {
     return this._gpuTexture;
+  }
+
+  get view() {
+    return this._gpuTextureView;
   }
 
   constructor(
@@ -28,6 +33,7 @@ export default class Texture {
       format: 'rgba8unorm',
       usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
     });
+    this._gpuTextureView = this._gpuTexture.createView();
     this._loadImg();
   }
 

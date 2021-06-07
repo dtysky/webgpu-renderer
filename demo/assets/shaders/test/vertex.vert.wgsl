@@ -1,9 +1,3 @@
-[[block]] struct Uniforms {
-  u_world: mat4x4<f32>;
-  // u_vp: mat4x4<f32>;
-};
-[[binding(0), group(0)]] var<uniform> uniforms: Uniforms;
-
 struct VertexOutput {
   [[builtin(position)]] Position: vec4<f32>;
   [[location(0)]] v_uv: vec2<f32>;

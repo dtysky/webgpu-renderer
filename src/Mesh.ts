@@ -27,17 +27,17 @@ export default class Mesh extends Node {
 
     this._pipeline = device.createRenderPipeline({
       layout: device.createPipelineLayout({bindGroupLayouts: [
-        _material.uniformLayout
+        _material.effect.uniformLayout
       ]}),
   
       vertex: {
-        module: _material.vs,
+        module: _material.effect.vs,
         entryPoint: "main",
         buffers: [_geometry.vertexLayout]
       },
   
       fragment: {
-        module: _material.fs,
+        module: _material.effect.fs,
         targets: [
           {format: swapChainFormat}
         ],
@@ -57,7 +57,7 @@ export default class Mesh extends Node {
 
     pass.setVertexBuffer(0, _geometry.vertexes);
     pass.setIndexBuffer(_geometry.indexes, 'uint16');
-    pass.setBindGroup(0, _material.uniforms);
+    pass.setBindGroup(0, _material.bindingGroup);
     pass.setPipeline(this._pipeline);
     pass.drawIndexed(_geometry.count, 1, 0, 0, 0);
   }
