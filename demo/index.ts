@@ -51,11 +51,11 @@ class APP {
       require('./assets/shaders/test/fragment.frag.wgsl'),
       {
         uniforms: [
-          // {
-          //   name: 'u_world',
-          //   type: H.EUniformType.Buffer,
-          //   defaultValue: H.math.mat4.identity(new Float32Array(16)) as Float32Array
-          // },
+          {
+            name: 'u_world',
+            type: H.EUniformType.Buffer,
+            defaultValue: H.math.mat4.identity(new Float32Array(16)) as Float32Array
+          },
           // {
           //   name: 'u_vp',
           //   type: H.EUniformType.Buffer,
