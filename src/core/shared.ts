@@ -6,7 +6,7 @@
  */
 import renderEnv from './renderEnv';
 
-export type TTypedArray = Float32Array | Uint32Array | Uint16Array | Uint8Array;
+export type TTypedArray = Float32Array | Uint32Array | Uint16Array | Uint8Array | Int32Array | Int16Array;
 
 export function createGPUBuffer(array: TTypedArray, usage: GPUBufferUsageFlags) {
   const buffer = renderEnv.device.createBuffer({

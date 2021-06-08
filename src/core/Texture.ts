@@ -4,10 +4,11 @@
  * @Link   : dtysky.moe
  * @Date   : 2021/6/6下午9:10:44
  */
+import HObject from './HObject';
 import renderEnv from './renderEnv';
 
-export default class Texture {
-  public className: string = 'Texture';
+export default class Texture extends HObject {
+  public static  CLASS_NAME: string = 'Texture';
   public isTexture: boolean = true;
 
   protected _bitmap: ImageBitmap;
@@ -28,7 +29,10 @@ export default class Texture {
     protected _src: string | ArrayBuffer,
     protected _format: GPUTextureFormat = 'rgba8unorm'
   ) {
+    super();
+
     this._gpuTexture = renderEnv.device.createTexture({
+      label: this.hash,
       size: {width: this._width, height: this._height, depthOrArrayLayers: 1},
       format: 'rgba8unorm',
       usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT

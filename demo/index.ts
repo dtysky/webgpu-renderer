@@ -11,8 +11,9 @@ class APP {
   private _camera: H.Camera;
   private _mesh: H.Mesh;
   private _rt: H.RenderTexture;
+  private _csRT: H.RenderTexture;
   private _imageMesh: H.ImageMesh;
-
+  private _blurUnit: H.ComputeUnit;
 
   public init() {
     this._scene = new H.Scene();
@@ -50,10 +51,10 @@ class APP {
       6
     );
     const texture = new H.Texture(256, 256, require('./assets/textures/uv-debug.png'));
-    const effect = new H.Effect(
-      require('./assets/shaders/test/vertex.vert.wgsl'),
-      require('./assets/shaders/test/fragment.frag.wgsl'),
-      {
+    const effect = new H.Effect({
+      vs: require('./assets/shaders/test/vertex.vert.wgsl'),
+      fs: require('./assets/shaders/test/fragment.frag.wgsl'),
+      uniformDesc: {
         uniforms: [
           {
             name: 'u_world',
@@ -79,24 +80,34 @@ class APP {
           }
         ]
       }
-    );
+    });
     const material = new H.Material(effect);
     this._mesh = new H.Mesh(geometry, material);
     this._scene.rootNode.addChild(this._mesh);
 
     this._rt = new H.RenderTexture(H.renderEnv.width, H.renderEnv.height);
-    this._imageMesh = new H.ImageMesh(new H.Material(H.buildinEffects.blit, {u_texture: this._rt}));
-    // this._imageMesh = new H.ImageMesh(new H.Material(H.buildinEffects.blit, {u_texture: H.buildinTextures.green}));
+    this._csRT = new H.RenderTexture(H.renderEnv.width, H.renderEnv.height, true);
+    this._blurUnit = new H.ComputeUnit(
+      H.buildinEffects.cCreateSimpleBlur(2),
+      {x: Math.ceil(H.renderEnv.width / 5), y: Math.ceil(H.renderEnv.height / 5)},
+      {
+        u_input: this._rt,
+        u_output: this._csRT,
+        // u_kernel: new Float32Array([1])
+      }
+    );
+    this._imageMesh = new H.ImageMesh(new H.Material(H.buildinEffects.rBlit, {u_texture: this._csRT}));
   }
   
   public loop(dt: number) {
     const {_scene} = this;
 
-    H.math.quat.rotateZ(this._mesh.quat, this._mesh.quat, 0.01);
+    // H.math.quat.rotateZ(this._mesh.quat, this._mesh.quat, 0.01);
 
     _scene.startFrame();
     _scene.setRenderTarget(this._rt);
     _scene.renderCamera(this._camera, _scene.cullCamera(this._camera));
+    _scene.computeUnits([this._blurUnit]);
     _scene.setRenderTarget(null);
     _scene.renderImages([this._imageMesh]);
     _scene.endFrame();

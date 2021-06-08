@@ -4,14 +4,15 @@
  * @Link   : dtysky.moe
  * @Date   : 2021/6/6下午7:26:33
  */
-import { RenderTexture } from "..";
+import HObject from "./HObject";
 import Effect, { IUniformBlock, TUniformValue } from "./Effect";
 import renderEnv from "./renderEnv";
 import {TTypedArray} from "./shared";
+import RenderTexture from "./RenderTexture";
 import Texture from "./Texture";
 
-export default class Material {
-  public className: string = 'Material';
+export default class Material extends HObject {
+  public static  CLASS_NAME: string = 'Material';
   public isMaterial: boolean = true;
 
   protected _isDirty: boolean = false;
@@ -28,6 +29,7 @@ export default class Material {
         layout: this._uniformBlock.layout,
         entries: this._uniformBlock.entries
       });
+      this._isDirty = false;
     }
 
     return this._bindingGroup;
@@ -39,6 +41,8 @@ export default class Material {
       [name: string]: TUniformValue
     }
   ) {
+    super();
+
     this._uniformBlock = _effect.createDefaultUniformBlock();
 
     if (values) {

@@ -1,9 +1,8 @@
-
 /**
- * textures.ts
- * 
- * @Author  : hikaridai(hikaridai@tencent.com)
- * @Date    : 2021/6/7下午7:04:03
+ * @File   : textures.ts
+ * @Author : dtysky (dtysky@outlook.com)
+ * @Link   : dtysky.moe
+ * @Date   : 2021/6/6下午8:56:49
  */
 import Texture from "../core/Texture";
 

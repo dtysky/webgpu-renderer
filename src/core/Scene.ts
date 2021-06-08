@@ -5,14 +5,17 @@
  * @Date   : 2021/6/6下午7:25:22
  */
 import Camera from './Camera';
+import ComputeUnit from './ComputeUnit';
+import HObject from './HObject';
 import ImageMesh from './ImageMesh';
+import Material from './Material';
 import Mesh from './Mesh';
 import Node from './Node';
 import renderEnv from './renderEnv';
 import RenderTexture from './RenderTexture';
 
-export default class Scene {
-  public className: string = 'Scene';
+export default class Scene extends HObject {
+  public static CLASS_NAME: string = 'Scene';
   public isScene: boolean = true;
 
   protected _rootNode: Node;
@@ -84,7 +87,7 @@ export default class Scene {
       colorAttachments: [{
         view,
         loadValue: {r: 0, g: 0, b: 0, a: 1},
-        storeOp: 'clear' as GPUStoreOp
+        storeOp: 'store' as GPUStoreOp
       }]
     };
 
@@ -92,6 +95,16 @@ export default class Scene {
 
     for (const mesh of meshes) {
       mesh.render(pass);
+    }
+
+    pass.endPass();
+  }
+
+  public computeUnits(units: ComputeUnit[]) {
+    const pass = this._command.beginComputePass();
+
+    for (const unit of units) {
+      unit.compute(pass);
     }
 
     pass.endPass();

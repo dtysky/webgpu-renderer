@@ -12,7 +12,7 @@ import renderEnv from './renderEnv';
 declare type Camera = import('./Camera').default;
 
 export default class Mesh extends Node {
-  public className: string = 'Mesh';
+  public static  CLASS_NAME: string = 'Mesh';
   public isMesh: boolean = true;
 
   public sortZ: number = 0;

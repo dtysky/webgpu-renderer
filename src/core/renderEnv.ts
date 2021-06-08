@@ -5,7 +5,7 @@
  * @Date   : 2021/6/6下午8:59:05
  */
 class RenderEnv {
-  public className: string = 'RenderEnv';
+  public static  CLASS_NAME: string = 'RenderEnv';
   public isRenderEnv: boolean = true;
 
   private _device: GPUDevice;
