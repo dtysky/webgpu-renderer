@@ -4,12 +4,13 @@
  * @Link   : dtysky.moe
  * @Date   : 2021/6/6下午7:24:26
  */
+import HObject from './HObject';
 import {mat4, quat} from 'gl-matrix';
 
 const VEC3_ONES = new Float32Array([1, 1, 1]);
 
-export default class Node {
-  public className: string = 'Node';
+export default class Node extends HObject {
+  public static CLASS_NAME: string = 'Node';
   public isNode: boolean = true;
 
   public active: boolean = true;
@@ -38,6 +39,8 @@ export default class Node {
   }
 
   constructor() {
+    super();
+
     this._mem = new ArrayBuffer((3 + 3 + 4 + 16) * 4 * 4);
     this._pos = new Float32Array(this._mem, 0, 3);
     (this._scale = new Float32Array(this._mem, 3 * 4, 3)).set(VEC3_ONES);

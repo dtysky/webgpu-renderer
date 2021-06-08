@@ -5,10 +5,11 @@
  * @Link   : dtysky.moe
  * @Date   : 2021/6/6下午8:56:49
  */
+import HObject from './HObject';
 import {createGPUBuffer} from './shared';
 
-export default class Geometry {
-  public className: string = 'Geometry';
+export default class Geometry extends HObject {
+  public static CLASS_NAME: string = 'Geometry';
   public isGeometry: boolean = true;
 
   protected _vBuffer: GPUBuffer;
@@ -32,6 +33,8 @@ export default class Geometry {
     protected _indexData: ArrayBuffer,
     public count: number
   ) {
+    super();
+
     this._vBuffer = createGPUBuffer(new Float32Array(_vertexData), GPUBufferUsage.VERTEX);
     this._iBuffer = createGPUBuffer(new Uint16Array(_indexData), GPUBufferUsage.INDEX);
   }

@@ -1,14 +1,15 @@
 /**
- * ImageMesh.ts
- * 
- * @Author  : hikaridai(hikaridai@tencent.com)
- * @Date    : 2021/6/7下午6:19:55
-*/
+ * @File   : ImageMesh.ts
+ * @Author : dtysky (dtysky@outlook.com)
+ * @Link   : dtysky.moe
+ * @Date   : 2021/6/6下午8:56:49
+ */
+import HObject from './HObject';
 import Material from './Material';
 import renderEnv from './renderEnv';
 
-export default class ImageMesh {
-  public className: string = 'ImageMesh';
+export default class ImageMesh extends HObject {
+  public static CLASS_NAME: string = 'ImageMesh';
   public isImageMesh: boolean = true;
 
   protected _pipeline: GPURenderPipeline;
@@ -18,6 +19,8 @@ export default class ImageMesh {
   }
 
   constructor(protected _material: Material) {
+    super();
+
     const {device, swapChainFormat} = renderEnv;
 
     this._pipeline = device.createRenderPipeline({

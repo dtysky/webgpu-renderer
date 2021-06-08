@@ -10,7 +10,7 @@ import Node from './Node';
 import renderEnv from './renderEnv';
 
 export default class Camera extends Node {
-  public className: string = 'Node';
+  public static CLASS_NAME: string = 'Node';
   public isCamera: boolean = true;
 
   public viewport: {x: number, y: number, w: number, h: number};
