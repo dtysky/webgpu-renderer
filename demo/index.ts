@@ -46,8 +46,8 @@ class APP {
         1, -1, 0, 1, 1, 
         -1, 1, 0, 0, 0,
         1, 1, 0, 1, 0
-      ]).buffer,
-      new Uint16Array([0, 1, 2, 2, 1, 3]).buffer,
+      ]),
+      new Uint16Array([0, 1, 2, 2, 1, 3]),
       6
     );
     const texture = await H.resource.load({type: 'texture', name: 'uv-debug.tex', src: require('./assets/textures/uv-debug.png')});
@@ -97,7 +97,10 @@ class APP {
       }
     );
     this._imageMesh = new H.ImageMesh(new H.Material(H.buildinEffects.rBlit, {u_texture: this._csRT}));
-    console.log(this._blurUnit)
+
+    const model = await H.resource.load({type: 'gltf', name: 'soda.gltf', src: '/assets/models/soda/scene.gltf'});
+
+    console.log(model);
   }
   
   public loop(dt: number) {
@@ -105,13 +108,13 @@ class APP {
 
     // H.math.quat.rotateZ(this._mesh.quat, this._mesh.quat, 0.01);
 
-    _scene.startFrame();
-    _scene.setRenderTarget(this._rt);
-    _scene.renderCamera(this._camera, _scene.cullCamera(this._camera));
-    _scene.computeUnits([this._blurUnit]);
-    _scene.setRenderTarget(null);
-    _scene.renderImages([this._imageMesh]);
-    _scene.endFrame();
+    // _scene.startFrame();
+    // _scene.setRenderTarget(this._rt);
+    // _scene.renderCamera(this._camera, _scene.cullCamera(this._camera));
+    // _scene.computeUnits([this._blurUnit]);
+    // _scene.setRenderTarget(null);
+    // _scene.renderImages([this._imageMesh]);
+    // _scene.endFrame();
   }
 }
 

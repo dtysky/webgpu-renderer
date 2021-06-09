@@ -8,9 +8,11 @@
 import HObject from "../core/HObject";
 import Loader from "./Loader";
 import TextureLoader from "./TextureLoader";
+import GlTFLoader from "./GlTFLoader";
 
 export interface IResourceLoader {
-  texture: TextureLoader
+  texture: TextureLoader;
+  gltf: GlTFLoader;
 }
 
 export class Resource extends HObject {
@@ -30,6 +32,10 @@ export class Resource extends HObject {
     info: {type: TType, name: string, src: string},
     options?: IResourceLoader[TType]['type']['options']
   ): Promise<IResourceLoader[TType]['type']['resource']> {
+    if (this._resources[info.name]) {
+      return this._resources[info.name];
+    }
+
     return this._loaders[info.type].load(info.src, options || {})
       .then(res => {
         this._resources[info.name] = res;
@@ -46,5 +52,6 @@ export class Resource extends HObject {
 
 const resource = new Resource();
 resource.register('texture', new TextureLoader());
+resource.register('gltf', new GlTFLoader());
 
 export default resource;

@@ -8,8 +8,9 @@
 export default class HObject {
   public static IDS: {[className: string]: number} = {};
   public static CLASS_NAME: string = 'HObject';
-
+  
   public isHObject: boolean = true;
+  public name: string;
 
   protected _id: number;
   protected _hash: string;

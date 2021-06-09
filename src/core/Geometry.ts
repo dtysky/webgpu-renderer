@@ -6,7 +6,7 @@
  * @Date   : 2021/6/6下午8:56:49
  */
 import HObject from './HObject';
-import {createGPUBuffer} from './shared';
+import {createGPUBuffer, TTypedArray} from './shared';
 
 export default class Geometry extends HObject {
   public static CLASS_NAME: string = 'Geometry';
@@ -29,14 +29,14 @@ export default class Geometry extends HObject {
 
   constructor(
     protected _vertexLayout: GPUVertexBufferLayout,
-    protected _vertexData: ArrayBuffer,
-    protected _indexData: ArrayBuffer,
+    protected _vertexData: TTypedArray,
+    protected _indexData: TTypedArray,
     public count: number
   ) {
     super();
 
-    this._vBuffer = createGPUBuffer(new Float32Array(_vertexData), GPUBufferUsage.VERTEX);
-    this._iBuffer = createGPUBuffer(new Uint16Array(_indexData), GPUBufferUsage.INDEX);
+    this._vBuffer = createGPUBuffer(_vertexData, GPUBufferUsage.VERTEX);
+    this._iBuffer = createGPUBuffer(_indexData, GPUBufferUsage.INDEX);
   }
 
   public updateVertexes() {
