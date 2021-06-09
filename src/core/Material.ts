@@ -37,9 +37,8 @@ export default class Material extends HObject {
 
   constructor(
     protected _effect: Effect,
-    values?: {
-      [name: string]: TUniformValue
-    }
+    values?: {[name: string]: TUniformValue},
+    marcos?: {[key: string]: number | boolean}
   ) {
     super();
 
