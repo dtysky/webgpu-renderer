@@ -26,7 +26,7 @@ export default class Texture extends HObject {
   constructor(
     protected _width: number,
     protected _height: number,
-    protected _src: string | ArrayBuffer,
+    protected _src: ImageBitmap | ArrayBuffer,
     protected _format: GPUTextureFormat = 'rgba8unorm'
   ) {
     super();
@@ -39,30 +39,22 @@ export default class Texture extends HObject {
     });
     this._gpuTextureView = this._gpuTexture.createView();
 
-    if (typeof _src === 'string') {
+    if (_src instanceof ImageBitmap) {
       this._loadImg();
     } else {
       this._loadBuffer();
     }
   }
 
-  protected async _loadImg() {
-    const img = document.createElement('img');
-    img.src = this._src as string;
-
-    await img.decode();
-    const bitmap = await createImageBitmap(img);  
-
+  protected _loadImg() {
     renderEnv.device.queue.copyExternalImageToTexture(
-      {source: bitmap},
+      {source: this._src as ImageBitmap},
       {texture: this._gpuTexture},
-      {width: bitmap.width, height: bitmap.height, depthOrArrayLayers: 1}
+      {width: this._width, height: this._height, depthOrArrayLayers: 1}
     );
-
-    bitmap.close();
   }
 
-  protected async _loadBuffer() {
+  protected _loadBuffer() {
     // const bitmap = await createImageBitmap(
     //   new ImageData(new Uint8ClampedArray(this._src as ArrayBuffer), this._width, this._height)
     // );

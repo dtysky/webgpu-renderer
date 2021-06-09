@@ -21,6 +21,10 @@ export {default as RenderTexture} from './core/RenderTexture';
 export {default as Texture} from './core/Texture';
 export {default as renderEnv} from './core/renderEnv';
 
+export {default as resource, Resource} from './resource';
+export {default as TextureLoader, ITextureLoaderOptions} from './resource/TextureLoader';
+// export {default as TextureLoader, ITextureLoaderOptions} from './resource/TextureLoader';
+
 import {init as initBuildin} from './buildin';
 export {buildinEffects, buildinTextures} from './buildin';
 
@@ -35,4 +39,5 @@ export const math = {
   mat2, mat3, mat4
 }
 
+//@ts-ignore
 window['H'] = this;
