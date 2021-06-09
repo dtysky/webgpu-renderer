@@ -1,7 +1,7 @@
-[[override(0)]] let c_radius: i32 = 2;
-[[override(1)]] let c_windowSize: i32 = 5;
+let c_radius: i32 = ${MARCO_RADIUS};
+let c_windowSize: i32 = ${MARCO_WINDOW_SIZE};
 
-var<workgroup> tileCache: array<array<vec3<f32>, 9>, 9>;
+var<workgroup> tileCache: array<array<vec3<f32>, ${TILE_SIZE}>, ${TILE_SIZE}>;
 
 [[stage(compute), workgroup_size(c_windowSize, c_windowSize, 1)]]
 fn main(
@@ -12,11 +12,12 @@ fn main(
   let windowSize: vec2<i32> = vec2<i32>(c_windowSize, c_windowSize);
   let groupOffset: vec2<i32> = vec2<i32>(workGroupID.xy) * windowSize;
   let baseIndex: vec2<i32> = groupOffset + vec2<i32>(localInvocationID.xy);
+  let baseUV: vec2<f32> = vec2<f32>(baseIndex) / vec2<f32>(size);
   let center: vec2<i32> = vec2<i32>(localInvocationID.xy) + vec2<i32>(c_radius, c_radius);
   var color: vec4<f32> = vec4<f32>(0., 0., 0., 1.);
 
   if (baseIndex.x < size.x && baseIndex.y < size.y) {
-    color = textureSampleLevel(u_input, u_sampler, vec2<f32>(baseIndex) / vec2<f32>(size), 0.);
+    color = textureSampleLevel(u_input, u_sampler, baseUV, 0.);
     tileCache[center.x][center.y] = color.rgb;
   }
 
@@ -27,12 +28,10 @@ fn main(
 
   for (var r: i32 = -c_radius; r <= c_radius; r = r + 1) {
     for (var c: i32 = -c_radius; c <= c_radius; c = c + 1) {
-      let weight: f32 = uniforms.u_kernel[(r + c_radius) * c_windowSize + (c + c_radius)];
+      let weightIndex: i32 = (r + c_radius) * c_windowSize + (c + c_radius);
+      let weight: f32 = uniforms.u_kernel[weightIndex / 4][weightIndex % 4];
       weightsSum = weightsSum + weight;
-      res = res + (
-        // weight * tileCache[center.x + r][center.y + c]
-        tileCache[center.x + r][center.y + c]
-      );
+      res = res + weight * tileCache[center.x + r][center.y + c];
     }
   }
   res = res / f32(c_windowSize);

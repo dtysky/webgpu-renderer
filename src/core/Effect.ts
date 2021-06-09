@@ -200,7 +200,6 @@ export default class Effect extends HObject {
     if (isComputeOptions(options)) {
       this._cs = options.cs
       this._csShader = device.createShaderModule({code: this._shaderPrefix + this._cs});
-      console.log(this._shaderPrefix + this._cs)
       this._csPipeline = device.createComputePipeline({
         compute: {
           module: this._csShader,

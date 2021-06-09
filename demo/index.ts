@@ -15,7 +15,7 @@ class APP {
   private _imageMesh: H.ImageMesh;
   private _blurUnit: H.ComputeUnit;
 
-  public init() {
+  public async init() {
     this._scene = new H.Scene();
     const rootNode = this._scene.rootNode = new H.Node();
 
@@ -50,7 +50,7 @@ class APP {
       new Uint16Array([0, 1, 2, 2, 1, 3]).buffer,
       6
     );
-    const texture = new H.Texture(256, 256, require('./assets/textures/uv-debug.png'));
+    const texture = await H.resource.load({type: 'texture', name: 'uv-debug.tex', src: require('./assets/textures/uv-debug.png')});
     const effect = new H.Effect({
       vs: require('./assets/shaders/test/vertex.vert.wgsl'),
       fs: require('./assets/shaders/test/fragment.frag.wgsl'),
@@ -97,6 +97,7 @@ class APP {
       }
     );
     this._imageMesh = new H.ImageMesh(new H.Material(H.buildinEffects.rBlit, {u_texture: this._csRT}));
+    console.log(this._blurUnit)
   }
   
   public loop(dt: number) {
@@ -119,7 +120,7 @@ async function main() {
   await H.init(document.querySelector<HTMLCanvasElement>('canvas#mainCanvas'));
   const app = new APP();
 
-  app.init();
+  await app.init();
   
   let t = 0;
   function _loop(ct: number) {

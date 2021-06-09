@@ -6,10 +6,13 @@
  */
 import buildinTextures, {init as initTextures} from './textures';
 export {buildinTextures};
+import buildinGeometries, {init as initGeometries} from './geometries';
+export {buildinGeometries};
 import buildinEffects, {init as initEffects} from './effects';
 export {buildinEffects};
 
 export function init() {
   initTextures();
+  initGeometries();
   initEffects();
 }
