@@ -23,6 +23,7 @@ export {default as renderEnv} from './core/renderEnv';
 
 export {default as resource, Resource} from './resource';
 export {default as TextureLoader, ITextureLoaderOptions} from './resource/TextureLoader';
+export {default as GlTFLoader, IGlTFResource, IGlTFLoaderOptions} from './resource/GlTFLoader';
 // export {default as TextureLoader, ITextureLoaderOptions} from './resource/TextureLoader';
 
 import {init as initBuildin} from './buildin';

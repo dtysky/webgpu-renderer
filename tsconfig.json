@@ -17,6 +17,7 @@
   "include": [
     "src/**/*.ts",
     "demo/**/*.ts",
+    "types/**/*.d.ts",
     "node_modules/@webgpu/types"
   ],
   "lib": [

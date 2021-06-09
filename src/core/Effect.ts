@@ -32,10 +32,6 @@ export interface IUniformsDescriptor {
   }[]
 }
 
-export interface IConstantsDescriptor {
-
-}
-
 export interface IUniformBlock {
   layout: GPUBindGroupLayout;
   entries: GPUBindGroupEntry[];
@@ -51,12 +47,12 @@ export interface IEffectOptionsRender {
   vs: string;
   fs: string;
   uniformDesc: IUniformsDescriptor;
-  constants?: IConstantsDescriptor;
+  marcos?: {[key: string]: number | boolean};
 }
 export interface IEffectOptionsCompute {
   cs: string;
   uniformDesc: IUniformsDescriptor;
-  constants?: IConstantsDescriptor;
+  marcos?: {[key: string]: number | boolean};
 }
 export type TEffectOptions = IEffectOptionsRender | IEffectOptionsCompute;
 
@@ -68,13 +64,17 @@ export default class Effect extends HObject {
   public static CLASS_NAME: string = 'Effect';
   public isEffect: boolean = true;
 
+  protected _marcos?: {[key: string]: number | boolean};
+  protected _marcosRegex: {[key: string]: RegExp};
   protected _vs: string;
   protected _fs: string;
   protected _cs: string;
+  protected _shaders: {[hash: number]: {
+    vs?: GPUShaderModule,
+    fs?: GPUShaderModule,
+  }} = {};
   protected _uniformDesc: IUniformsDescriptor;
   protected _shaderPrefix: string;
-  protected _vsShader: GPUShaderModule;
-  protected _fsShader: GPUShaderModule;
   protected _csShader: GPUShaderModule;
   protected _csPipeline: GPUComputePipeline;
   protected _uniformLayoutDesc: GPUBindGroupLayoutDescriptor;
@@ -90,18 +90,6 @@ export default class Effect extends HObject {
     defaultGpuValue?: GPUSampler | GPUTextureView
   }};
 
-  get vs() {
-    return this._vsShader;
-  }
-
-  get fs() {
-    return this._fsShader;
-  }
-
-  get cs() {
-    return this._csShader;
-  }
-
   get computePipeline() {
     return this._csPipeline;
   }
@@ -115,13 +103,25 @@ export default class Effect extends HObject {
   }
 
   constructor(
-    options: TEffectOptions
+    private _options: TEffectOptions
   ) {
     super();
 
     const {device} = renderEnv;
+    const options = _options;
     const _uniformDesc = this._uniformDesc = options.uniformDesc;
     const visibility = (options as IEffectOptionsCompute).cs ? GPUShaderStage.COMPUTE : GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT;
+
+    this._marcos = options.marcos || {};
+    this._marcosRegex = {};
+    for (const key in this._marcos) {
+      const value = this._marcos[key];
+      if (typeof value === 'number') {
+        this._marcosRegex[key] = new RegExp(`\$\{${key}\}`, 'g');
+      } else {
+        this._marcosRegex[key] = new RegExp(`^#if defined\(${key}\)([\s\S]+?)endif$`, 'g');
+      }
+    }
 
     let index: number = 0;
     let bindingId: number = 0;
@@ -210,8 +210,6 @@ export default class Effect extends HObject {
     } else {
       this._vs = options.vs;
       this._fs = options.fs;
-      this._vsShader = device.createShaderModule({code: this._shaderPrefix + this._vs});
-      this._fsShader = device.createShaderModule({code: this._shaderPrefix + this._fs});
       this._uniformLayout = device.createBindGroupLayout(this._uniformLayoutDesc);
     }
   }
@@ -250,5 +248,57 @@ export default class Effect extends HObject {
     });
 
     return {entries: groupEntries, values, layout: this._uniformLayout};
+  }
+
+  public getShader(marcos: {[key: string]: number | boolean}) {
+    marcos = Object.assign({}, this._marcos, marcos);
+    const {device} = renderEnv;
+    const hash = this._calcHash(marcos);
+    const shaders = this._shaders[hash];
+
+    if (shaders) {
+      return shaders;
+    }
+
+    const tmp = [this._vs, this._fs];
+
+    for (const key in this._marcos) {
+      const value = marcos[key];
+      const regex = this._marcosRegex[key];
+
+      tmp.forEach((s, i) => {
+        if (!s) {
+          return;
+        }
+
+        if (typeof value === 'number') {
+          tmp[i] = s.replace(regex, `${value}`);
+        } else if (!value) {
+          tmp[i] = s.replace(regex, '');
+        } else {
+          tmp[i] = s.replace(regex, '$1');
+        }
+      });
+    }
+
+    const [vs, fs] = tmp;
+    const res = this._shaders[hash] = {
+      vs: cs && device.createShaderModule({code: this._shaderPrefix + vs}),
+      fs: cs && device.createShaderModule({code: this._shaderPrefix + fs})
+    };
+
+    return res;
+  }
+
+  private _calcHash(marcos: {[key: string]: number | boolean}): number {
+    let hash: number = 0;
+
+    for (const key in this._marcos) {
+      const value = marcos[key];
+      const hashValue = typeof value === 'number' ? value : (value ? 1 : 0);
+      hash = (hash << 5) - hash + hashValue;
+    }
+
+    return hash;
   }
 }

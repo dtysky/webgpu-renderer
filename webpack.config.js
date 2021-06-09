@@ -61,6 +61,12 @@ module.exports = {
             limit: 15000
           }
         }
+      },
+      {
+        test: /\.gltf$/,
+        use: {
+          loader: 'seinjs-gltf-loader'
+        }
       }
     ]
   },

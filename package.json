@@ -6,8 +6,12 @@
   "devDependencies": {
     "@webgpu/glslang": "^0.0.15",
     "@webgpu/types": "^0.1.3",
+    "bluebird": "^3.7.2",
     "html-webpack-plugin": "^4.5.0",
+    "json-schema-ref-parser": "^9.0.9",
+    "json-schema-to-typescript": "^10.1.4",
     "raw-loader": "^4.0.2",
+    "seinjs-gltf-loader": "^0.9.28",
     "ts-loader": "^9.2.2",
     "typescript": "^3.9.5",
     "url-loader": "^2.1.0",
