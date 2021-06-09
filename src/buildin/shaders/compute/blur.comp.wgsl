@@ -22,12 +22,15 @@ fn main(
 
   workgroupBarrier();
 
+  var weightsSum: f32 = 0.;
   var res: vec3<f32>;
 
   for (var r: i32 = -c_radius; r <= c_radius; r = r + 1) {
     for (var c: i32 = -c_radius; c <= c_radius; c = c + 1) {
+      let weight: f32 = uniforms.u_kernel[(r + c_radius) * c_windowSize + (c + c_radius)];
+      weightsSum = weightsSum + weight;
       res = res + (
-        // uniforms.u_kernel[(r + c_radius) * c_windowSize + (c + c_radius)] * tileCache[center.x + r][center.y + c]
+        // weight * tileCache[center.x + r][center.y + c]
         tileCache[center.x + r][center.y + c]
       );
     }
