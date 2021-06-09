@@ -18,10 +18,16 @@ export default class Mesh extends Node {
   public sortZ: number = 0;
 
   protected _pipeline: GPURenderPipeline;
+  protected _marcos: {[key: string]: number | boolean};
+
+  get marcos() {
+    return this._marcos;
+  }
 
   constructor(
     protected _geometry: Geometry,
-    protected _material: Material
+    protected _material: Material,
+    marcos?: {[key: string]: number | boolean}
   ) {
     super();
 
@@ -50,6 +56,12 @@ export default class Mesh extends Node {
         topology: 'triangle-list'
       }
     });
+    
+    this._marcos = marcos || {};
+  }
+
+  public changeMarcos(marcos: {[key: string]: number | boolean}) {
+    Object.assign(this._marcos, marcos);
   }
 
   public render(pass: GPURenderPassEncoder, camera: Camera) {

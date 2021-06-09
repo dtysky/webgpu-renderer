@@ -102,6 +102,10 @@ export default class Effect extends HObject {
     return this._uniformsInfo;
   }
 
+  get cs() {
+    return this._csShader;
+  }
+
   constructor(
     private _options: TEffectOptions
   ) {
@@ -283,8 +287,8 @@ export default class Effect extends HObject {
 
     const [vs, fs] = tmp;
     const res = this._shaders[hash] = {
-      vs: cs && device.createShaderModule({code: this._shaderPrefix + vs}),
-      fs: cs && device.createShaderModule({code: this._shaderPrefix + fs})
+      vs: vs && device.createShaderModule({code: this._shaderPrefix + vs}),
+      fs: fs && device.createShaderModule({code: this._shaderPrefix + fs})
     };
 
     return res;
