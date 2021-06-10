@@ -51,7 +51,7 @@ export default class Mesh extends Node {
   }
 
   protected _createPipeline(rt: RenderTexture) {
-    const {device, swapChainFormat} = renderEnv;
+    const {device} = renderEnv;
     const {_geometry, _material} = this;
     
     const marcos = Object.assign({}, _geometry.marcos, _material.marcos);
@@ -77,10 +77,11 @@ export default class Mesh extends Node {
       },
   
       primitive: {
-        topology: 'triangle-list'
+        topology: 'triangle-list',
+        cullMode: 'back'
       },
 
-      depthStencil: {
+      depthStencil: rt.depthStencilFormat && {
         format: rt.depthStencilFormat,
         depthWriteEnabled: true,
         depthCompare: 'less-equal'

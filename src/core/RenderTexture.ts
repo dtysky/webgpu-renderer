@@ -38,6 +38,14 @@ export default class RenderTexture extends HObject {
     return this._pipelineHash;
   }
 
+  get color() {
+    return this._color;
+  }
+
+  get depthStencil() {
+    return this._depthStencil;
+  }
+
   get colorView() {
     return this._colorView;
   }
@@ -51,7 +59,7 @@ export default class RenderTexture extends HObject {
   }
 
   get depthStencilFormat() {
-    return this._depthDesc.format;
+    return this._depthDesc?.format;
   }
 
   constructor(
@@ -64,24 +72,25 @@ export default class RenderTexture extends HObject {
     super();
 
     this._color = renderEnv.device.createTexture(this._colorDesc = {
-      label: this.hash,
+      label: this.hash + '_color0',
       size: {width: _width, height: _height},
-      format: _format || 'rgba8unorm',
+      format: _format || renderEnv.swapChainFormat,
       usage: (
-        GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.SAMPLED | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
+        GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.SAMPLED
       ) | (
         _asOutput ? GPUTextureUsage.STORAGE : 0
       )
     } as GPUTextureDescriptor);
-    this._colorView = this._color.createView({label: this.hash});
+    this._colorView = this._color.createView({label: this.hash + '_color0'});
 
     if (!_asOutput && _needDepthStencil) {
       this._depthStencil = renderEnv.device.createTexture(this._depthDesc = {
+        label: this.hash + '_depth',
         size: {width: _width, height: _height},
-        format: _needDepthStencil === 1 ? 'depth16unorm' : 'depth24plus-stencil8',
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
+        format: _needDepthStencil === 1 ? 'depth24plus' : 'depth24plus-stencil8',
+        usage: GPUTextureUsage.RENDER_ATTACHMENT
       } as GPUTextureDescriptor);
-      this._depthStencilView = this._depthStencil.createView();
+      this._depthStencilView = this._depthStencil.createView({label: this.hash + '_depth'});
     }
 
     this._pipelineHash = hashCode(this._colorDesc.format + (this._depthDesc ? this._depthDesc.format : ''));
