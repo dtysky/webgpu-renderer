@@ -15,13 +15,21 @@ export default class Material extends HObject {
   public static  CLASS_NAME: string = 'Material';
   public isMaterial: boolean = true;
 
+  public isMarcoDirty: boolean = false;
+
   protected _isDirty: boolean = false;
   protected _uniformBlock: IUniformBlock;
   protected _bindingGroup: GPUBindGroup;
+  protected _marcos: {[key: string]: number | boolean};
 
   get effect() {
     return this._effect;
   }
+
+  get marcos() {
+    return this._marcos;
+  }
+
 
   get bindingGroup() {
     if (this._isDirty) {
@@ -47,6 +55,8 @@ export default class Material extends HObject {
     if (values) {
       Object.keys(values).forEach(name => this.setUniform(name, values[name]));
     }
+
+    this._marcos = marcos || {};
 
     this._bindingGroup = renderEnv.device.createBindGroup({
       layout: this._uniformBlock.layout,
@@ -94,5 +104,10 @@ export default class Material extends HObject {
 
   public getUniform(name: string): TUniformValue {
     return this._uniformBlock.values[name]?.value;
+  }
+
+  public setMarcos(marcos: {[key: string]: number | boolean}) {
+    Object.assign(this._marcos, marcos);
+    this.isMarcoDirty = true;
   }
 }

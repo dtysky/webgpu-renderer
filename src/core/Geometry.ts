@@ -14,6 +14,8 @@ export default class Geometry extends HObject {
 
   protected _vBuffer: GPUBuffer;
   protected _iBuffer: GPUBuffer;
+  protected _marcos: {[key: string]: number | boolean};
+  protected _attributesDef: string;
 
   get indexes() {
     return this._iBuffer;
@@ -27,8 +29,19 @@ export default class Geometry extends HObject {
     return this._vertexLayout;
   }
 
+  get attributesDef() {
+    return this._attributesDef;
+  }
+
+  get marcos() {
+    return this._marcos;
+  }
+
   constructor(
-    protected _vertexLayout: GPUVertexBufferLayout,
+    protected _vertexLayout: {
+      attributes: (GPUVertexAttribute & {name: string})[],
+      arrayStride: number
+    },
     protected _vertexData: TTypedArray,
     protected _indexData: TTypedArray,
     public count: number
@@ -37,6 +50,29 @@ export default class Geometry extends HObject {
 
     this._vBuffer = createGPUBuffer(_vertexData, GPUBufferUsage.VERTEX);
     this._iBuffer = createGPUBuffer(_indexData, GPUBufferUsage.INDEX);
+
+    this._attributesDef = 'struct Attrs {\n';
+    this._marcos = {};
+    _vertexLayout.attributes.forEach((attr, index) => {
+      this._marcos[`USE_${attr.name.toUpperCase()}`] = true;
+      this._attributesDef += `  [[location(${index})]] ${attr.name}: ${this._convertFormat(attr.format)};\n`;
+    });
+    this._attributesDef += '};\n\n';
+  }
+
+  protected _convertFormat(f: GPUVertexFormat) {
+    switch (f) {
+      case 'float32':
+        return 'f32';
+      case 'float32x2':
+        return 'vec2<f32>';
+      case 'float32x3':
+        return 'vec3<f32>';
+      case 'float32x4':
+        return 'vec4<f32>';
+    }
+
+    throw new Error(`Not support format ${f}!`)
   }
 
   public updateVertexes() {

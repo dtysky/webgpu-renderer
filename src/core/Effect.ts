@@ -10,6 +10,8 @@ import RenderTexture from "./RenderTexture";
 import Texture from "./Texture";
 import HObject from "./HObject";
 
+const hashCode = (s: string) => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0)
+
 export type TUniformValue = TTypedArray | Texture | GPUSamplerDescriptor | RenderTexture;
 
 export interface IUniformsDescriptor {
@@ -123,7 +125,7 @@ export default class Effect extends HObject {
       if (typeof value === 'number') {
         this._marcosRegex[key] = new RegExp(`\$\{${key}\}`, 'g');
       } else {
-        this._marcosRegex[key] = new RegExp(`^#if defined\(${key}\)([\s\S]+?)endif$`, 'g');
+        this._marcosRegex[key] = new RegExp(`#if defined\\(${key}\\)([\\s\\S]+?)#endif`, 'g');
       }
     }
 
@@ -254,10 +256,13 @@ export default class Effect extends HObject {
     return {entries: groupEntries, values, layout: this._uniformLayout};
   }
 
-  public getShader(marcos: {[key: string]: number | boolean}) {
+  public getShader(
+    marcos: {[key: string]: number | boolean},
+    attributesDef: string
+  ) {
     marcos = Object.assign({}, this._marcos, marcos);
     const {device} = renderEnv;
-    const hash = this._calcHash(marcos);
+    const hash = this._calcHash(attributesDef, marcos);
     const shaders = this._shaders[hash];
 
     if (shaders) {
@@ -287,15 +292,15 @@ export default class Effect extends HObject {
 
     const [vs, fs] = tmp;
     const res = this._shaders[hash] = {
-      vs: vs && device.createShaderModule({code: this._shaderPrefix + vs}),
+      vs: vs && device.createShaderModule({code: attributesDef + this._shaderPrefix + vs}),
       fs: fs && device.createShaderModule({code: this._shaderPrefix + fs})
     };
 
     return res;
   }
 
-  private _calcHash(marcos: {[key: string]: number | boolean}): number {
-    let hash: number = 0;
+  private _calcHash(def: string, marcos: {[key: string]: number | boolean}): number {
+    let hash: number = hashCode(def);
 
     for (const key in this._marcos) {
       const value = marcos[key];

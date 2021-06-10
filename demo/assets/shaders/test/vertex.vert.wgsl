@@ -4,11 +4,11 @@ struct VertexOutput {
 };
 
 [[stage(vertex)]]
-fn main([[location(0)]] a_position: vec4<f32>, [[location(1)]] a_uv: vec2<f32>) -> VertexOutput {
+  fn main(attrs: Attrs) -> VertexOutput {
   var output: VertexOutput;
 
-  output.Position = uniforms.u_world * a_position;
-  output.v_uv = a_uv;
+  output.Position = uniforms.u_world * vec4<f32>(attrs.position, 1.);
+  output.v_uv = attrs.uv;
 
   return output;
 }
