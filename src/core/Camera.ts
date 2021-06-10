@@ -8,6 +8,7 @@ import {mat4} from 'gl-matrix';
 import Mesh from './Mesh';
 import Node from './Node';
 import renderEnv from './renderEnv';
+import RenderTexture from './RenderTexture';
 
 export default class Camera extends Node {
   public static CLASS_NAME: string = 'Node';
@@ -80,33 +81,34 @@ export default class Camera extends Node {
 
   public render(
     cmd: GPUCommandEncoder,
-    target: {width: number, height: number, color: GPUTextureView, depthStencil?: GPUTextureView},
+    rt: RenderTexture,
     meshes: Mesh[]
   ) {
     const [r, g, b, a] = this.clearColor;
     const {x, y, w, h} = this.viewport;
-    const {width, height} = target;
+    const {width, height, colorView, depthStencilView} = rt;
 
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: [{
-        view: target.color,
+        view: colorView,
         loadValue: {r, g, b, a},
         storeOp: this.colorOp
       }],
-      depthStencilAttachment: target.depthStencil ? {
-        view: target.depthStencil,
+      depthStencilAttachment: depthStencilView && {
+        view: depthStencilView,
         depthLoadValue: this.clearDepth,
         stencilLoadValue: this.clearStencil,
         depthStoreOp: this.depthOp,
-        stencilStoreOp: this.stencilOp
-      } : undefined
+        stencilStoreOp: this.stencilOp,
+        // depthReadOnly: true
+      }
     };
 
     const pass = cmd.beginRenderPass(renderPassDescriptor);
     pass.setViewport(x * width, y * height, w * width, h * height, 0, 1);
 
     for (const mesh of meshes) {
-      mesh.render(pass, this);
+      mesh.render(pass, this, rt);
     }
 
     pass.endPass();

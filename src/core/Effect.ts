@@ -4,13 +4,11 @@
  * @Author  : hikaridai(hikaridai@tencent.com)
  * @Date    : 2021/6/7下午1:51:11
  */
- import {createGPUBuffer, TTypedArray} from "./shared";
+ import {createGPUBuffer, hashCode, TTypedArray} from "./shared";
 import renderEnv from "./renderEnv";
 import RenderTexture from "./RenderTexture";
 import Texture from "./Texture";
 import HObject from "./HObject";
-
-const hashCode = (s: string) => s.split('').reduce((a,b)=>{a=((a<<5)-a)+b.charCodeAt(0);return a&a},0)
 
 export type TUniformValue = TTypedArray | Texture | GPUSamplerDescriptor | RenderTexture;
 

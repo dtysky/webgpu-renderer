@@ -8,6 +8,7 @@ import Node from './Node';
 import Geometry from './Geometry';
 import Material from './Material';
 import renderEnv from './renderEnv';
+import RenderTexture from './RenderTexture';
 
 declare type Camera = import('./Camera').default;
 
@@ -17,23 +18,26 @@ export default class Mesh extends Node {
 
   public sortZ: number = 0;
 
-  protected _pipeline: GPURenderPipeline;
+  protected _pipelines: {[hash: number]: GPURenderPipeline} = {};
+  protected _matVersion: number = -1;
 
   constructor(
     protected _geometry: Geometry,
     protected _material: Material
   ) {
     super();
-    
-    this._createPipeline();
   }
 
-  public render(pass: GPURenderPassEncoder, camera: Camera) {
+  public render(
+    pass: GPURenderPassEncoder,
+    camera: Camera,
+    rt: RenderTexture
+  ) {
     const {_geometry, _material} = this;
 
-    if (_material.isMarcoDirty) {
-      this._createPipeline();
-      _material.isMarcoDirty = false;
+    if (_material.version !== this._matVersion || !this._pipelines[rt.pipelineHash]) {
+      this._createPipeline(rt);
+      this._matVersion = _material.version;
     }
 
     _material.setUniform('u_vp', camera.vpMat);
@@ -42,18 +46,18 @@ export default class Mesh extends Node {
     pass.setVertexBuffer(0, _geometry.vertexes);
     pass.setIndexBuffer(_geometry.indexes, 'uint16');
     pass.setBindGroup(0, _material.bindingGroup);
-    pass.setPipeline(this._pipeline);
+    pass.setPipeline(this._pipelines[rt.pipelineHash]);
     pass.drawIndexed(_geometry.count, 1, 0, 0, 0);
   }
 
-  protected _createPipeline() {
+  protected _createPipeline(rt: RenderTexture) {
     const {device, swapChainFormat} = renderEnv;
     const {_geometry, _material} = this;
     
     const marcos = Object.assign({}, _geometry.marcos, _material.marcos);
     const {vs, fs} = _material.effect.getShader(marcos, _geometry.attributesDef);
 
-    this._pipeline = device.createRenderPipeline({
+    this._pipelines[rt.pipelineHash] = device.createRenderPipeline({
       layout: device.createPipelineLayout({bindGroupLayouts: [
         _material.effect.uniformLayout
       ]}),
@@ -66,15 +70,21 @@ export default class Mesh extends Node {
   
       fragment: {
         module: fs,
-        targets: [
-          {format: swapChainFormat}
-        ],
+        targets: [{
+          format: rt.colorFormat
+        }],
         entryPoint: "main"
       },
   
       primitive: {
         topology: 'triangle-list'
       },
+
+      depthStencil: {
+        format: rt.depthStencilFormat,
+        depthWriteEnabled: true,
+        depthCompare: 'less-equal'
+      }
     });
   }
 }
