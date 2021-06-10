@@ -12,6 +12,7 @@ import Material from "../core/Material";
 import Mesh from "../core/Mesh";
 import Texture from "../core/Texture";
 import Loader from "./Loader";
+import { TUniformValue } from "../core/Effect";
 
 export interface IGlTFLoaderOptions {
 
@@ -104,13 +105,35 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
   private async _loadMaterials() {
     const {_buffers} = this;
     const {materials: materialsSrc} = this._json;
-    const {materials} = this._res;
+    const {materials, textures} = this._res;
 
-    for (const desc of materialsSrc) {
-      const effect = buildinEffects.rGreen;
-      const material = new Material(effect);
-      material.name = desc.name;
+    for (const {name, pbrMetallicRoughness, normalTexture} of materialsSrc) {
+      const effect = buildinEffects.rUnlit;
+      const uniforms: {[key: string]: TUniformValue} = {};
 
+      if (normalTexture) {
+        uniforms['u_normalTexture'] = textures[normalTexture.index]
+      }
+
+      if (pbrMetallicRoughness) {
+        const {
+          baseColorTexture, metallicFactor, roughnessFactor, metallicRoughnessTexture
+        } = pbrMetallicRoughness;
+
+        if (baseColorTexture) {
+          uniforms['u_baseColorTexture'] = textures[baseColorTexture.index]
+        }
+        if (metallicRoughnessTexture) {
+          uniforms['u_metallicRoughnessTexture'] = textures[metallicRoughnessTexture.index]
+        }
+
+        uniforms['u_metallicFactor'] = metallicFactor;
+        uniforms['u_metallicFactor'] = roughnessFactor;
+        uniforms['u_roughnessFactor'] = roughnessFactor;
+      }
+
+      const material = new Material(effect, uniforms);
+      material.name = name;
       materials.push(material);
     }
   }
@@ -160,7 +183,7 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
       node.name = name;
 
       if (matrix) {
-        node.worldMat.set(matrix);
+        node.worldMat = matrix;
       }
 
       nodes.push(node);
@@ -177,7 +200,6 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
       }
       index += 1;
     }
-
 
     for (let nodeId of scenes[0].nodes) {
       rootNode.addChild(nodes[nodeId]);
@@ -197,12 +219,14 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     for (const attrName in prim.attributes) {
       const {bufferView, byteOffset, componentType, type} = accessors[prim.attributes[attrName]];
       const view = bufferViews[bufferView];
-      arrayStride = view.byteStride;
+      const [format, byteLength] = this._convertVertexFormat(type, componentType);
+      arrayStride += byteLength;
       vertexData = vertexData || new Uint8Array(_buffers[view.buffer], view.byteOffset || 0, view.byteLength);
+
 
       attributes.push({
         name: attrName.toLowerCase(),
-        format: this._convertVertexFormat(type, componentType),
+        format,
         offset: byteOffset || 0,
         shaderLocation: id
       });
@@ -220,20 +244,20 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     return new Mesh(geometry, material);
   }
 
-  private _convertVertexFormat(type: 'SCALE' | 'VEC2' | 'VEC3' | 'VEC4', componentType: GLenum): GPUVertexFormat {
+  private _convertVertexFormat(type: 'SCALE' | 'VEC2' | 'VEC3' | 'VEC4', componentType: GLenum): [GPUVertexFormat, number] {
     if (componentType !== 5126) {
       throw new Error('Only support componentType float!');
     }
 
     switch (type) {
       case 'SCALE':
-        return 'float32';
+        return ['float32', 4];
       case 'VEC2':
-        return 'float32x2';
+        return ['float32x2', 8];
       case 'VEC3':
-        return 'float32x3';
+        return ['float32x3', 12];
       case 'VEC4':
-        return 'float32x4';
+        return ['float32x4', 16];
     }
 
     throw new Error(`Not support type ${type}!`)

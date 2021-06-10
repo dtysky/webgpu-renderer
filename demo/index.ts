@@ -5,6 +5,7 @@
  * @Date   : 2021/6/5下午2:44:28
  */
 import * as H from '../src/index';
+const {math} = H;
 
 class APP {
   private _scene: H.Scene;
@@ -20,10 +21,11 @@ class APP {
     const rootNode = this._scene.rootNode = new H.Node();
 
     this._camera = new H.Camera(
-      {clearColor: [1, 0, 0, 1]},
-      {near: 0.1, far: 100, fov: Math.PI / 3}
+      {clearColor: [0, 1, 0, 1]},
+      {near: 0.01, far: 100, fov: Math.PI / 3}
     );
     rootNode.addChild(this._camera);
+    this._camera.pos.set([0, 0, 2]);
 
     // const geometry = new H.Geometry(
     //   {
@@ -100,12 +102,9 @@ class APP {
     // );
     // this._imageMesh = new H.ImageMesh(new H.Material(H.buildinEffects.iBlit, {u_texture: this._csRT}));
 
-    const model = await H.resource.load({type: 'gltf', name: 'soda.gltf', src: '/assets/models/soda/scene.gltf'});
+    const model = await H.resource.load({type: 'gltf', name: 'soda.gltf', src: '/assets/models/simple/scene.gltf'});
     this._scene.rootNode.addChild(model.rootNode);
     console.log(model);
-
-    this._scene.startFrame();
-    this._scene.endFrame();
   }
   
   public loop(dt: number) {
@@ -113,13 +112,13 @@ class APP {
 
     // H.math.quat.rotateZ(this._mesh.quat, this._mesh.quat, 0.01);
 
-    // _scene.startFrame();
+    _scene.startFrame();
     // _scene.setRenderTarget(this._rt);
-    // _scene.renderCamera(this._camera, _scene.cullCamera(this._camera));
+    _scene.renderCamera(this._camera, _scene.cullCamera(this._camera));
     // _scene.computeUnits([this._blurUnit]);
     // _scene.setRenderTarget(null);
     // _scene.renderImages([this._imageMesh]);
-    // _scene.endFrame();
+    _scene.endFrame();
   }
 }
 

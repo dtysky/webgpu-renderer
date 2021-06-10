@@ -5,7 +5,7 @@
  * @Date   : 2021/6/6下午7:24:26
  */
 import HObject from './HObject';
-import {mat4, quat} from 'gl-matrix';
+import {mat4, quat, vec3} from 'gl-matrix';
 
 const VEC3_ONES = new Float32Array([1, 1, 1]);
 
@@ -38,6 +38,11 @@ export default class Node extends HObject {
     return this._worldMat;
   }
 
+  set worldMat(value: Float32Array) {
+    this._worldMat.set(value);
+    this._updateTRSFromMat();
+  }
+
   constructor() {
     super();
 
@@ -66,6 +71,13 @@ export default class Node extends HObject {
     mat4.fromRotationTranslationScale(this._worldMat, this._quat, this._pos, this._scale);
   }
 
+  public lookAt(node: Node) {
+    const up = new Float32Array([0, 1, 0]);
+    // mat4.lookAt(this._worldMat, this._pos, node._pos, vec3.transformQuat(up, up, this._quat));
+    mat4.lookAt(this._worldMat, this._pos, node._pos, up);
+    this._updateTRSFromMat();
+  }
+
   public dfs<T extends any>(callback: (node: Node, params?: T) => T, defaultParams?: T) {
     const params = callback(this, defaultParams);
     const children: Node[] = this._children;
@@ -84,5 +96,11 @@ export default class Node extends HObject {
     this.dfs<void>((node: Node) => {
       node.updateMatrix();
     });
+  }
+
+  private _updateTRSFromMat() {
+    mat4.getTranslation(this._pos, this._worldMat);
+    mat4.getRotation(this._quat, this._worldMat);
+    mat4.getScaling(this._scale, this._worldMat);
   }
 }

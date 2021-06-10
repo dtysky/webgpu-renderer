@@ -54,9 +54,9 @@ export default class Mesh extends Node {
     const {vs, fs} = _material.effect.getShader(marcos, _geometry.attributesDef);
 
     this._pipeline = device.createRenderPipeline({
-      // layout: device.createPipelineLayout({bindGroupLayouts: [
-      //   _material.effect.uniformLayout
-      // ]}),
+      layout: device.createPipelineLayout({bindGroupLayouts: [
+        _material.effect.uniformLayout
+      ]}),
   
       vertex: {
         module: vs,
@@ -74,7 +74,7 @@ export default class Mesh extends Node {
   
       primitive: {
         topology: 'triangle-list'
-      }
+      },
     });
   }
 }
