@@ -100,7 +100,7 @@ class APP {
     });
     const material = new H.Material(effect);
     this._mesh = new H.Mesh(geometry, material);
-    _scene.rootNode.addChild(this._mesh);
+    // _scene.rootNode.addChild(this._mesh);
 
     this._rt = new H.RenderTexture(H.renderEnv.width, H.renderEnv.height);
     // this._csRT = new H.RenderTexture(H.renderEnv.width, H.renderEnv.height, true);
@@ -115,7 +115,10 @@ class APP {
     // );
     // this._imageMesh = new H.ImageMesh(new H.Material(H.buildinEffects.iBlit, {u_texture: this._csRT}));
 
-    const model = await H.resource.load({type: 'gltf', name: 'soda.gltf', src: '/assets/models/soda/scene.gltf'});
+    const model = await H.resource.load({type: 'gltf', name: 'soda.gltf', src: '/assets/models/simple/scene.gltf'});
+    if (model.cameras.length) {
+      this._camera = model.cameras[0];
+    }
     _scene.rootNode.addChild(model.rootNode);
     console.log(model);
 
