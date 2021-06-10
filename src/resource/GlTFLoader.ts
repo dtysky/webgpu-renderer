@@ -108,7 +108,8 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     const {materials, textures} = this._res;
 
     for (const {name, pbrMetallicRoughness, normalTexture} of materialsSrc) {
-      const effect = buildinEffects.rUnlit;
+      // const effect = buildinEffects.rUnlit;
+      const effect = buildinEffects.rGreen;
       const uniforms: {[key: string]: TUniformValue} = {};
 
       if (normalTexture) {
