@@ -15,7 +15,7 @@ export function createGPUBuffer(array: TTypedArray, usage: GPUBufferUsageFlags) 
     mappedAtCreation: true
   });
 
-  const view = new (array.constructor as {new(buffer: ArrayBuffer): TTypedArray})(buffer.getMappedRange());
+  const view = new (array.constructor as {new(buffer: ArrayBuffer): TTypedArray})(buffer.getMappedRange(0, array.byteLength));
   view.set(array, 0);
 
   buffer.unmap();

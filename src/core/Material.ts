@@ -70,12 +70,12 @@ export default class Material extends HObject {
   ) {
     const info = this._effect.uniformsInfo[name];
 
-    if (!info) {
+    if (!info || value === undefined) {
       return;
     }
 
     const {entries} = this._uniformBlock;
-    const {index, type, byteOffset} = info;
+    const {bindingId, type, byteOffset} = info;
     const values = this._uniformBlock.values[name];
 
     if (type === 'buffer') {
@@ -90,11 +90,11 @@ export default class Material extends HObject {
     } else if (type === 'sampler') {
       console.warn('Not implemented!');
     } else if (RenderTexture.IS(value)) {
-      entries[index].resource = values.gpuValue = value.colorView;
+      entries[bindingId].resource = values.gpuValue = value.colorView;
       this._isDirty = true;
     } else {
       value = value as Texture;
-      entries[index].resource = values.gpuValue = value.view;
+      entries[bindingId].resource = values.gpuValue = value.view;
       this._isDirty = true;
       return;
     }

@@ -10,6 +10,7 @@ import textures from './textures';
 
 const effects: {
   rGreen: Effect,
+  rUnlit: Effect,
   iBlit: Effect,
   cCreateSimpleBlur: (radius: number) => Effect
 } = {} as any;
@@ -43,6 +44,38 @@ export function init() {
       ],
       textures: [],
       samplers: []
+    },
+    marcos: commonMarcos
+  });
+
+  effects.rUnlit = new Effect({
+    vs: require('./shaders/basic/model.vert.wgsl'),
+    fs: require('./shaders/basic/unlit.frag.wgsl'),
+    uniformDesc: {
+      uniforms: [
+        {
+          name: 'u_world',
+          type: 'mat4x4',
+          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
+        },
+        {
+          name: 'u_vp',
+          type: 'mat4x4',
+          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
+        }
+      ],
+      textures: [
+        {
+          name: 'u_baseColorTexture',
+          defaultValue: textures.white
+        }
+      ],
+      samplers: [
+        {
+          name: 'u_sampler',
+          defaultValue: {magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'nearest'}
+        }
+      ]
     },
     marcos: commonMarcos
   });
