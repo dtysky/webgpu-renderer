@@ -4,6 +4,7 @@
  * @Link   : dtysky.moe
  * @Date   : 2021/6/6下午7:25:22
  */
+import { buildinEffects } from '../buildin';
 import Camera from './Camera';
 import ComputeUnit from './ComputeUnit';
 import HObject from './HObject';
@@ -20,7 +21,9 @@ export default class Scene extends HObject {
 
   protected _rootNode: Node;
   protected _command: GPUCommandEncoder;
-  protected _renderTarget: RenderTexture | null;
+  protected _renderTarget: RenderTexture;
+  protected _screen: RenderTexture;
+  protected _blit: ImageMesh;
 
   set rootNode(node: Node) {
     this._rootNode = node;
@@ -28,6 +31,13 @@ export default class Scene extends HObject {
 
   get rootNode() {
     return this._rootNode;
+  }
+
+  constructor() {
+    super();
+
+    this._renderTarget = this._screen = new RenderTexture(renderEnv.width, renderEnv.height, false, undefined, 2);
+    this._blit = new ImageMesh(new Material(buildinEffects.iBlit, {u_texture: this._screen}));
   }
 
   public updateWorld() {
@@ -55,7 +65,7 @@ export default class Scene extends HObject {
   }
 
   public setRenderTarget(target: RenderTexture | null) {
-    this._renderTarget = target;
+    this._renderTarget = target ? target : this._screen;
   }
 
   public startFrame() {
@@ -64,14 +74,9 @@ export default class Scene extends HObject {
   }
 
   public renderCamera(camera: Camera, meshes: Mesh[]) {
-    const color = this._renderTarget?.colorView || renderEnv.swapChain.getCurrentTexture().createView();
-    const depthStencil = this._renderTarget?.depthStencilView || undefined;
-    const width = this._renderTarget?.width || renderEnv.width;
-    const height = this._renderTarget?.height || renderEnv.height
-
     camera.render(
       this._command,
-      {color, depthStencil, width, height},
+      this._renderTarget,
       meshes
     );
   }
@@ -81,7 +86,7 @@ export default class Scene extends HObject {
   }
 
   public renderImages(meshes: ImageMesh[]) {
-    const view = this._renderTarget?.colorView || renderEnv.swapChain.getCurrentTexture().createView();
+    const view = this._renderTarget.colorView;
 
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: [{
@@ -111,6 +116,19 @@ export default class Scene extends HObject {
   }
 
   public endFrame() {
+    const view = renderEnv.swapChain.getCurrentTexture().createView();
+    const renderPassDescriptor: GPURenderPassDescriptor = {
+      colorAttachments: [{
+        view,
+        loadValue: {r: 0, g: 0, b: 0, a: 1},
+        storeOp: 'store' as GPUStoreOp
+      }]
+    };
+
+    const pass = this._command.beginRenderPass(renderPassDescriptor);
+    this._blit.render(pass);
+    pass.endPass();
+
     renderEnv.device.queue.submit([this._command.finish()]);
   }
 }

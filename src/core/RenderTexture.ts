@@ -6,7 +6,9 @@
  * @Date   : 2021/6/6下午11:14:22
  */
 import HObject from './HObject';
+import Material from './Material';
 import renderEnv from './renderEnv';
+import { hashCode } from './shared';
 
 export default class RenderTexture extends HObject {
   public static IS(value: any): value is RenderTexture {
@@ -17,10 +19,12 @@ export default class RenderTexture extends HObject {
   public isRenderTexture: boolean = true;
 
   protected _colorDesc: GPUTextureDescriptor;
+  protected _depthDesc: GPUTextureDescriptor;
   protected _color: GPUTexture;
   protected _colorView: GPUTextureView;
   protected _depthStencil: GPUTexture;
   protected _depthStencilView: GPUTextureView;
+  protected _pipelineHash: number;
 
   get width() {
     return this._width;
@@ -30,12 +34,24 @@ export default class RenderTexture extends HObject {
     return this._height;
   }
 
+  get pipelineHash() {
+    return this._pipelineHash;
+  }
+
   get colorView() {
     return this._colorView;
   }
 
   get depthStencilView() {
     return this._depthStencilView;
+  }
+
+  get colorFormat() {
+    return this._colorDesc.format;
+  }
+
+  get depthStencilFormat() {
+    return this._depthDesc.format;
   }
 
   constructor(
@@ -50,7 +66,7 @@ export default class RenderTexture extends HObject {
     this._color = renderEnv.device.createTexture(this._colorDesc = {
       label: this.hash,
       size: {width: _width, height: _height},
-      format: _format || (_asOutput ? 'rgba8unorm' : 'bgra8unorm'),
+      format: _format || 'rgba8unorm',
       usage: (
         GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.SAMPLED | GPUTextureUsage.COPY_SRC | GPUTextureUsage.COPY_DST
       ) | (
@@ -60,12 +76,14 @@ export default class RenderTexture extends HObject {
     this._colorView = this._color.createView({label: this.hash});
 
     if (!_asOutput && _needDepthStencil) {
-      this._color = renderEnv.device.createTexture({
+      this._depthStencil = renderEnv.device.createTexture(this._depthDesc = {
         size: {width: _width, height: _height},
-        format: _needDepthStencil === 1 ? 'depth16unorm' : 'depth24unorm-stencil8',
-        usage: GPUTextureUsage.STORAGE | GPUTextureUsage.COPY_DST
+        format: _needDepthStencil === 1 ? 'depth16unorm' : 'depth24plus-stencil8',
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.COPY_SRC
       } as GPUTextureDescriptor);
       this._depthStencilView = this._depthStencil.createView();
     }
+
+    this._pipelineHash = hashCode(this._colorDesc.format + (this._depthDesc ? this._depthDesc.format : ''));
   }
 }

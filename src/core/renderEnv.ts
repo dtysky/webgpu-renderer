@@ -30,7 +30,7 @@ class RenderEnv {
     return this._canvas.height;
   }
 
-  get swapChainFormat() {
+  get swapChainFormat(): GPUTextureFormat {
     return this._swapChainFormat;
   }
 

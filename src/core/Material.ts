@@ -14,9 +14,8 @@ import Texture from "./Texture";
 export default class Material extends HObject {
   public static  CLASS_NAME: string = 'Material';
   public isMaterial: boolean = true;
-
-  public isMarcoDirty: boolean = false;
-
+  
+  protected _version: number = 0;
   protected _isDirty: boolean = false;
   protected _uniformBlock: IUniformBlock;
   protected _bindingGroup: GPUBindGroup;
@@ -30,6 +29,9 @@ export default class Material extends HObject {
     return this._marcos;
   }
 
+  get version() {
+    return this._version;
+  }
 
   get bindingGroup() {
     if (this._isDirty) {
@@ -108,6 +110,6 @@ export default class Material extends HObject {
 
   public setMarcos(marcos: {[key: string]: number | boolean}) {
     Object.assign(this._marcos, marcos);
-    this.isMarcoDirty = true;
+    this._version += 1;
   }
 }
