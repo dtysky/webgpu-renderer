@@ -108,8 +108,7 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     const {materials, textures} = this._res;
 
     for (const {name, pbrMetallicRoughness, normalTexture} of materialsSrc) {
-      // const effect = buildinEffects.rUnlit;
-      const effect = buildinEffects.rGreen;
+      const effect = buildinEffects.rUnlit;
       const uniforms: {[key: string]: TUniformValue} = {};
 
       if (normalTexture) {
@@ -162,7 +161,23 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
   }
 
   private async _loadCameras() {
+    const {cameras: camerasSrc} = this._json;
+    const {cameras} = this._res;
 
+    for (const {perspective, type, name} of camerasSrc) {
+      if (type !== 'perspective') {
+        throw new Error('Not support perspective now!');
+      }
+
+      const camera = new Camera({}, {
+        near: perspective.znear,
+        far: perspective.zfar,
+        fov: 1 / perspective.yfov
+      });
+      camera.name = name;
+
+      cameras.push(camera);
+    }
   }
 
   private async _loadLights() {
@@ -171,13 +186,15 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
 
   private async _loadNodes() {
     const {nodes: nodesSrc, scenes} = this._json;
-    const {rootNode, nodes, meshes} = this._res;
+    const {rootNode, nodes, meshes, cameras} = this._res;
 
-    for (const {matrix, name, extensions, mesh: meshId} of nodesSrc) {
+    for (const {matrix, name, extensions, mesh: meshId, camera: cameraId} of nodesSrc) {
       let node: Node;
 
       if (meshId !== undefined) {
         node = meshes[meshId];
+      } else if (cameraId !== undefined) {
+        node = cameras[cameraId];
       } else {
         node = new Node();
       }

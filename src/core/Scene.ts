@@ -36,7 +36,7 @@ export default class Scene extends HObject {
   constructor() {
     super();
 
-    this._renderTarget = this._screen = new RenderTexture(renderEnv.width, renderEnv.height, false, undefined, 1);
+    this._renderTarget = this._screen = new RenderTexture(renderEnv.width, renderEnv.height, false, undefined, 2);
     this._blit = new ImageMesh(new Material(buildinEffects.iBlit, {u_texture: this._screen}));
   }
 
