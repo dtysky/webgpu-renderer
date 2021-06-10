@@ -4,18 +4,50 @@
  * @Link   : dtysky.moe
  * @Date   : 2021/6/6下午8:56:49
  */
+import {mat4} from 'gl-matrix';
 import Effect from '../core/Effect';
 import textures from './textures';
 
 const effects: {
-  rBlit: Effect,
+  rGreen: Effect,
+  iBlit: Effect,
   cCreateSimpleBlur: (radius: number) => Effect
 } = {} as any;
 
 export default effects;
 
+const commonMarcos = {
+  USE_TEXCOORD_0: false,
+  USE_NORMAL: false,
+  USE_TANGENT: false,
+  USE_COLOR_0: false,
+  USE_TEXCOORD_1: false
+};
+
 export function init() {
-  effects.rBlit = new Effect({
+  effects.rGreen = new Effect({
+    vs: require('./shaders/basic/model.vert.wgsl'),
+    fs: require('./shaders/basic/green.frag.wgsl'),
+    uniformDesc: {
+      uniforms: [
+        {
+          name: 'u_world',
+          type: 'mat4x4',
+          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
+        },
+        {
+          name: 'u_vp',
+          type: 'mat4x4',
+          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
+        }
+      ],
+      textures: [],
+      samplers: []
+    },
+    marcos: commonMarcos
+  });
+
+  effects.iBlit = new Effect({
     vs: require('./shaders/image/image.vert.wgsl'),
     fs: require('./shaders/image/blit.frag.wgsl'),
     uniformDesc: {

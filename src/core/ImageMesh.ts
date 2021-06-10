@@ -13,7 +13,6 @@ export default class ImageMesh extends HObject {
   public isImageMesh: boolean = true;
 
   protected _pipeline: GPURenderPipeline;
-
   get material() {
     return this._material;
   }
@@ -21,7 +20,21 @@ export default class ImageMesh extends HObject {
   constructor(protected _material: Material) {
     super();
 
+    this._createPipeline();
+  }
+
+  public render(pass: GPURenderPassEncoder) {
+    const {_material} = this;
+
+    pass.setBindGroup(0, _material.bindingGroup);
+    pass.setPipeline(this._pipeline);
+    pass.draw(6, 1, 0, 0);
+  }
+
+  protected _createPipeline() {
     const {device, swapChainFormat} = renderEnv;
+    const {_material} = this;
+    const {vs, fs} = _material.effect.getShader({}, '');
 
     this._pipeline = device.createRenderPipeline({
       layout: device.createPipelineLayout({bindGroupLayouts: [
@@ -29,12 +42,12 @@ export default class ImageMesh extends HObject {
       ]}),
   
       vertex: {
-        module: _material.effect.vs,
+        module: vs,
         entryPoint: "main"
       },
   
       fragment: {
-        module: _material.effect.fs,
+        module: fs,
         targets: [
           {format: swapChainFormat}
         ],
@@ -45,13 +58,5 @@ export default class ImageMesh extends HObject {
         topology: 'triangle-list'
       }
     });
-  }
-
-  public render(pass: GPURenderPassEncoder) {
-    const {_material} = this;
-
-    pass.setBindGroup(0, _material.bindingGroup);
-    pass.setPipeline(this._pipeline);
-    pass.draw(6, 1, 0, 0);
   }
 }

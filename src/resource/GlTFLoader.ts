@@ -107,7 +107,7 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     const {materials} = this._res;
 
     for (const desc of materialsSrc) {
-      const effect = buildinEffects.rBlit;
+      const effect = buildinEffects.rGreen;
       const material = new Material(effect);
       material.name = desc.name;
 
@@ -156,8 +156,8 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
         node = meshes[meshId];
       } else {
         node = new Node();
-        node.name = name;
       }
+      node.name = name;
 
       if (matrix) {
         node.worldMat.set(matrix);
@@ -189,11 +189,11 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     const {meshes: meshesSrc, accessors, bufferViews} = this._json;
     const {meshes, materials} = this._res;
 
-    let attributes: GPUVertexAttribute[] = [];
-
+    const attributes: (GPUVertexAttribute & {name: string})[] = [];
     let arrayStride: number = 0;
     let id: number = 0;
     let vertexData: Uint8Array;
+
     for (const attrName in prim.attributes) {
       const {bufferView, byteOffset, componentType, type} = accessors[prim.attributes[attrName]];
       const view = bufferViews[bufferView];
@@ -201,6 +201,7 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
       vertexData = vertexData || new Uint8Array(_buffers[view.buffer], view.byteOffset || 0, view.byteLength);
 
       attributes.push({
+        name: attrName.toLowerCase(),
         format: this._convertVertexFormat(type, componentType),
         offset: byteOffset || 0,
         shaderLocation: id
