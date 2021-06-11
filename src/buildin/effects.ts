@@ -12,6 +12,8 @@ const effects: {
   rGreen: Effect,
   rUnlit: Effect,
   iBlit: Effect,
+  rRTGBuffer: Effect,
+  rRTSS: Effect,
   cCreateSimpleBlur: (radius: number) => Effect
 } = {} as any;
 
@@ -79,6 +81,88 @@ export function init() {
     },
     marcos: commonMarcos
   });
+
+  // effects.rGBuffer = new Effect({
+  //   vs: require('./shaders/basic/model.vert.wgsl'),
+  //   fs: require('./shaders/ray-tracing/gbuffer.frag.wgsl'),
+  //   uniformDesc: {
+  //     uniforms: [
+  //       // {
+  //       //   name: 'u_randomSeed',
+  //       //   type: 'vec2',
+  //       //   defaultValue: new Float32Array([0, 0])
+  //       // }
+  //     ],
+  //     textures: [
+  //       {
+  //         name: 'u_texture',
+  //         defaultValue: textures.white
+  //       }
+  //     ],
+  //     samplers: [
+  //       {
+  //         name: 'u_sampler',
+  //         defaultValue: {magFilter: 'linear', minFilter: 'linear'}
+  //       }
+  //     ],
+  //   },
+  //   marcos: commonMarcos
+  // })
+  effects.rRTSS = new Effect({
+    vs: require('./shaders/image/image.vert.wgsl'),
+    fs: require('./shaders/ray-tracing/rtss.frag.wgsl'),
+    uniformDesc: {
+      uniforms: [
+        {
+          name: 'u_randomSeed',
+          type: 'vec2',
+          defaultValue: new Float32Array([0, 0])
+        },
+        {
+          name: 'u_view',
+          type: 'mat4x4',
+          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
+        },
+        {
+          name: 'u_proj',
+          type: 'mat4x4',
+          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
+        },
+        {
+          name: 'u_vp',
+          type: 'mat4x4',
+          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
+        },
+        {
+          name: 'u_lightPos',
+          type: 'vec3',
+          defaultValue: new Float32Array([0, 0, 0])
+        },
+        {
+          name: 'u_lightDir',
+          type: 'vec3',
+          defaultValue: new Float32Array([0, 0, 0])
+        },
+        {
+          name: 'u_lightColor',
+          type: 'vec3',
+          defaultValue: new Float32Array([0, 0, 0])
+        }
+      ],
+      textures: [
+        // {
+        //   name: 'u_texture',
+        //   defaultValue: textures.white
+        // }
+      ],
+      samplers: [
+        // {
+        //   name: 'u_sampler',
+        //   defaultValue: {magFilter: 'linear', minFilter: 'linear'}
+        // }
+      ],
+    }
+  })
 
   effects.iBlit = new Effect({
     vs: require('./shaders/image/image.vert.wgsl'),

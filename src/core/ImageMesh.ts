@@ -4,7 +4,9 @@
  * @Link   : dtysky.moe
  * @Date   : 2021/6/6下午8:56:49
  */
+import Camera from './Camera';
 import HObject from './HObject';
+import Light from './Light';
 import Material from './Material';
 import renderEnv from './renderEnv';
 
@@ -23,8 +25,15 @@ export default class ImageMesh extends HObject {
     this._createPipeline();
   }
 
-  public render(pass: GPURenderPassEncoder) {
+  public render(
+    pass: GPURenderPassEncoder,
+    lights: Light[],
+    camera?: Camera
+  ) {
     const {_material} = this;
+
+    camera && camera.fillUniforms(_material);
+    lights.forEach((light, index) => light.fillUniforms(index, _material));
 
     pass.setBindGroup(0, _material.bindingGroup);
     pass.setPipeline(this._pipeline);

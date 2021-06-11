@@ -5,6 +5,8 @@
  * @Date   : 2021/6/6下午7:24:51
  */
 import {mat4} from 'gl-matrix';
+import Light from './Light';
+import Material from './Material';
 import Mesh from './Mesh';
 import Node from './Node';
 import renderEnv from './renderEnv';
@@ -12,6 +14,11 @@ import RenderTexture from './RenderTexture';
 
 export default class Camera extends Node {
   public static CLASS_NAME: string = 'Node';
+
+  public static IS(value: any): value is Camera{
+    return !!(value as Camera).isCamera;
+  }
+
   public isCamera: boolean = true;
 
   public viewport: {x: number, y: number, w: number, h: number};
@@ -79,9 +86,16 @@ export default class Camera extends Node {
     mat4.multiply(this._vpMat, this._projMat, this._viewMat);
   }
 
+  public fillUniforms(material: Material) {
+    material.setUniform('u_vp', this._vpMat);
+    material.setUniform('u_view', this._viewMat);
+    material.setUniform('u_proj', this._projMat);
+  }
+
   public render(
     cmd: GPUCommandEncoder,
     rt: RenderTexture,
+    lights: Light[],
     meshes: Mesh[]
   ) {
     const [r, g, b, a] = this.clearColor;
@@ -107,7 +121,7 @@ export default class Camera extends Node {
     pass.setViewport(x * width, y * height, w * width, h * height, 0, 1);
 
     for (const mesh of meshes) {
-      mesh.render(pass, this, rt);
+      mesh.render(pass, this, rt, lights);
     }
 
     pass.endPass();

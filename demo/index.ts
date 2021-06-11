@@ -8,7 +8,7 @@ import * as H from '../src/index';
 import BasicTestApp from './BasicTestApp';
 import RayTracingApp from './RayTracingApp';
 
-const app = new BasicTestApp();
+const app = new RayTracingApp();
 
 
 async function main() {

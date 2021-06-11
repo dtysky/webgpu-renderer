@@ -13,6 +13,7 @@ import Mesh from "../core/Mesh";
 import Texture from "../core/Texture";
 import Loader from "./Loader";
 import { TUniformValue } from "../core/Effect";
+import Light from "../core/Light";
 
 export interface IGlTFLoaderOptions {
 
@@ -27,6 +28,7 @@ export interface IGlTFResource {
   materials: Material[];
   // samplers: GPUSamplerDescriptor[];
   cameras: Camera[];
+  lights: Light[];
 }
 
 export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource> {
@@ -53,7 +55,8 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
       textures: [],
       materials: [],
       // samplers: [],
-      cameras: []
+      cameras: [],
+      lights: []
     }
 
     await this._loadImages();
@@ -170,7 +173,7 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
 
     for (const {perspective, type, name} of camerasSrc) {
       if (type !== 'perspective') {
-        throw new Error('Not support perspective now!');
+        throw new Error('Only support perspective camera now!');
       }
 
       const camera = new Camera({}, {
@@ -185,12 +188,30 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
   }
 
   private async _loadLights() {
-    
+    if (!this._json.extensions) {
+      return;
+    }
+
+    const lightsSrc = this._json.extensions?.KHR_lights_punctual?.lights;
+    const {lights} = this._res;
+
+    if (lightsSrc) {
+      for (const {name, type, intensity, color} of lightsSrc) {
+        if (type !== 'directional') {
+          throw new Error('Only support directional light now!');
+        }
+  
+        const light = new Light(color.map(c => c * intensity));
+        light.name = name;
+  
+        lights.push(light);
+      }
+    }
   }
 
   private async _loadNodes() {
     const {nodes: nodesSrc, scenes} = this._json;
-    const {rootNode, nodes, meshes, cameras} = this._res;
+    const {rootNode, nodes, meshes, cameras, lights} = this._res;
 
     for (const {matrix, name, extensions, mesh: meshId, camera: cameraId} of nodesSrc) {
       let node: Node;
@@ -199,6 +220,8 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
         node = meshes[meshId];
       } else if (cameraId !== undefined) {
         node = cameras[cameraId];
+      } else if (extensions.KHR_lights_punctual) {
+        node = lights[extensions.KHR_lights_punctual.light];
       } else {
         node = new Node();
       }

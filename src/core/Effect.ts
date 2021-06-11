@@ -4,21 +4,21 @@
  * @Author  : hikaridai(hikaridai@tencent.com)
  * @Date    : 2021/6/7下午1:51:11
  */
- import {createGPUBuffer, hashCode, TTypedArray} from "./shared";
+ import {createGPUBuffer, hashCode, TUniformTypedArray} from "./shared";
 import renderEnv from "./renderEnv";
 import RenderTexture from "./RenderTexture";
 import Texture from "./Texture";
 import HObject from "./HObject";
 
-export type TUniformValue = TTypedArray | Texture | GPUSamplerDescriptor | RenderTexture;
+export type TUniformValue = TUniformTypedArray | Texture | GPUSamplerDescriptor | RenderTexture;
 
 export interface IUniformsDescriptor {
   uniforms: {
     name: string,
     type: 'number' | 'vec2' | 'vec3' | 'vec4' | 'mat2x2' | 'mat3x3' | 'mat4x4',
-    format?: 'f32' | 'u32' | 'u16' | 'u8' | 'i32' | 'i16',
+    format?: 'f32' | 'u32' | 'i32',
     size?: number,
-    defaultValue: TTypedArray
+    defaultValue: TUniformTypedArray
   }[],
   textures: {
     name: string,
@@ -80,14 +80,17 @@ export default class Effect extends HObject {
   protected _uniformLayoutDesc: GPUBindGroupLayoutDescriptor;
   protected _uniformLayout: GPUBindGroupLayout;
   protected _uniformBindDesc: GPUBindGroupDescriptor;
-  protected _uniformsBufferDefault: Uint8Array;
+  protected _uniformsBufferDefault: Uint32Array;
   protected _uniformsInfo: {[name: string]: {
     bindingId: number,
     index: number,
     type: 'texture' | 'buffer' | 'sampler',
-    byteOffset?: number,
-    defaultValue?: TTypedArray | Texture | GPUSamplerDescriptor,
-    defaultGpuValue?: GPUSampler | GPUTextureView
+    defaultValue?: TUniformTypedArray | Texture | GPUSamplerDescriptor,
+    defaultGpuValue?: GPUSampler | GPUTextureView,
+    /* 32bits */
+    offset?: number,
+    realLen?: number,
+    origLen?: number
   }};
 
   get computePipeline() {
@@ -142,19 +145,21 @@ export default class Effect extends HObject {
         buffer: {type: 'uniform' as GPUBufferBindingType}
       });
 
-      let uniformsByteLength: number = 0;
+      let uniforms32Length: number = 0;
       _uniformDesc.uniforms.forEach((ud) => {
-        this._uniformsInfo[ud.name] = {bindingId: 0, index, type: 'buffer', byteOffset: uniformsByteLength, defaultValue: ud.defaultValue};
-        uniformsByteLength += ud.defaultValue.byteLength;
+        const {origLen, realLen, defaultValue} = this._getRealLayoutInfo(ud.type, ud.size || 1, ud.defaultValue);
+
+        this._uniformsInfo[ud.name] = {bindingId: 0, index, type: 'buffer', offset: uniforms32Length, defaultValue, origLen, realLen};
+        uniforms32Length += defaultValue.length;
         const sym = ud.type === 'number' ? `${ud.format || 'f32'}` : `${ud.type}<${ud.format || 'f32'}>`;
         if (!ud.size) {
-          this._shaderPrefix += `  ${ud.name}: ${sym};\n`;
+          this._shaderPrefix += `  [[align(16)]] ${ud.name}: ${sym};\n`;
         } else {
-          ud.size > 1 && (this._shaderPrefix += `  ${ud.name}: array<${sym}, ${ud.size}>;\n`);
+          ud.size > 1 && (this._shaderPrefix += `  [[align(16)]] ${ud.name}: array<${sym}, ${ud.size}>;\n`);
         }
         index += 1;
       });
-      this._uniformsBufferDefault = new Uint8Array(uniformsByteLength);
+      this._uniformsBufferDefault = new Uint32Array(uniforms32Length);
       this._shaderPrefix += `};\n[[binding(0), group(0)]] var<uniform> uniforms: Uniforms;\n`
 
       bindingId += 1;
@@ -196,7 +201,7 @@ export default class Effect extends HObject {
     this._shaderPrefix += '\n';
 
     _uniformDesc.uniforms.forEach((ud, index) => {
-      this._uniformsBufferDefault.set(new Uint8Array(ud.defaultValue.buffer), this._uniformsInfo[ud.name].byteOffset);
+      this._uniformsBufferDefault.set(new Uint32Array(ud.defaultValue.buffer), this._uniformsInfo[ud.name].offset);
     });
 
     this._uniformLayoutDesc = {entries};
@@ -218,6 +223,56 @@ export default class Effect extends HObject {
     }
   }
 
+  protected _getRealLayoutInfo(
+    type: "number" | "vec2" | "vec3" | "vec4" | "mat2x2" | "mat3x3" | "mat4x4",
+    size: number,
+    defaultValue: TUniformTypedArray
+  ) {
+    let origLen: number;
+    let realLen: number;
+
+    switch (type) {
+      case 'number':
+        origLen = 1;
+        realLen = 4;
+        break;
+      case 'vec2':
+        origLen = 2;
+        realLen = 4;
+        break;
+      case 'vec3':
+        origLen = 3;
+        realLen = 4;
+        break;
+      case 'vec4':
+      case 'mat2x2':
+        origLen = 4;
+        realLen = 4;
+        break;
+      case 'mat3x3':
+        origLen = 9;
+        realLen = 12;
+        break;
+      case 'mat4x4':
+        origLen = 16;
+        realLen = 16;
+        break;
+    }
+
+    const constructor = defaultValue.constructor as any;
+    const value = new constructor(realLen * size) as typeof defaultValue;
+
+    for (let index = 0; index < size; index += 1) {
+      value.set(defaultValue.slice(index * origLen, (index + 1) * origLen));
+    }
+
+    return {
+      origLen,
+      realLen,
+      defaultValue: value
+    };
+  }
+
   public createDefaultUniformBlock(): IUniformBlock {
     const {_uniformDesc, _uniformsInfo, _uniformsBufferDefault} = this;
     const values: IUniformBlock['values'] = {};
@@ -230,7 +285,7 @@ export default class Effect extends HObject {
         resource: {buffer: uniformsBuffer}
       });
       _uniformDesc.uniforms.forEach((ud) => {
-        values[ud.name] = {value: ud.defaultValue, gpuValue: uniformsBuffer};
+        values[ud.name] = {value: (this._uniformsInfo[ud.name].defaultValue as TUniformTypedArray).slice(), gpuValue: uniformsBuffer};
       });
     }
 
