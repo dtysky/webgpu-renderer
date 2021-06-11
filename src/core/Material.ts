@@ -7,7 +7,7 @@
 import HObject from "./HObject";
 import Effect, { IUniformBlock, TUniformValue } from "./Effect";
 import renderEnv from "./renderEnv";
-import {TTypedArray} from "./shared";
+import {TTypedArray, TUniformTypedArray} from "./shared";
 import RenderTexture from "./RenderTexture";
 import Texture from "./Texture";
 
@@ -77,31 +77,45 @@ export default class Material extends HObject {
     }
 
     const {entries} = this._uniformBlock;
-    const {bindingId, type, byteOffset} = info;
+    const {bindingId, type, offset, realLen, origLen} = info;
     const values = this._uniformBlock.values[name];
 
     if (type === 'buffer') {
-      value = value as TTypedArray;
+      value = value as TUniformTypedArray;
+      const cpuValue = values.value as TUniformTypedArray;
+      if (origLen !== realLen) {
+        const size = value.length / realLen;
+
+        for (let index = 0; index < size; index += 1) {
+          cpuValue.set(
+            new (value.constructor as typeof Uint32Array)(value.buffer, origLen * index, origLen * (index + 1)),
+            realLen * index
+          );
+        }
+      }
+
       renderEnv.device.queue.writeBuffer(
         values.gpuValue as GPUBuffer,
-        byteOffset,
-        value.buffer,
-        value.byteOffset,
-        value.byteLength
+        offset * 4,
+        cpuValue,
+        cpuValue.byteOffset,
+        cpuValue.length
       );
     } else if (type === 'sampler') {
+      values.value = value;
       console.warn('Not implemented!');
     } else if (RenderTexture.IS(value)) {
       entries[bindingId].resource = values.gpuValue = value.colorView;
+      values.value = value;
       this._isDirty = true;
     } else {
       value = value as Texture;
       entries[bindingId].resource = values.gpuValue = value.view;
+      values.value = value;
       this._isDirty = true;
       return;
     }
 
-    values.value = value;
   }
 
   public getUniform(name: string): TUniformValue {

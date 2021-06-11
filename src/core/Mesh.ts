@@ -9,13 +9,18 @@ import Geometry from './Geometry';
 import Material from './Material';
 import renderEnv from './renderEnv';
 import RenderTexture from './RenderTexture';
+import Light from './Light';
 
 declare type Camera = import('./Camera').default;
 
 export default class Mesh extends Node {
   public static  CLASS_NAME: string = 'Mesh';
-  public isMesh: boolean = true;
 
+  public static IS(value: any): value is Mesh{
+    return !!(value as Mesh).isMesh;
+  }
+
+  public isMesh: boolean = true;
   public sortZ: number = 0;
 
   protected _pipelines: {[hash: number]: GPURenderPipeline} = {};
@@ -31,7 +36,8 @@ export default class Mesh extends Node {
   public render(
     pass: GPURenderPassEncoder,
     camera: Camera,
-    rt: RenderTexture
+    rt: RenderTexture,
+    lights: Light[],
   ) {
     const {_geometry, _material} = this;
 
@@ -40,8 +46,9 @@ export default class Mesh extends Node {
       this._matVersion = _material.version;
     }
 
-    _material.setUniform('u_vp', camera.vpMat);
+    camera.fillUniforms(_material);
     _material.setUniform('u_world', this._worldMat);
+    lights.forEach((light, index) => light.fillUniforms(index, _material));
 
     pass.setVertexBuffer(0, _geometry.vertexes);
     pass.setIndexBuffer(_geometry.indexes, 'uint16');

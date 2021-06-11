@@ -88,13 +88,15 @@ export default class Node extends HObject {
     }
   }
 
-  public updateSubTree() {
+  public updateSubTree(callback?: (node: Node) => void) {
     if (!this.active) {
       return;
     }
 
     this.dfs<void>((node: Node) => {
       node.updateMatrix();
+
+      callback && callback(node);
     });
   }
 

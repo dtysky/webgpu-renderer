@@ -11,6 +11,7 @@ export {TTypedArray} from './core/shared';
 export {default as Scene} from './core/Scene';
 export {default as Node} from './core/Node';
 export {default as Camera} from './core/Camera';
+export {default as Light} from './core/Light';
 export {default as Geometry} from './core/Geometry';
 export {default as Effect, IUniformBlock, IUniformsDescriptor, TEffectOptions, TUniformValue} from './core/Effect';
 export {default as Material} from './core/Material';

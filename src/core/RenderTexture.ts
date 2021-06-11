@@ -14,6 +14,7 @@ export interface IRenderTextureOptions {
   height: number;
   forCompute?: boolean;
   colors: {
+    name?: string,
     format?: GPUTextureFormat
   }[];
   depthStencil?: {
@@ -41,6 +42,7 @@ export default class RenderTexture extends HObject {
   protected _depthStencil: GPUTexture;
   protected _depthStencilView: GPUTextureView;
   protected _pipelineHash: number;
+  protected _colorNames: {[name: string]: number};
 
   get width() {
     return this._width;
@@ -93,6 +95,7 @@ export default class RenderTexture extends HObject {
     this._colorDescs = new Array(colors.length);
     this._colorViews = new Array(colors.length);
     this._colorFormats = new Array(colors.length);
+    this._colorNames = {};
 
     this._colors = colors.map((info, index) => {
       const color = renderEnv.device.createTexture(this._colorDescs[index] = {
@@ -105,8 +108,13 @@ export default class RenderTexture extends HObject {
           forCompute ? GPUTextureUsage.STORAGE : 0
         )
       } as GPUTextureDescriptor);
+
       this._colorViews[index] = color.createView();
       this._colorFormats[index] = this._colorDescs[index].format;
+
+      if (info.name) {
+        this._colorNames[info.name] = index;
+      }
 
       return color;
     })
@@ -122,5 +130,9 @@ export default class RenderTexture extends HObject {
     }
 
     this._pipelineHash = hashCode(this._colorDescs.map(c => c.format).join('') + (this._depthDesc ? this._depthDesc.format : ''));
+  }
+
+  public getColorViewByName(name: string) {
+    return this._colorViews[this._colorNames[name]];
   }
 }

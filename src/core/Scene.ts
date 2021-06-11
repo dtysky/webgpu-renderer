@@ -9,6 +9,7 @@ import Camera from './Camera';
 import ComputeUnit from './ComputeUnit';
 import HObject from './HObject';
 import ImageMesh from './ImageMesh';
+import Light from './Light';
 import Material from './Material';
 import Mesh from './Mesh';
 import Node from './Node';
@@ -20,6 +21,8 @@ export default class Scene extends HObject {
   public isScene: boolean = true;
 
   protected _rootNode: Node;
+  protected _meshes: Mesh[];
+  protected _lights: Light[];
   protected _command: GPUCommandEncoder;
   protected _renderTarget: RenderTexture;
   protected _screen: RenderTexture;
@@ -40,22 +43,15 @@ export default class Scene extends HObject {
     this._blit = new ImageMesh(new Material(buildinEffects.iBlit, {u_texture: this._screen}));
   }
 
-  public updateWorld() {
-    this._rootNode.updateSubTree();
-  }
-
   public cullCamera(camera: Camera): Mesh[] {
     const meshes: Mesh[] = [];
 
-    this._rootNode.dfs<void>(node => {
-      if (node.active && (node as Mesh).isMesh) {
-        const mesh = node as Mesh;
-        const distance = camera.cull(mesh);
+    this._meshes.forEach(mesh => {
+      const distance = camera.cull(mesh);
 
-        if (distance >= 0) {
-          mesh.sortZ = distance;
-          meshes.push(mesh);
-        }
+      if (distance >= 0) {
+        mesh.sortZ = distance;
+        meshes.push(mesh);
       }
     });
 
@@ -69,7 +65,17 @@ export default class Scene extends HObject {
   }
 
   public startFrame() {
-    this.updateWorld();
+    this._meshes = [];
+    this._lights = [];
+
+    this._rootNode.updateSubTree(node => {
+      if (Mesh.IS(node)) {
+        this._meshes.push(node);
+      } else if (Light.IS(node)) {
+        this._lights.push(node);
+      }
+    });
+
     this._command = renderEnv.device.createCommandEncoder();
   }
 
@@ -77,15 +83,16 @@ export default class Scene extends HObject {
     camera.render(
       this._command,
       this._renderTarget,
+      this._lights,
       meshes
     );
   }
 
-  public renderLight() {
+  // public renderLight() {
 
-  }
+  // }
 
-  public renderImages(meshes: ImageMesh[]) {
+  public renderImages(meshes: ImageMesh[], camera?: Camera) {
     const view = this._renderTarget.colorView;
 
     const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -99,7 +106,7 @@ export default class Scene extends HObject {
     const pass = this._command.beginRenderPass(renderPassDescriptor);
 
     for (const mesh of meshes) {
-      mesh.render(pass);
+      mesh.render(pass, this._lights, camera);
     }
 
     pass.endPass();
@@ -126,7 +133,7 @@ export default class Scene extends HObject {
     };
 
     const pass = this._command.beginRenderPass(renderPassDescriptor);
-    this._blit.render(pass);
+    this._blit.render(pass, []);
     pass.endPass();
 
     renderEnv.device.queue.submit([this._command.finish()]);
