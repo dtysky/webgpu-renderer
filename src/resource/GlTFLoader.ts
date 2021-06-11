@@ -164,6 +164,10 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     const {cameras: camerasSrc} = this._json;
     const {cameras} = this._res;
 
+    if (!camerasSrc) {
+      return;
+    }
+
     for (const {perspective, type, name} of camerasSrc) {
       if (type !== 'perspective') {
         throw new Error('Not support perspective now!');

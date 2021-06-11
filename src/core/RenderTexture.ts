@@ -6,9 +6,21 @@
  * @Date   : 2021/6/6下午11:14:22
  */
 import HObject from './HObject';
-import Material from './Material';
 import renderEnv from './renderEnv';
-import { hashCode } from './shared';
+import {hashCode} from './shared';
+
+export interface IRenderTextureOptions {
+  width: number;
+  height: number;
+  forCompute?: boolean;
+  colors: {
+    format?: GPUTextureFormat
+  }[];
+  depthStencil?: {
+    format?: GPUTextureFormat;
+    needStencil?: boolean;
+  };
+}
 
 export default class RenderTexture extends HObject {
   public static IS(value: any): value is RenderTexture {
@@ -18,10 +30,14 @@ export default class RenderTexture extends HObject {
   public static CLASS_NAME: string = 'RenderTexture';
   public isRenderTexture: boolean = true;
 
-  protected _colorDesc: GPUTextureDescriptor;
+  protected _width: number;
+  protected _height: number;
+  protected _forCompute: boolean;
+  protected _colorDescs: GPUTextureDescriptor[];
   protected _depthDesc: GPUTextureDescriptor;
-  protected _color: GPUTexture;
-  protected _colorView: GPUTextureView;
+  protected _colors: GPUTexture[];
+  protected _colorViews: GPUTextureView[];
+  protected _colorFormats: GPUTextureFormat[];
   protected _depthStencil: GPUTexture;
   protected _depthStencilView: GPUTextureView;
   protected _pipelineHash: number;
@@ -38,16 +54,8 @@ export default class RenderTexture extends HObject {
     return this._pipelineHash;
   }
 
-  get color() {
-    return this._color;
-  }
-
-  get depthStencil() {
-    return this._depthStencil;
-  }
-
   get colorView() {
-    return this._colorView;
+    return this._colorViews[0];
   }
 
   get depthStencilView() {
@@ -55,44 +63,64 @@ export default class RenderTexture extends HObject {
   }
 
   get colorFormat() {
-    return this._colorDesc.format;
+    return this._colorDescs[0].format;
   }
 
   get depthStencilFormat() {
     return this._depthDesc?.format;
   }
 
-  constructor(
-    protected _width: number,
-    protected _height: number,
-    protected _asOutput?: boolean,
-    protected _format?: GPUTextureFormat,
-    protected _needDepthStencil: number = 0
-  ) {
+  get colorViews() {
+    return this._colorViews;
+  }
+
+  get colorFormats() {
+    return this._colorFormats;
+  }
+
+  constructor(options: IRenderTextureOptions) {
     super();
 
-    this._color = renderEnv.device.createTexture(this._colorDesc = {
-      label: this.hash + '_color0',
-      size: {width: _width, height: _height},
-      format: _format || renderEnv.swapChainFormat,
-      usage: (
-        GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.SAMPLED
-      ) | (
-        _asOutput ? GPUTextureUsage.STORAGE : 0
-      )
-    } as GPUTextureDescriptor);
-    this._colorView = this._color.createView({label: this.hash + '_color0'});
+    const {width, height, colors, depthStencil, forCompute} = options;
 
-    if (!_asOutput && _needDepthStencil) {
+    this._width = width;
+    this._height = height;
+
+    if (forCompute && (colors.length > 1 || depthStencil)) {
+      throw new Error('RenderTexture with forCompute flag can only has one color and none depth!');
+    }
+
+    this._colorDescs = new Array(colors.length);
+    this._colorViews = new Array(colors.length);
+    this._colorFormats = new Array(colors.length);
+
+    this._colors = colors.map((info, index) => {
+      const color = renderEnv.device.createTexture(this._colorDescs[index] = {
+        label: this.hash + '_color' + index,
+        size: {width, height},
+        format: info.format || renderEnv.swapChainFormat,
+        usage: (
+          GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.SAMPLED
+        ) | (
+          forCompute ? GPUTextureUsage.STORAGE : 0
+        )
+      } as GPUTextureDescriptor);
+      this._colorViews[index] = color.createView();
+      this._colorFormats[index] = this._colorDescs[index].format;
+
+      return color;
+    })
+
+    if (depthStencil) {
       this._depthStencil = renderEnv.device.createTexture(this._depthDesc = {
         label: this.hash + '_depth',
-        size: {width: _width, height: _height},
-        format: _needDepthStencil === 1 ? 'depth24plus' : 'depth24plus-stencil8',
+        size: {width, height},
+        format: depthStencil.format || (!depthStencil.needStencil ? 'depth24plus' : 'depth24plus-stencil8'),
         usage: GPUTextureUsage.RENDER_ATTACHMENT
       } as GPUTextureDescriptor);
       this._depthStencilView = this._depthStencil.createView({label: this.hash + '_depth'});
     }
 
-    this._pipelineHash = hashCode(this._colorDesc.format + (this._depthDesc ? this._depthDesc.format : ''));
+    this._pipelineHash = hashCode(this._colorDescs.map(c => c.format).join('') + (this._depthDesc ? this._depthDesc.format : ''));
   }
 }

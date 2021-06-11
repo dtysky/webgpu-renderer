@@ -70,9 +70,7 @@ export default class Mesh extends Node {
   
       fragment: {
         module: fs,
-        targets: [{
-          format: rt.colorFormat
-        }],
+        targets: rt.colorFormats.map(format => ({format})),
         entryPoint: "main"
       },
   
