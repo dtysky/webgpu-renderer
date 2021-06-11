@@ -86,21 +86,20 @@ export default class Camera extends Node {
   ) {
     const [r, g, b, a] = this.clearColor;
     const {x, y, w, h} = this.viewport;
-    const {width, height, colorView, depthStencilView} = rt;
+    const {width, height, colorViews, depthStencilView} = rt;
 
     const renderPassDescriptor: GPURenderPassDescriptor = {
-      colorAttachments: [{
-        view: colorView,
+      colorAttachments: colorViews.map(view => ({
+        view,
         loadValue: {r, g, b, a},
         storeOp: this.colorOp
-      }],
+      })),
       depthStencilAttachment: depthStencilView && {
         view: depthStencilView,
         depthLoadValue: this.clearDepth,
         stencilLoadValue: this.clearStencil,
         depthStoreOp: this.depthOp,
-        stencilStoreOp: this.stencilOp,
-        // depthReadOnly: true
+        stencilStoreOp: this.stencilOp
       }
     };
 

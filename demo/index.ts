@@ -25,7 +25,7 @@ class APP {
       {near: 0.01, far: 100, fov: Math.PI / 3}
     );
     rootNode.addChild(this._camera);
-    this._camera.pos.set([0, 0, 10]);
+    this._camera.pos.set([0, 0, 6]);
 
     const geometry = new H.Geometry(
       {
@@ -102,7 +102,11 @@ class APP {
     this._mesh = new H.Mesh(geometry, material);
     // _scene.rootNode.addChild(this._mesh);
 
-    this._rt = new H.RenderTexture(H.renderEnv.width, H.renderEnv.height);
+    this._rt = new H.RenderTexture({
+      width: H.renderEnv.width,
+      height: H.renderEnv.height,
+      colors: [{}]
+    });
     // this._csRT = new H.RenderTexture(H.renderEnv.width, H.renderEnv.height, true);
     // this._blurUnit = new H.ComputeUnit(
     //   H.buildinEffects.cCreateSimpleBlur(2),
@@ -115,7 +119,7 @@ class APP {
     // );
     // this._imageMesh = new H.ImageMesh(new H.Material(H.buildinEffects.iBlit, {u_texture: this._csRT}));
 
-    const model = await H.resource.load({type: 'gltf', name: 'soda.gltf', src: '/assets/models/simple/scene.gltf'});
+    const model = await H.resource.load({type: 'gltf', name: 'soda.gltf', src: '/assets/models/soda/scene.gltf'});
     if (model.cameras.length) {
       this._camera = model.cameras[0];
     }
