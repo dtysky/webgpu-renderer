@@ -55,19 +55,8 @@ export default class Texture extends HObject {
   }
 
   protected _loadBuffer() {
-    // const bitmap = await createImageBitmap(
-    //   new ImageData(new Uint8ClampedArray(this._src as ArrayBuffer), this._width, this._height)
-    // );
-
-    // renderEnv.device.queue.copyExternalImageToTexture(
-    //   {source: bitmap},
-    //   {texture: this._gpuTexture},
-    //   {width: bitmap.width, height: bitmap.height, depthOrArrayLayers: 1}
-    // );
-
-    // bitmap.close();
     renderEnv.device.queue.writeTexture(
-      {texture: this._gpuTexture},
+      {texture: this._gpuTexture, origin: {x: 0, y: 0, z: 0}},
       this._src as ArrayBuffer,
       {},
       {width: this._width, height: this._height}

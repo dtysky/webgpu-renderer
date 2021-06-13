@@ -14,6 +14,10 @@ class RenderEnv {
   private _swapChainFormat: GPUTextureFormat = 'bgra8unorm';
   private _swapChain: GPUSwapChain;
 
+  get canvas() {
+    return this._canvas;
+  }
+
   get ctx() {
     return this._ctx;
   }

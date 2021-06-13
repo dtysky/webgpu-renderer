@@ -20,7 +20,9 @@ export {default as ImageMesh} from './core/ImageMesh';
 export {default as ComputeUnit} from './core/ComputeUnit';
 export {default as RenderTexture} from './core/RenderTexture';
 export {default as Texture} from './core/Texture';
+export {default as CubeTexture} from './core/CubeTexture';
 export {default as renderEnv} from './core/renderEnv';
+export {default as NodeControl} from './core/NodeControl';
 
 export {default as resource, Resource} from './resource';
 export {default as TextureLoader, ITextureLoaderOptions} from './resource/TextureLoader';

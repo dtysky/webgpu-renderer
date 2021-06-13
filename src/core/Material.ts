@@ -7,7 +7,7 @@
 import HObject from "./HObject";
 import Effect, { IUniformBlock, TUniformValue } from "./Effect";
 import renderEnv from "./renderEnv";
-import {TTypedArray, TUniformTypedArray} from "./shared";
+import {TUniformTypedArray} from "./shared";
 import RenderTexture from "./RenderTexture";
 import Texture from "./Texture";
 
@@ -92,6 +92,8 @@ export default class Material extends HObject {
             realLen * index
           );
         }
+      } else {
+        cpuValue.set(value);
       }
 
       renderEnv.device.queue.writeBuffer(

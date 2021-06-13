@@ -99,7 +99,7 @@ export default class BasicTestApp {
     });
     const material = new H.Material(effect);
     this._mesh = new H.Mesh(geometry, material);
-    // _scene.rootNode.addChild(this._mesh);
+    _scene.rootNode.addChild(this._mesh);
 
     this._rt = new H.RenderTexture({
       width: H.renderEnv.width,
@@ -122,7 +122,7 @@ export default class BasicTestApp {
     if (model.cameras.length) {
       this._camera = model.cameras[0];
     }
-    _scene.rootNode.addChild(model.rootNode);
+    // _scene.rootNode.addChild(model.rootNode);
     console.log(model);
 
     this._test();

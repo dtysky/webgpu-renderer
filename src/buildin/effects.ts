@@ -6,11 +6,13 @@
  */
 import {mat4} from 'gl-matrix';
 import Effect from '../core/Effect';
+import renderEnv from '../core/renderEnv';
 import textures from './textures';
 
 const effects: {
   rGreen: Effect,
   rUnlit: Effect,
+  rSkybox: Effect,
   iBlit: Effect,
   rRTGBuffer: Effect,
   rRTSS: Effect,
@@ -82,37 +84,99 @@ export function init() {
     marcos: commonMarcos
   });
 
-  // effects.rGBuffer = new Effect({
-  //   vs: require('./shaders/basic/model.vert.wgsl'),
-  //   fs: require('./shaders/ray-tracing/gbuffer.frag.wgsl'),
-  //   uniformDesc: {
-  //     uniforms: [
-  //       // {
-  //       //   name: 'u_randomSeed',
-  //       //   type: 'vec2',
-  //       //   defaultValue: new Float32Array([0, 0])
-  //       // }
-  //     ],
-  //     textures: [
-  //       {
-  //         name: 'u_texture',
-  //         defaultValue: textures.white
-  //       }
-  //     ],
-  //     samplers: [
-  //       {
-  //         name: 'u_sampler',
-  //         defaultValue: {magFilter: 'linear', minFilter: 'linear'}
-  //       }
-  //     ],
-  //   },
-  //   marcos: commonMarcos
-  // })
+  effects.rSkybox = new Effect({
+    vs: require('./shaders/basic/skybox.vert.wgsl'),
+    fs: require('./shaders/basic/skybox.frag.wgsl'),
+    uniformDesc: {
+      uniforms: [
+        {
+          name: 'u_skyVP',
+          type: 'mat4x4',
+          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
+        },
+        {
+          name: 'u_color',
+          type: 'vec4',
+          defaultValue: mat4.identity(new Float32Array(4)) as Float32Array
+        },
+        {
+          name: 'u_factor',
+          type: 'number',
+          defaultValue: new Float32Array(1)
+        },
+        {
+          name: 'u_rotation',
+          type: 'number',
+          defaultValue: new Float32Array(1)
+        },
+        {
+          name: 'u_exposure',
+          type: 'number',
+          defaultValue: new Float32Array(1)
+        },
+      ],
+      textures: [
+        {
+          name: 'u_cubeTexture',
+          defaultValue: textures.cubeWhite
+        }
+      ],
+      samplers: [
+        {
+          name: 'u_sampler',
+          defaultValue: {magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'nearest'}
+        }
+      ]
+    }
+  });
+
+  effects.rRTGBuffer = new Effect({
+    vs: require('./shaders/basic/model.vert.wgsl'),
+    fs: require('./shaders/ray-tracing/gbuffer.frag.wgsl'),
+    uniformDesc: {
+      uniforms: [
+        {
+          name: 'u_world',
+          type: 'mat4x4',
+          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
+        },
+        {
+          name: 'u_view',
+          type: 'mat4x4',
+          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
+        },
+        {
+          name: 'u_vp',
+          type: 'mat4x4',
+          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
+        },
+      ],
+      textures: [
+        {
+          name: 'u_baseColorTexture',
+          defaultValue: textures.white
+        }
+      ],
+      samplers: [
+        {
+          name: 'u_sampler',
+          defaultValue: {magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'nearest'}
+        }
+      ],
+    },
+    marcos: commonMarcos
+  });
+
   effects.rRTSS = new Effect({
     vs: require('./shaders/image/image.vert.wgsl'),
     fs: require('./shaders/ray-tracing/rtss.frag.wgsl'),
     uniformDesc: {
       uniforms: [
+        {
+          name: 'u_screenSize',
+          type: 'vec2',
+          defaultValue: new Float32Array([renderEnv.width, renderEnv.height])
+        },
         {
           name: 'u_randomSeed',
           type: 'vec2',
@@ -150,18 +214,19 @@ export function init() {
         }
       ],
       textures: [
-        // {
-        //   name: 'u_texture',
-        //   defaultValue: textures.white
-        // }
+        {
+          name: 'u_baseColorTexture',
+          defaultValue: textures.white
+        }
       ],
       samplers: [
-        // {
-        //   name: 'u_sampler',
-        //   defaultValue: {magFilter: 'linear', minFilter: 'linear'}
-        // }
-      ],
-    }
+        {
+          name: 'u_sampler',
+          defaultValue: {magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'nearest'}
+        }
+      ]
+    },
+    marcos: commonMarcos
   })
 
   effects.iBlit = new Effect({

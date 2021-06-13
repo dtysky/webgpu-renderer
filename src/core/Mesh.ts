@@ -26,6 +26,19 @@ export default class Mesh extends Node {
   protected _pipelines: {[hash: number]: GPURenderPipeline} = {};
   protected _matVersion: number = -1;
 
+  get geometry() {
+    return this._geometry;
+  }
+
+  get material() {
+    return this._material;
+  }
+
+  set material(value: Material) {
+    this._material = value;
+    this._pipelines = {};
+  }
+
   constructor(
     protected _geometry: Geometry,
     protected _material: Material

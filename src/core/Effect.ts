@@ -9,8 +9,9 @@ import renderEnv from "./renderEnv";
 import RenderTexture from "./RenderTexture";
 import Texture from "./Texture";
 import HObject from "./HObject";
+import CubeTexture from "./CubeTexture";
 
-export type TUniformValue = TUniformTypedArray | Texture | GPUSamplerDescriptor | RenderTexture;
+export type TUniformValue = TUniformTypedArray | Texture | CubeTexture | GPUSamplerDescriptor | RenderTexture;
 
 export interface IUniformsDescriptor {
   uniforms: {
@@ -22,8 +23,8 @@ export interface IUniformsDescriptor {
   }[],
   textures: {
     name: string,
-    format?: 'f32' | 'u32' | 'u16' | 'u8' | 'i32' | 'i16' | GPUTextureFormat,
-    defaultValue: Texture,
+    format?: GPUTextureFormat,
+    defaultValue: Texture | CubeTexture,
     asOutput?: boolean
   }[],
   samplers: {
@@ -166,10 +167,15 @@ export default class Effect extends HObject {
     }
 
     _uniformDesc.textures.forEach((ud) => {
+      const isCube = CubeTexture.IS(ud.defaultValue);
+
       entries.push({
         binding: bindingId,
         visibility,
-        texture: {sampleType: 'float' as GPUTextureSampleType}
+        texture: {
+          sampleType: 'float' as GPUTextureSampleType,
+          viewDimension: isCube ? 'cube' : '2d'
+        }
       });
       this._uniformsInfo[ud.name] = {
         bindingId, index, type: 'texture',
@@ -177,6 +183,8 @@ export default class Effect extends HObject {
       };
       if (ud.asOutput) {
         this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: texture_storage_2d<${ud.format || 'rgba8unorm'}, write>;\n`
+      } else if (isCube) {
+        this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: texture_cube<${ud.format || 'f32'}>;\n`
       } else {
         this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: texture_2d<${ud.format || 'f32'}>;\n`
       }
