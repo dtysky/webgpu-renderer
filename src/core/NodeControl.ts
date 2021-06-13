@@ -16,6 +16,7 @@ export default class NodeControl extends HObject {
   protected _start: boolean = false;
   protected _x: number;
   protected _y: number;
+  protected _touchId: number;
   protected _target: Node;
 
   constructor() {
@@ -28,23 +29,28 @@ export default class NodeControl extends HObject {
     canvas.addEventListener('mouseleave', this._handleEnd);
     canvas.addEventListener('mouseout', this._handleEnd);
     canvas.addEventListener('mousemove', this._handleMove);
+
+    canvas.addEventListener('touchstart', this._handleTouchStart);
+    canvas.addEventListener('touchend', this._handleEnd);
+    canvas.addEventListener('touchcancel', this._handleEnd);
+    canvas.addEventListener('touchmove', this._handleTouchMove);
   }
 
   public control(node: Node) {
     this._target = node;
   }
 
-  protected _handleStart = (event: MouseEvent) => {
+  protected _handleStart = (event: {clientX: number, clientY: number}) => {
     this._x = event.clientX;
     this._y = event.clientY;
     this._start = true;
   }
 
-  protected _handleEnd = (event: MouseEvent) => {
+  protected _handleEnd = () => {
     this._start = false;
   }
 
-  protected _handleMove = (event: MouseEvent) => {
+  protected _handleMove = (event: {clientX: number, clientY: number}) => {
     const {_start, _target, _x, _y} = this;
 
     if (!_start || !_target) {
@@ -64,5 +70,27 @@ export default class NodeControl extends HObject {
 
     this._x = clientX;
     this._y = clientY;
+  }
+
+  protected _handleTouchStart = (event: TouchEvent) => {
+    const touch = event.targetTouches[0];
+    this._touchId = touch.identifier;
+    this._handleStart(touch);
+  }
+
+  protected _handleTouchMove = (event: TouchEvent) => {
+    if (!this._start) {
+      return;
+    }
+
+    for (let i = 0; i < event.targetTouches.length; i += 1) {
+      const touch = event.targetTouches[i];
+
+      if (touch.identifier === this._touchId) {
+        return this._handleMove(touch);
+      }
+    }
+
+    this._handleEnd();
   }
 }
