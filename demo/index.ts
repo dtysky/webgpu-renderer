@@ -9,7 +9,7 @@ import BasicTestApp from './BasicTestApp';
 import RayTracingApp from './RayTracingApp';
 
 const app = new RayTracingApp();
-
+// const app = new BasicTestApp();
 
 async function main() {
   await H.init(document.querySelector<HTMLCanvasElement>('canvas#mainCanvas'));

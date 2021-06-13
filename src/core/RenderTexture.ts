@@ -88,8 +88,8 @@ export default class RenderTexture extends HObject {
     this._width = width;
     this._height = height;
 
-    if (forCompute && (colors.length > 1 || depthStencil)) {
-      throw new Error('RenderTexture with forCompute flag can only has one color and none depth!');
+    if (forCompute && depthStencil) {
+      throw new Error('RenderTexture with forCompute flag does not support depth!');
     }
 
     this._colorDescs = new Array(colors.length);
@@ -124,7 +124,8 @@ export default class RenderTexture extends HObject {
         label: this.hash + '_depth',
         size: {width, height},
         format: depthStencil.format || (!depthStencil.needStencil ? 'depth24plus' : 'depth24plus-stencil8'),
-        usage: GPUTextureUsage.RENDER_ATTACHMENT
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.SAMPLED,
+        
       } as GPUTextureDescriptor);
       this._depthStencilView = this._depthStencil.createView({label: this.hash + '_depth'});
     }

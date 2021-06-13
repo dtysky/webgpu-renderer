@@ -37,6 +37,10 @@ export default class Geometry extends HObject {
     return this._marcos;
   }
 
+  get vertexData() {
+    return this._vertexData;
+  }
+
   constructor(
     protected _vertexLayout: {
       attributes: (GPUVertexAttribute & {name: string})[],

@@ -71,13 +71,6 @@ export default class Node extends HObject {
     mat4.fromRotationTranslationScale(this._worldMat, this._quat, this._pos, this._scale);
   }
 
-  public lookAt(node: Node) {
-    const up = new Float32Array([0, 1, 0]);
-    // mat4.lookAt(this._worldMat, this._pos, node._pos, vec3.transformQuat(up, up, this._quat));
-    mat4.lookAt(this._worldMat, this._pos, node._pos, up);
-    this._updateTRSFromMat();
-  }
-
   public dfs<T extends any>(callback: (node: Node, params?: T) => T, defaultParams?: T) {
     const params = callback(this, defaultParams);
     const children: Node[] = this._children;

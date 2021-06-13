@@ -10,6 +10,7 @@ const MODEL_SRC = '/assets/models/simple/scene.gltf';
 
 export default class RayTracingApp {
   private _scene: H.Scene;
+  private _camControl: H.NodeControl;
   private _model: H.IGlTFResource;
   private _camera: H.Camera;
   private _gBufferRT: H.RenderTexture;
@@ -20,6 +21,7 @@ export default class RayTracingApp {
 
     const _scene = this._scene = new H.Scene();
     const rootNode = this._scene.rootNode = new H.Node();
+    this._camControl = new H.NodeControl();
 
     rootNode.addChild(this._camera = new H.Camera(
       {clearColor: [0, 1, 0, 1]},
@@ -31,7 +33,11 @@ export default class RayTracingApp {
       width: renderEnv.width,
       height: renderEnv.height,
       colors: [
-        {}
+        {name: 'worldPos', format: 'rgba16float'},
+        {name: 'worldNormal', format: 'rgba16float'},
+        // {name: 'matDiffuse', format: 'rgba16float'},
+        // {name: 'matSpecRough', format: 'rgba16float'},
+        // {name: 'matExtParams', format: 'rgba16float'}
       ],
       depthStencil: {needStencil: false}
     });
@@ -43,12 +49,14 @@ export default class RayTracingApp {
       this._camera = model.cameras[0];
     }
     _scene.rootNode.addChild(model.rootNode);
+    
+    this._camControl.control(this._camera);
 
     this._frame();
   }
 
   public update(dt: number) {
-
+    this._frame();
   }
 
   private _frame() {
@@ -56,13 +64,15 @@ export default class RayTracingApp {
     const {_scene} = this;
 
     _scene.startFrame();
-    // _scene.renderCamera(this._camera, _scene.cullCamera(this._camera));
-    this._renderRTSS();
+    this._renderGBuffer();
+    // this._renderRTSS();
     _scene.endFrame();
   }
 
-  private _renderGBuffer(meshes: H.Mesh[]) {
-
+  private _renderGBuffer() {
+    // this._scene.setRenderTarget(this._gBufferRT);
+    this._scene.renderCamera(this._camera, this._scene.cullCamera(this._camera));
+    // this._scene.renderCamera(this._camera, []);
   }
 
   private _showGBufferResult() {
@@ -70,6 +80,7 @@ export default class RayTracingApp {
   }
 
   protected _renderRTSS() {
+    this._scene.setRenderTarget(null);
     this._scene.renderImages([this._rtMesh]);
   }
 }

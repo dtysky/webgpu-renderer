@@ -15,14 +15,18 @@ export default class ImageMesh extends HObject {
   public isImageMesh: boolean = true;
 
   protected _pipeline: GPURenderPipeline;
+
   get material() {
     return this._material;
   }
 
+  set material(value: Material) {
+    this._material = value;
+    this._pipeline = null;
+  }
+
   constructor(protected _material: Material) {
     super();
-
-    this._createPipeline();
   }
 
   public render(
@@ -32,6 +36,7 @@ export default class ImageMesh extends HObject {
   ) {
     const {_material} = this;
 
+    !this._pipeline && this._createPipeline();
     camera && camera.fillUniforms(_material);
     lights.forEach((light, index) => light.fillUniforms(index, _material));
 

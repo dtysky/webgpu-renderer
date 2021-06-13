@@ -14,6 +14,7 @@ import Texture from "../core/Texture";
 import Loader from "./Loader";
 import { TUniformValue } from "../core/Effect";
 import Light from "../core/Light";
+import CubeTexture from "../core/CubeTexture";
 
 export interface IGlTFLoaderOptions {
 
@@ -25,6 +26,7 @@ export interface IGlTFResource {
   meshes: (Mesh | Node)[];
   images: HTMLImageElement[];
   textures: Texture[];
+  cubeTextures: CubeTexture[];
   materials: Material[];
   // samplers: GPUSamplerDescriptor[];
   cameras: Camera[];
@@ -53,6 +55,7 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
       meshes: [],
       images: [],
       textures: [],
+      cubeTextures: [],
       materials: [],
       // samplers: [],
       cameras: [],
@@ -61,6 +64,7 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
 
     await this._loadImages();
     await this._loadTextures();
+    await this._loadCubeTextures();
     await this._loadMaterials();
     await this._loadMeshes();
     await this._loadCameras();
@@ -105,12 +109,34 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     }
   }
 
+  private async _loadCubeTextures() {
+    const cubeTexturesSrc = this._json.extensions?.Sein_cubeTexture?.textures;
+    const {images, cubeTextures} = this._res;
+
+    if (!cubeTexturesSrc) {
+      return;
+    }
+
+    for (const {images: imageIds} of cubeTexturesSrc) {
+      const tasks = Promise.all<ImageBitmap>(imageIds.map((imageId: number) => {
+        return createImageBitmap(images[imageId]);
+      }));
+
+      const bms = await tasks;
+      const cubeTexture = new CubeTexture(bms[0].width, bms[1].width, bms);
+      bms.forEach(bm => bm.close());
+
+      cubeTextures.push(cubeTexture);
+    }
+  }
+
   private async _loadMaterials() {
     const {_buffers} = this;
     const {materials: materialsSrc} = this._json;
     const {materials, textures} = this._res;
 
     for (const {name, pbrMetallicRoughness, normalTexture} of materialsSrc) {
+      // const effect = buildinEffects.rRTGBuffer;
       const effect = buildinEffects.rUnlit;
       const uniforms: {[key: string]: TUniformValue} = {};
 
@@ -165,13 +191,13 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
 
   private async _loadCameras() {
     const {cameras: camerasSrc} = this._json;
-    const {cameras} = this._res;
+    const {cameras, cubeTextures} = this._res;
 
     if (!camerasSrc) {
       return;
     }
 
-    for (const {perspective, type, name} of camerasSrc) {
+    for (const {perspective, type, name, extensions} of camerasSrc) {
       if (type !== 'perspective') {
         throw new Error('Only support perspective camera now!');
       }
@@ -182,6 +208,24 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
         fov: 1 / perspective.yfov
       });
       camera.name = name;
+
+      const skybox = extensions && extensions.Sein_skybox;
+
+      if (skybox) {
+        if (skybox.type !== 'Cube') {
+          throw new Error('Only support cube texture skybox now!');
+        }
+
+        const skyboxMat = new Material(buildinEffects.rSkybox, {
+          u_factor: new Float32Array([skybox.factor]),
+          u_color: new Float32Array(skybox.color),
+          u_cubeTexture: cubeTextures[skybox.texture.index],
+          u_rotation: new Float32Array([skybox.rotation]),
+          u_exposure: new Float32Array([skybox.exposure])
+        });
+
+        camera.skyboxMat = skyboxMat;
+      }
 
       cameras.push(camera);
     }
