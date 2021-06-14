@@ -1,2 +1,3 @@
-# ray-tracing-webgpu
-Learn both webgpu and ray tracing.
+# webgpu-renderer
+
+A simple renderer implemented by WebGPU.
