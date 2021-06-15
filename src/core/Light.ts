@@ -1,7 +1,7 @@
 /**
  * Light.ts
  * 
- * @Author  : hikaridai(hikaridai@tencent.com)
+ * @Author  :dtysky(dtysky@outlook.com)
  * @Date    : 6/11/2021, 9:57:52 PM
 */
 import { mat4, vec3 } from 'gl-matrix';

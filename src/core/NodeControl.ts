@@ -1,7 +1,7 @@
 /**
  * NodeControl.ts
  * 
- * @Author  : hikaridai(hikaridai@tencent.com)
+ * @Author  :dtysky(dtysky@outlook.com)
  * @Date    : 6/13/2021, 8:47:22 PM
 */
 import { quat, vec3 } from 'gl-matrix';

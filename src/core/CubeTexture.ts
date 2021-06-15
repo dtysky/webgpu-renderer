@@ -1,7 +1,7 @@
 /**
  * CubeTexture.ts
  * 
- * @Author  : hikaridai(hikaridai@tencent.com)
+ * @Author  :dtysky(dtysky@outlook.com)
  * @Date    : 6/13/2021, 12:10:07 AM
 */
 import HObject from './HObject';

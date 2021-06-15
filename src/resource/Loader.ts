@@ -1,7 +1,7 @@
 /**
  * Loader.ts
  * 
- * @Author  : hikaridai(hikaridai@tencent.com)
+ * @Author  :dtysky(dtysky@outlook.com)
  * @Date    : 6/9/2021, 6:25:51 PM
 */
 
