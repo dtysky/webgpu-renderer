@@ -7,7 +7,7 @@
 import {buildinEffects} from "../buildin";
 import Node from "../core/Node";
 import Camera from "../core/Camera";
-import Geometry from "../core/Geometry";
+import Geometry, {IBoundingBox} from "../core/Geometry";
 import Material from "../core/Material";
 import Mesh from "../core/Mesh";
 import Texture from "../core/Texture";
@@ -297,21 +297,26 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
 
   private async _createMesh(prim: {attributes: any, indices: number, material: number}): Promise<Mesh> {
     const {_buffers} = this;
-    const {meshes: meshesSrc, accessors, bufferViews} = this._json;
-    const {meshes, materials} = this._res;
+    const {accessors, bufferViews} = this._json;
+    const {materials} = this._res;
 
     const attributes: (GPUVertexAttribute & {name: string})[] = [];
     let arrayStride: number = 0;
     let id: number = 0;
     let vertexData: Uint8Array;
 
+    let boundingBox: IBoundingBox;
+
     for (const attrName in prim.attributes) {
-      const {bufferView, byteOffset, componentType, type} = accessors[prim.attributes[attrName]];
+      const {bufferView, byteOffset, componentType, type, max, min} = accessors[prim.attributes[attrName]];
       const view = bufferViews[bufferView];
       const [format, byteLength] = this._convertVertexFormat(type, componentType);
       arrayStride += byteLength;
       vertexData = vertexData || new Uint8Array(_buffers[view.buffer], view.byteOffset || 0, view.byteLength);
 
+      if (attrName === 'POSITION' && max?.length === 3 && min?.length === 3) {
+        boundingBox = this._getBoundingBox(max, min);
+      }
 
       attributes.push({
         name: attrName.toLowerCase(),
@@ -327,7 +332,7 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     const idxView = bufferViews[idxInfo.bufferView];
     const indexBuffer = new Uint16Array(_buffers[idxView.buffer], idxView.byteOffset, idxView.byteLength / 2);
 
-    const geometry = new Geometry({arrayStride, attributes}, vertexData, indexBuffer, idxInfo.count);
+    const geometry = new Geometry({arrayStride, attributes}, vertexData, indexBuffer, idxInfo.count, boundingBox);
     const material = materials[prim.material];
 
     return new Mesh(geometry, material);
@@ -350,6 +355,17 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     }
 
     throw new Error(`Not support type ${type}!`)
+  }
+
+  protected _getBoundingBox(
+    max: [number, number, number],
+    min: [number, number, number]
+  ) {
+    return {
+      start: min,
+      center: max.map((mx, index) => (mx + min[index]) / 2) as  [number, number, number],
+      size: max.map((mx, index) => (mx - min[index])) as  [number, number, number]
+    }
   }
 
   private async _loadImage(uri: string): Promise<HTMLImageElement> {
