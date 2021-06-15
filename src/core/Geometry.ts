@@ -8,6 +8,12 @@
 import HObject from './HObject';
 import {createGPUBuffer, TTypedArray} from './shared';
 
+export interface IBoundingBox {
+  start: [number, number, number];
+  center: [number, number, number];
+  size: [number, number,  number];
+}
+
 export default class Geometry extends HObject {
   public static CLASS_NAME: string = 'Geometry';
   public isGeometry: boolean = true;
@@ -48,7 +54,8 @@ export default class Geometry extends HObject {
     },
     protected _vertexData: TTypedArray,
     protected _indexData: TTypedArray,
-    public count: number
+    public count: number,
+    protected _boundingBox?: IBoundingBox
   ) {
     super();
 

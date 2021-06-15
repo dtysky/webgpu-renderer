@@ -36,6 +36,8 @@ export interface IUniformsDescriptor {
 export interface IUniformBlock {
   layout: GPUBindGroupLayout;
   entries: GPUBindGroupEntry[];
+  cpuBuffer: Uint32Array;
+  gpuBuffer: GPUBuffer;
   values: {
     [name: string]: {
       value: TUniformValue,
@@ -284,16 +286,23 @@ export default class Effect extends HObject {
   public createDefaultUniformBlock(): IUniformBlock {
     const {_uniformDesc, _uniformsInfo, _uniformsBufferDefault} = this;
     const values: IUniformBlock['values'] = {};
-    const groupEntries: GPUBindGroupEntry[] = [];
+    const groupEntries: GPUBindGroupEntry[] = []; 
 
+    let cpuBuffer: Uint32Array;
+    let gpuBuffer: GPUBuffer;
     if (_uniformsBufferDefault) {
-      const uniformsBuffer = createGPUBuffer(_uniformsBufferDefault, GPUBufferUsage.UNIFORM);
+      gpuBuffer = createGPUBuffer(_uniformsBufferDefault, GPUBufferUsage.UNIFORM);
+      cpuBuffer = _uniformsBufferDefault.slice();
       groupEntries.push({
         binding: 0,
-        resource: {buffer: uniformsBuffer}
+        resource: {buffer: gpuBuffer}
       });
       _uniformDesc.uniforms.forEach((ud) => {
-        values[ud.name] = {value: (this._uniformsInfo[ud.name].defaultValue as TUniformTypedArray).slice(), gpuValue: uniformsBuffer};
+        const info = this._uniformsInfo[ud.name];
+        values[ud.name] = {
+          value: new (this._uniformsInfo[ud.name].defaultValue.constructor as typeof Float32Array)(cpuBuffer.buffer, info.offset * 4, info.realLen),
+          gpuValue: gpuBuffer
+        };
       });
     }
 
@@ -314,7 +323,7 @@ export default class Effect extends HObject {
       });
     });
 
-    return {entries: groupEntries, values, layout: this._uniformLayout};
+    return {entries: groupEntries, values, layout: this._uniformLayout, cpuBuffer, gpuBuffer};
   }
 
   public getShader(

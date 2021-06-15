@@ -16,6 +16,7 @@ export default class Material extends HObject {
   public isMaterial: boolean = true;
   
   protected _version: number = 0;
+  protected _isBufferDirty: boolean = false;
   protected _isDirty: boolean = false;
   protected _uniformBlock: IUniformBlock;
   protected _bindingGroup: GPUBindGroup;
@@ -34,6 +35,16 @@ export default class Material extends HObject {
   }
 
   get bindingGroup() {
+    if (this._isBufferDirty) {
+      renderEnv.device.queue.writeBuffer(
+        this._uniformBlock.gpuBuffer as GPUBuffer,
+        0,
+        this._uniformBlock.cpuBuffer
+      );
+
+      this._isBufferDirty = true;
+    }
+
     if (this._isDirty) {
       this._bindingGroup = renderEnv.device.createBindGroup({
         layout: this._uniformBlock.layout,
@@ -95,14 +106,7 @@ export default class Material extends HObject {
       } else {
         cpuValue.set(value);
       }
-
-      renderEnv.device.queue.writeBuffer(
-        values.gpuValue as GPUBuffer,
-        offset * 4,
-        cpuValue,
-        cpuValue.byteOffset,
-        cpuValue.length
-      );
+      this._isBufferDirty = true;
     } else if (type === 'sampler') {
       values.value = value;
       console.warn('Not implemented!');
@@ -117,7 +121,6 @@ export default class Material extends HObject {
       this._isDirty = true;
       return;
     }
-
   }
 
   public getUniform(name: string): TUniformValue {
