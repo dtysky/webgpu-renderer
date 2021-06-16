@@ -5,9 +5,9 @@
  * @Date    : 6/13/2021, 8:47:22 PM
 */
 import { quat, vec3 } from 'gl-matrix';
-import HObject from './HObject';
-import Node from './Node';
-import renderEnv from './renderEnv';
+import renderEnv from '../core/renderEnv';
+import HObject from '../core/HObject';
+import Node from '../core/Node';
 
 export default class NodeControl extends HObject {
   public static CLASS_NAME: string = 'NodeControl';

@@ -63,7 +63,9 @@ export default class Mesh extends Node {
     _material.setUniform('u_world', this._worldMat);
     lights.forEach((light, index) => light.fillUniforms(index, _material));
 
-    pass.setVertexBuffer(0, _geometry.vertexes);
+    _geometry.vertexes.forEach((vertex, index) => {
+      pass.setVertexBuffer(index, vertex);
+    });
     pass.setIndexBuffer(_geometry.indexes, 'uint16');
     pass.setBindGroup(0, _material.bindingGroup);
     pass.setPipeline(this._pipelines[rt.pipelineHash]);
@@ -85,7 +87,7 @@ export default class Mesh extends Node {
       vertex: {
         module: vs,
         entryPoint: "main",
-        buffers: [_geometry.vertexLayout]
+        buffers: _geometry.vertexLayouts
       },
   
       fragment: {

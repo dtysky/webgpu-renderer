@@ -33,8 +33,8 @@ export default class RayTracingApp {
       width: renderEnv.width,
       height: renderEnv.height,
       colors: [
-        {name: 'worldPos', format: 'rgba16float'},
-        {name: 'worldNormal', format: 'rgba16float'},
+        {name: 'position', format: 'rgba16float'},
+        {name: 'normal', format: 'rgba8unorm'},
         // {name: 'matDiffuse', format: 'rgba16float'},
         // {name: 'matSpecRough', format: 'rgba16float'},
         // {name: 'matExtParams', format: 'rgba16float'}

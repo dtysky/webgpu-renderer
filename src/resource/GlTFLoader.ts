@@ -332,7 +332,12 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     const idxView = bufferViews[idxInfo.bufferView];
     const indexBuffer = new Uint16Array(_buffers[idxView.buffer], idxView.byteOffset, idxView.byteLength / 2);
 
-    const geometry = new Geometry({arrayStride, attributes}, vertexData, indexBuffer, idxInfo.count, boundingBox);
+    const geometry = new Geometry(
+      [{
+        layout: {arrayStride, attributes}, data: vertexData
+      }],
+      indexBuffer, idxInfo.count, boundingBox
+    );
     const material = materials[prim.material];
 
     return new Mesh(geometry, material);
