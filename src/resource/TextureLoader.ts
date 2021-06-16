@@ -1,7 +1,7 @@
 /**
  * TextureLoader.ts
  * 
- * @Author  : hikaridai(hikaridai@tencent.com)
+ * @Author  :dtysky(dtysky@outlook.com)
  * @Date    : 6/9/2021, 6:24:02 PM
  */
 import Texture from "../core/Texture";

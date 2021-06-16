@@ -1,7 +1,7 @@
 /**
  * GlTFLoader.ts
  * 
- * @Author  : hikaridai(hikaridai@tencent.com)
+ * @Author  :dtysky(dtysky@outlook.com)
  * @Date    : 6/9/2021, 6:24:15 PM
 */
 import {buildinEffects} from "../buildin";

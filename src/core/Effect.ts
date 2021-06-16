@@ -1,7 +1,7 @@
 /**
  * Effect.ts
  * 
- * @Author  : hikaridai(hikaridai@tencent.com)
+ * @Author  :dtysky(dtysky@outlook.com)
  * @Date    : 2021/6/7下午1:51:11
  */
  import {createGPUBuffer, hashCode, TUniformTypedArray} from "./shared";

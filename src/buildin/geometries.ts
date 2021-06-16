@@ -1,7 +1,7 @@
 /**
  * geometries.ts
  * 
- * @Author  : hikaridai(hikaridai@tencent.com)
+ * @Author  :dtysky(dtysky@outlook.com)
  * @Date    : 6/9/2021, 7:16:52 PM
 */
 import Geometry from "../core/Geometry";

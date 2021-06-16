@@ -2,7 +2,7 @@
 /**
  * index.ts
  * 
- * @Author  : hikaridai(hikaridai@tencent.com)
+ * @Author  :dtysky(dtysky@outlook.com)
  * @Date    : 6/9/2021, 6:23:33 PM
  */
 import HObject from "../core/HObject";
