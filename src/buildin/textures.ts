@@ -12,6 +12,7 @@ const textures: {
   red: Texture,
   green: Texture,
   blue: Texture,
+  array2white: Texture,
   cubeWhite: CubeTexture
 } = {} as any;
 
@@ -22,6 +23,10 @@ export function init() {
   textures.red = new Texture(1, 1, (new Uint8Array([255, 255, 255, 255])).buffer);
   textures.green = new Texture(1, 1, (new Uint8Array([255, 255, 255, 255])).buffer);
   textures.blue = new Texture(1, 1, (new Uint8Array([255, 255, 255, 255])).buffer);
+  textures.array2white = new Texture(1, 1, [
+    (new Uint8Array([255, 255, 255, 255])).buffer,
+    (new Uint8Array([255, 255, 255, 255])).buffer
+  ]);
   textures.cubeWhite = new CubeTexture(
     1, 1,
     new Array<ArrayBuffer>(6).fill(new Uint8Array([255, 255, 255, 255]).buffer)

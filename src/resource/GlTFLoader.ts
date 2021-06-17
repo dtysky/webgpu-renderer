@@ -24,7 +24,7 @@ export interface IGlTFResource {
   rootNode: Node;
   nodes: Node[];
   meshes: (Mesh | Node)[];
-  images: HTMLImageElement[];
+  images: ImageBitmap[];
   textures: Texture[];
   cubeTextures: CubeTexture[];
   materials: Material[];
@@ -87,7 +87,9 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     const {images} = this._res;
 
     for (const {uri} of imagesSrc) {
-      images.push(await this._loadImage(this._baseUri + '/' + uri));
+      const image = await this._loadImage(this._baseUri + '/' + uri);
+      const bitmap = await createImageBitmap(image);
+      images.push(bitmap);
     }
   }
 
@@ -98,9 +100,7 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     for (const {source} of texturesSrc) {
       const image = images[source];
 
-      const bitmap = await createImageBitmap(image);
-      const texture = new Texture(image.naturalWidth, image.naturalHeight, bitmap);
-      bitmap.close();
+      const texture = new Texture(image.width, image.height, image);
       
       const isRGBD: boolean = imagesSrc.extras?.type === 'HDR' && imagesSrc.extras?.format === 'RGBD';
       const isNormal: boolean = !!imagesSrc.extras?.isNormalMap;
@@ -136,8 +136,7 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     const {materials, textures} = this._res;
 
     for (const {name, pbrMetallicRoughness, normalTexture} of materialsSrc) {
-      // const effect = buildinEffects.rRTGBuffer;
-      const effect = buildinEffects.rUnlit;
+      const effect = buildinEffects.rPBR;
       const uniforms: {[key: string]: TUniformValue} = {};
 
       if (normalTexture) {
@@ -146,7 +145,7 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
 
       if (pbrMetallicRoughness) {
         const {
-          baseColorTexture, metallicFactor, roughnessFactor, metallicRoughnessTexture
+          baseColorTexture, metallicFactor, baseColorFactor, roughnessFactor, metallicRoughnessTexture
         } = pbrMetallicRoughness;
 
         if (baseColorTexture) {
@@ -156,8 +155,8 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
           uniforms['u_metallicRoughnessTexture'] = textures[metallicRoughnessTexture.index]
         }
 
+        uniforms['u_baseColorFactor'] = baseColorFactor;
         uniforms['u_metallicFactor'] = metallicFactor;
-        uniforms['u_metallicFactor'] = roughnessFactor;
         uniforms['u_roughnessFactor'] = roughnessFactor;
       }
 

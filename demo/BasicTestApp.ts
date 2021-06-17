@@ -71,7 +71,7 @@ export default class BasicTestApp {
       6
     );
     const texture = await H.resource.load({type: 'texture', name: 'uv-debug.tex', src: require('./assets/textures/uv-debug.png')});
-    const effect = new H.Effect({
+    const effect = new H.Effect('test', {
       vs: require('./assets/shaders/test/vertex.vert.wgsl'),
       fs: require('./assets/shaders/test/fragment.frag.wgsl'),
       uniformDesc: {

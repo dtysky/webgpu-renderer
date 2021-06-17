@@ -5,6 +5,7 @@
  * @Link   : dtysky.moe
  * @Date   : 2021/6/6下午8:56:49
  */
+import { vec3 } from 'gl-matrix';
 import HObject from './HObject';
 import {createGPUBuffer, TTypedArray} from './shared';
 
@@ -72,7 +73,8 @@ export default class Geometry extends HObject {
         attributes: (GPUVertexAttribute & {name: string})[],
         arrayStride: number
       },
-      data: TTypedArray
+      data: TTypedArray,
+      gpuData?: GPUBuffer
     }[],
     protected _indexData: Uint16Array,
     public count: number,
@@ -87,13 +89,13 @@ export default class Geometry extends HObject {
     this._marcos = {};
     this._attributesDef = 'struct Attrs {\n';
 
-    _vertexes.forEach(({layout, data}, index) => {
-      const vBuffer = createGPUBuffer(data, GPUBufferUsage.VERTEX);
+    _vertexes.forEach(({layout, data, gpuData}, index) => {
+      const vBuffer = gpuData ? gpuData : createGPUBuffer(data, GPUBufferUsage.VERTEX);
 
       layout.attributes.forEach((attr) => {
         this._marcos[`USE_${attr.name.toUpperCase()}`] = true;
         this._attributesDef += `  [[location(${attr.shaderLocation})]] ${attr.name}: ${this._convertFormat(attr.format)};\n`;
-        this._vInfo[attr.name.toUpperCase()] = {
+        this._vInfo[attr.name.toLowerCase()] = {
           data, offset: attr.offset / 4, stride: layout.arrayStride / 4, length: this._getLength(attr.format)
         };
       });
@@ -102,13 +104,55 @@ export default class Geometry extends HObject {
       this._vLayouts[index] = layout;
 
       this._vertexCount = data.byteLength / layout.arrayStride;
-    })
+    });
 
     this._attributesDef += '};\n\n';
   }
 
-  public computeNormals() {
+  public calculateNormals() {
+    const {_vInfo, _vertexCount, _indexData, count} = this;
 
+    if (_vInfo.normal) {
+      return;
+    }
+
+    const position = _vInfo.position;
+    const data = new Float32Array(_vertexCount * 3);
+
+    const vMultiFaceCount = new Uint8Array(_vertexCount);
+    let v31: Float32Array;
+    let v32: Float32Array;
+    let v33: Float32Array;
+    let offset: number;
+    for (let i = 0; i < count; i += 1) {
+      offset = position.offset + _indexData[i] * position.stride;
+      v31 = position.data.slice(offset, offset + position.length) as Float32Array;
+      offset = position.offset + _indexData[i + 1] * position.stride;
+      v32 = position.data.slice(offset, offset + position.length) as Float32Array;
+      offset = position.offset + _indexData[i + 2] * position.stride;
+      v33 = position.data.slice(offset, offset + position.length) as Float32Array;
+
+      vec3.sub(v32, v32, v31);
+      vec3.sub(v33, v33, v31);
+      vec3.cross(v32, v32, v33);
+
+      for (let vi = 0; vi < 3; vi += 1) {
+        const index = _indexData[i + vi];
+
+        if (vMultiFaceCount[index]) {
+          const oldData = new Float32Array(data.buffer, index * 3 * 4, 3);
+          vec3.scale(oldData, oldData, vMultiFaceCount[index]);
+          vec3.add(oldData, oldData, v32);
+          vec3.scale(oldData, oldData, 1 / (vMultiFaceCount[i] + 1));
+        } else {
+          data.set(v32, index * 3);
+        }
+
+        vMultiFaceCount[index] += 1;
+      }
+    }
+
+    _vInfo.normal = {offset: 0, length: 3, stride: 3, data};
   }
 
   protected _convertFormat(f: GPUVertexFormat) {

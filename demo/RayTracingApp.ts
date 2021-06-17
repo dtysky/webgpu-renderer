@@ -14,7 +14,7 @@ export default class RayTracingApp {
   private _model: H.IGlTFResource;
   private _camera: H.Camera;
   private _gBufferRT: H.RenderTexture;
-  private _rtMesh: H.ImageMesh;
+  protected _bvh: H.BVH;
 
   public async init() {
     const {renderEnv} = H;
@@ -33,17 +33,15 @@ export default class RayTracingApp {
       width: renderEnv.width,
       height: renderEnv.height,
       colors: [
-        {name: 'position', format: 'rgba16float'},
-        {name: 'normal', format: 'rgba8unorm'},
-        // {name: 'matDiffuse', format: 'rgba16float'},
-        // {name: 'matSpecRough', format: 'rgba16float'},
-        // {name: 'matExtParams', format: 'rgba16float'}
+        {name: 'positionMetal', format: 'rgba16float'},
+        {name: 'colorRough', format: 'rgba16float'},
+        {name: 'normalMeshIndex', format: 'rgba8unorm'},
+        {name: 'faceNormalMatIndex', format: 'rgba8unorm'}
       ],
       depthStencil: {needStencil: false}
     });
 
-    this._rtMesh = new H.ImageMesh(new H.Material(H.buildinEffects.rRTSS));
-
+    
     const model = this._model = await H.resource.load({type: 'gltf', name: 'scene.gltf', src: MODEL_SRC});
     if (model.cameras.length) {
       this._camera = model.cameras[0];
@@ -64,15 +62,21 @@ export default class RayTracingApp {
     const {_scene} = this;
 
     _scene.startFrame();
+
+    if (!this._bvh) {
+      this._bvh = new H.BVH();
+      this._bvh.process(this._scene.cullCamera(this._camera));
+    }
+
     this._renderGBuffer();
     // this._renderRTSS();
     _scene.endFrame();
   }
 
   private _renderGBuffer() {
-    // this._scene.setRenderTarget(this._gBufferRT);
-    this._scene.renderCamera(this._camera, this._scene.cullCamera(this._camera));
-    // this._scene.renderCamera(this._camera, []);
+    // this._scene.renderCamera(this._camera, this._scene.cullCamera(this._camera));
+    this._scene.setRenderTarget(this._gBufferRT);
+    this._scene.renderCamera(this._camera, [this._bvh.gBufferMesh]);;
   }
 
   private _showGBufferResult() {
@@ -81,6 +85,5 @@ export default class RayTracingApp {
 
   protected _renderRTSS() {
     this._scene.setRenderTarget(null);
-    this._scene.renderImages([this._rtMesh]);
   }
 }

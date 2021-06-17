@@ -113,10 +113,12 @@ export default class Effect extends HObject {
   }
 
   constructor(
+    name: string,
     private _options: TEffectOptions
   ) {
     super();
 
+    this.name = name
     const {device} = renderEnv;
     const options = _options;
     const _uniformDesc = this._uniformDesc = options.uniformDesc;
@@ -187,6 +189,8 @@ export default class Effect extends HObject {
         this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: texture_storage_2d<${ud.format || 'rgba8unorm'}, write>;\n`
       } else if (isCube) {
         this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: texture_cube<${ud.format || 'f32'}>;\n`
+      } else if ((ud.defaultValue as Texture).isArray) {
+        this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: texture_2d_array<${ud.format || 'f32'}>;\n`
       } else {
         this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: texture_2d<${ud.format || 'f32'}>;\n`
       }
@@ -300,7 +304,7 @@ export default class Effect extends HObject {
       _uniformDesc.uniforms.forEach((ud) => {
         const info = this._uniformsInfo[ud.name];
         values[ud.name] = {
-          value: new (this._uniformsInfo[ud.name].defaultValue.constructor as typeof Float32Array)(cpuBuffer.buffer, info.offset * 4, info.realLen),
+          value: new (this._uniformsInfo[ud.name].defaultValue.constructor as typeof Float32Array)(cpuBuffer.buffer, info.offset * 4, info.origLen),
           gpuValue: gpuBuffer
         };
       });

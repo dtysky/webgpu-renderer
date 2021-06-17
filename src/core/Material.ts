@@ -116,6 +116,10 @@ export default class Material extends HObject {
       this._isDirty = true;
     } else {
       value = value as Texture;
+      if (value.isArray !== (values.value as Texture).isArray) {
+        throw new Error('Require texture2d array!');
+      }
+
       entries[bindingId].resource = values.gpuValue = value.view;
       values.value = value;
       this._isDirty = true;

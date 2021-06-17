@@ -10,6 +10,8 @@ export type TTypedArray = Float32Array | Uint32Array | Uint16Array | Uint8Array 
 
 export type TUniformTypedArray = Float32Array | Uint32Array | Int32Array;
 
+export type TTextureSource = ImageBitmap | ArrayBuffer;
+
 export function createGPUBuffer(array: TTypedArray, usage: GPUBufferUsageFlags) {
   const buffer = renderEnv.device.createBuffer({
     size: array.byteLength,

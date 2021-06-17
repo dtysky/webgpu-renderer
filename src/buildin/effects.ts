@@ -12,6 +12,7 @@ import textures from './textures';
 const effects: {
   rGreen: Effect,
   rUnlit: Effect,
+  rPBR: Effect,
   rSkybox: Effect,
   iBlit: Effect,
   rRTGBuffer: Effect,
@@ -30,7 +31,7 @@ const commonMarcos = {
 };
 
 export function init() {
-  effects.rGreen = new Effect({
+  effects.rGreen = new Effect('rGreen', {
     vs: require('./shaders/basic/model.vert.wgsl'),
     fs: require('./shaders/basic/green.frag.wgsl'),
     uniformDesc: {
@@ -52,7 +53,7 @@ export function init() {
     marcos: commonMarcos
   });
 
-  effects.rUnlit = new Effect({
+  effects.rUnlit = new Effect('rUnlit', {
     vs: require('./shaders/basic/model.vert.wgsl'),
     fs: require('./shaders/basic/unlit.frag.wgsl'),
     uniformDesc: {
@@ -84,7 +85,62 @@ export function init() {
     marcos: commonMarcos
   });
 
-  effects.rSkybox = new Effect({
+  effects.rPBR = new Effect('rPBR', {
+    vs: require('./shaders/basic/model.vert.wgsl'),
+    fs: require('./shaders/basic/unlit.frag.wgsl'),
+    uniformDesc: {
+      uniforms: [
+        {
+          name: 'u_world',
+          type: 'mat4x4',
+          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
+        },
+        {
+          name: 'u_vp',
+          type: 'mat4x4',
+          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
+        },
+        {
+          name: 'u_baseColorFactor',
+          type: 'vec4',
+          defaultValue: new Float32Array([1, 1, 1, 1])
+        },
+        {
+          name: 'u_metallicFactor',
+          type: 'number',
+          defaultValue: new Float32Array([1])
+        },
+        {
+          name: 'u_roughnessFactor',
+          type: 'number',
+          defaultValue: new Float32Array([1])
+        }
+      ],
+      textures: [
+        {
+          name: 'u_baseColorTexture',
+          defaultValue: textures.white
+        },
+        {
+          name: 'u_normalTexture',
+          defaultValue: textures.white
+        },
+        {
+          name: 'u_metallicRoughnessTexture',
+          defaultValue: textures.white
+        }
+      ],
+      samplers: [
+        {
+          name: 'u_sampler',
+          defaultValue: {magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'nearest'}
+        }
+      ]
+    },
+    marcos: commonMarcos
+  });
+
+  effects.rSkybox = new Effect('rSkybox', {
     vs: require('./shaders/basic/skybox.vert.wgsl'),
     fs: require('./shaders/basic/skybox.frag.wgsl'),
     uniformDesc: {
@@ -130,16 +186,11 @@ export function init() {
     }
   });
 
-  effects.rRTGBuffer = new Effect({
+  effects.rRTGBuffer = new Effect('rRTGBuffer', {
     vs: require('./shaders/basic/model.vert.wgsl'),
     fs: require('./shaders/ray-tracing/gbuffer.frag.wgsl'),
     uniformDesc: {
       uniforms: [
-        {
-          name: 'u_world',
-          type: 'mat4x4',
-          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
-        },
         {
           name: 'u_view',
           type: 'mat4x4',
@@ -150,11 +201,51 @@ export function init() {
           type: 'mat4x4',
           defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
         },
+        // support materials up to 128
+        {
+          name: 'u_matId2TexturesId',
+          type: 'vec2',
+          format: 'u32',
+          size: 128,
+          defaultValue: new Uint32Array(2 * 128)
+        },
+        {
+          name: 'u_worlds',
+          type: 'mat4x4',
+          size: 128,
+          defaultValue: mat4.identity(new Float32Array(16 * 128)) as Float32Array
+        },
+        {
+          name: 'u_baseColorFactors',
+          type: 'vec4',
+          size: 128,
+          defaultValue: new Float32Array(4 * 128)
+        },
+        {
+          name: 'u_metallicFactors',
+          type: 'number',
+          size: 128,
+          defaultValue: new Float32Array(128)
+        },
+        {
+          name: 'u_roughnessFactors',
+          type: 'number',
+          size: 128,
+          defaultValue: new Float32Array(128)
+        }
       ],
       textures: [
         {
-          name: 'u_baseColorTexture',
-          defaultValue: textures.white
+          name: 'u_baseColorTextures',
+          defaultValue: textures.array2white
+        },
+        {
+          name: 'u_normalTextures',
+          defaultValue: textures.array2white
+        },
+        {
+          name: 'u_metallicRoughnessTextures',
+          defaultValue: textures.array2white
         }
       ],
       samplers: [
@@ -167,7 +258,7 @@ export function init() {
     marcos: commonMarcos
   });
 
-  effects.rRTSS = new Effect({
+  effects.rRTSS = new Effect('rRTSS', {
     vs: require('./shaders/image/image.vert.wgsl'),
     fs: require('./shaders/ray-tracing/rtss.frag.wgsl'),
     uniformDesc: {
@@ -229,7 +320,7 @@ export function init() {
     marcos: commonMarcos
   })
 
-  effects.iBlit = new Effect({
+  effects.iBlit = new Effect('iBlit', {
     vs: require('./shaders/image/image.vert.wgsl'),
     fs: require('./shaders/image/blit.frag.wgsl'),
     uniformDesc: {
@@ -254,7 +345,7 @@ export function init() {
     const mod = realKernelSize % 4;
     const kernelSize = realKernelSize + (4 - mod);
 
-    return new Effect({
+    return new Effect('cSimpleBlur-' + radius, {
       cs: require('./shaders/compute/blur.comp.wgsl')
         .replace(/\${MARCO_RADIUS}/g, radius)
         .replace(/\${MARCO_WINDOW_SIZE}/g, radius * 2 + 1)
