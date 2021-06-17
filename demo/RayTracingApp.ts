@@ -42,11 +42,62 @@ export default class RayTracingApp {
     });
 
     
-    const model = this._model = await H.resource.load({type: 'gltf', name: 'scene.gltf', src: MODEL_SRC});
-    if (model.cameras.length) {
-      this._camera = model.cameras[0];
-    }
-    _scene.rootNode.addChild(model.rootNode);
+    // const model = this._model = await H.resource.load({type: 'gltf', name: 'scene.gltf', src: MODEL_SRC});
+    // if (model.cameras.length) {
+    //   this._camera = model.cameras[0];
+    // }
+    // _scene.rootNode.addChild(model.rootNode);
+
+    const geometry = new H.Geometry(
+      [
+        {
+          layout: {
+            arrayStride: 3 * 4,
+            attributes: [
+              {
+                name: 'position',
+                shaderLocation: 0,
+                offset: 0,
+                format: 'float32x3' as GPUVertexFormat
+              }
+            ]
+          },
+          data: new Float32Array([
+            -1, -1, 0,
+            1, -1, 0,
+            -1, 1, 0,
+            1, 1, 0,
+          ])
+        },
+        {
+          layout: {
+            arrayStride: 2 * 4,
+            attributes: [
+              {
+                name: 'texcoord_0',
+                shaderLocation: 1,
+                offset: 0,
+                format: 'float32x2' as GPUVertexFormat
+              }
+            ]
+          },
+          data: new Float32Array([
+            0, 1,
+            1, 1,
+            0, 0,
+            1, 0,
+          ])
+        },
+      ],
+      new Uint16Array([0, 1, 2, 2, 1, 3]),
+      6
+    );
+
+    const m1 = new H.Mesh(geometry, new H.Material(H.buildinEffects.rPBR));
+    const m2 = new H.Mesh(geometry, new H.Material(H.buildinEffects.rPBR));
+    m2.pos.set(new Float32Array([-1, -1, 0]));
+    // _scene.rootNode.addChild(m1);
+    _scene.rootNode.addChild(m2);
     
     this._camControl.control(this._camera);
 
@@ -54,7 +105,7 @@ export default class RayTracingApp {
   }
 
   public update(dt: number) {
-    this._frame();
+    // this._frame();
   }
 
   private _frame() {
@@ -75,7 +126,7 @@ export default class RayTracingApp {
 
   private _renderGBuffer() {
     // this._scene.renderCamera(this._camera, this._scene.cullCamera(this._camera));
-    this._scene.setRenderTarget(this._gBufferRT);
+    // this._scene.setRenderTarget(this._gBufferRT);
     this._scene.renderCamera(this._camera, [this._bvh.gBufferMesh]);;
   }
 

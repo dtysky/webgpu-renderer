@@ -15,16 +15,16 @@ import Texture from '../core/Texture';
 
 export interface IBVHAttributeValue<TArrayType = Float32Array> {
   value: TArrayType;
-  offset: number;
   length: number;
   format: GPUVertexFormat;
 };
 
 export default class BVH extends HObject {
   public static CLASS_NAME: string = 'BVH';
+  public static RESIZE_CANVAS: HTMLCanvasElement;
+  public static RESIZE_CTX: CanvasRenderingContext2D;
   public isBVH: boolean = true;
 
-  protected _attributesGPUBuffer: GPUBuffer;
   protected _attributesInfo: {
     position: IBVHAttributeValue,
     texcoord_0: IBVHAttributeValue,
@@ -39,8 +39,7 @@ export default class BVH extends HObject {
     matId2TexturesId: Uint32Array;
     worldMatrixes: Float32Array;
     baseColorFactors: Float32Array;
-    metallicFactors: Float32Array;
-    roughnessFactors: Float32Array;
+    metallicRoughnessFactors: Float32Array;
     baseColorTextures: Texture;
     normalTextures: Texture;
     metallicRoughnessTextures: Texture;
@@ -85,37 +84,25 @@ export default class BVH extends HObject {
     const {value: indexes} = this._indexInfo = {
       value: new Uint16Array(indexCount)
     };
-    const gpuBufferSize = vertexCount * (3 + 2 + 3 + 2) * 4;
-    const attrBuffer = this._attributesGPUBuffer = createGPUBufferBySize(
-      gpuBufferSize,
-      GPUBufferUsage.VERTEX | GPUBufferUsage.UNIFORM
-    );
-    const mappedBuffer = attrBuffer.getMappedRange(0, gpuBufferSize);
-    const f32View = new Float32Array(mappedBuffer);
-    const v32View = new Uint32Array(mappedBuffer);
 
     const {position, texcoord_0, normal, meshMatIndex} = this._attributesInfo = {
       position: {
-        value: f32View,
-        offset: 0,
+        value: new Float32Array(vertexCount * 3),
         length: 3,
         format: 'float32x3'
       },
       texcoord_0: {
-        value: f32View,
-        offset: vertexCount * 3,
+        value: new Float32Array(vertexCount * 2),
         length: 2,
         format: 'float32x2'
       },
       normal: {
-        value: f32View,
-        offset: vertexCount * 5,
+        value: new Float32Array(vertexCount * 3),
         length: 3,
         format: 'float32x3'
       },
       meshMatIndex: {
-        value: v32View,
-        offset: vertexCount * 8,
+        value: new Uint32Array(vertexCount * 2),
         length: 2,
         format: 'uint32x2'
       }
@@ -146,14 +133,12 @@ export default class BVH extends HObject {
         this._copyAttribute(vertexInfo.texcoord_0, texcoord_0, index);
         this._copyAttribute(vertexInfo.normal, normal, index);
         
-        meshMatIndex.value.set([index, materialIndex], meshMatIndex.offset + index * meshMatIndex.length);
+        meshMatIndex.value.set([index, materialIndex], index * meshMatIndex.length);
       }
       
       indexOffset += count;
       attrOffset += vertexCount;
     });
-
-    attrBuffer.unmap();
   }
 
   protected _copyAttribute(
@@ -165,7 +150,7 @@ export default class BVH extends HObject {
 
     dst.value.set(
       src.data.slice(srcOffset, srcOffset + src.length),
-      dst.offset + index * dst.length
+      index * dst.length
     );
   }
 
@@ -173,8 +158,7 @@ export default class BVH extends HObject {
     const matId2TexturesId = new Uint32Array(materials.length * 4);
     const worldMatrixes = new Float32Array(materials.length * 16);
     const baseColorFactors = new Float32Array(materials.length * 4).fill(1);
-    const metallicFactors = new Float32Array(materials.length).fill(1);
-    const roughnessFactors = new Float32Array(materials.length).fill(1);
+    const metallicRoughnessFactors = new Float32Array(materials.length * 2).fill(1);
     const baseColorTextures: Texture[] = [];
     const normalTextures: Texture[] = [];
     const metallicRoughnessTextures: Texture[] = [];
@@ -190,8 +174,8 @@ export default class BVH extends HObject {
 
       worldMatrixes.set(worldMatrix, index * 16);
       baseColorFactor && baseColorFactors.set(baseColorFactor, index * 4);
-      metallicFactor !== undefined && metallicFactors.set(metallicFactor, index);
-      roughnessFactor !== undefined && roughnessFactors.set(roughnessFactor, index);
+      metallicFactor !== undefined && metallicRoughnessFactors.set(metallicFactor.slice(0, 1), index * 2);
+      roughnessFactor !== undefined && metallicRoughnessFactors.set(roughnessFactor.slice(0, 1), index * 2 + 1);
       
       const mid = index * 4;
       this._setTextures(mid, baseColorTextures, baseColorTexture, matId2TexturesId);
@@ -203,24 +187,49 @@ export default class BVH extends HObject {
       matId2TexturesId,
       worldMatrixes,
       baseColorFactors,
-      metallicFactors,
-      roughnessFactors,
-      baseColorTextures: new Texture(
-        baseColorTextures[0].width, baseColorTextures[0].height,
-        baseColorTextures.map(tex => tex.source as TTextureSource),
-        baseColorTextures[0].format,
-      ),
-      normalTextures: new Texture(
-        normalTextures[0].width, normalTextures[0].height,
-        normalTextures.map(tex => tex.source as TTextureSource),
-        normalTextures[0].format,
-      ),
-      metallicRoughnessTextures: new Texture(
-        metallicRoughnessTextures[0].width, metallicRoughnessTextures[0].height,
-        metallicRoughnessTextures.map(tex => tex.source as TTextureSource),
-        metallicRoughnessTextures[0].format,
-      )
+      metallicRoughnessFactors,
+      baseColorTextures: this._generateTextureArray(baseColorTextures),
+      normalTextures: this._generateTextureArray(normalTextures),
+      metallicRoughnessTextures: this._generateTextureArray(metallicRoughnessTextures)
     };
+  }
+
+  protected _generateTextureArray(textures: Texture[]): Texture {
+    let width: number = 0;
+    let height: number = 0;
+
+    textures.forEach(tex => {
+      width = Math.max(width, tex.width);
+      height = Math.max(height, tex.height);
+    });
+
+    const images = textures.map(tex => {
+      if (tex.width === width && tex.height === height) {
+        return tex.source as TTextureSource;
+      }
+
+      if (!(tex.source instanceof ImageBitmap)) {
+        throw new Error('Can only resize image bitmap!');
+      }
+
+      if (!BVH.RESIZE_CANVAS) {
+        BVH.RESIZE_CANVAS = document.createElement('canvas');
+        BVH.RESIZE_CANVAS.width = 2048;
+        BVH.RESIZE_CANVAS.width = 2048;
+        BVH.RESIZE_CTX = BVH.RESIZE_CANVAS.getContext('2d');
+      }
+
+      const ctx = BVH.RESIZE_CTX;
+      ctx.drawImage(tex.source as ImageBitmap, 0, 0, width, height);
+
+      return ctx.getImageData(0, 0, width, height).data.buffer;
+    })
+
+    return new Texture(
+      width, height,
+      images,
+      textures[0].format
+    );
   }
 
   protected _setTextures(
@@ -238,21 +247,20 @@ export default class BVH extends HObject {
   }
 
   protected _buildGBufferMesh() {
-    const {_attributesGPUBuffer, _attributesInfo, _indexInfo, _commonUniforms} = this;
+    const {_attributesInfo, _indexInfo, _commonUniforms} = this;
 
     const geometry = new Geometry(
       Object.keys(_attributesInfo).map((name, index) => {
-        const {value, offset, length, format} = (_attributesInfo[name] as any) as IBVHAttributeValue;
+        const {value, length, format} = (_attributesInfo[name] as any) as IBVHAttributeValue;
 
         return {
           layout: {
             arrayStride: length * 4,
             attributes: [{
-              name, offset: offset * 4, format, shaderLocation: index
+              name, offset: 0, format, shaderLocation: index
             }]
           },
-          data: value,
-          gpuData: _attributesGPUBuffer
+          data: value
         }
       }),
       _indexInfo.value,
@@ -262,8 +270,7 @@ export default class BVH extends HObject {
     const material = new Material(buildinEffects.rRTGBuffer, {
       u_matId2TexturesId: _commonUniforms.matId2TexturesId,
       u_baseColorFactors: _commonUniforms.baseColorFactors,
-      u_metallicFactors: _commonUniforms.metallicFactors,
-      u_roughnessFactors: _commonUniforms.roughnessFactors,
+      u_metallicRoughnessFactors: _commonUniforms.metallicRoughnessFactors,
       u_baseColorTextures: _commonUniforms.baseColorTextures,
       u_normalTextures: _commonUniforms.normalTextures,
       u_metallicRoughnessTextures: _commonUniforms.metallicRoughnessTextures

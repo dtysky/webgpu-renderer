@@ -187,7 +187,7 @@ export function init() {
   });
 
   effects.rRTGBuffer = new Effect('rRTGBuffer', {
-    vs: require('./shaders/basic/model.vert.wgsl'),
+    vs: require('./shaders/ray-tracing/gbuffer.vert.wgsl'),
     fs: require('./shaders/ray-tracing/gbuffer.frag.wgsl'),
     uniformDesc: {
       uniforms: [
@@ -222,14 +222,8 @@ export function init() {
           defaultValue: new Float32Array(4 * 128)
         },
         {
-          name: 'u_metallicFactors',
-          type: 'number',
-          size: 128,
-          defaultValue: new Float32Array(128)
-        },
-        {
-          name: 'u_roughnessFactors',
-          type: 'number',
+          name: 'u_metallicRoughnessFactors',
+          type: 'vec2',
           size: 128,
           defaultValue: new Float32Array(128)
         }

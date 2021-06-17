@@ -31,7 +31,7 @@ export {default as GlTFLoader, IGlTFResource, IGlTFLoaderOptions} from './resour
 // export {default as TextureLoader, ITextureLoaderOptions} from './resource/TextureLoader';
 
 import {init as initBuildin} from './buildin';
-export {buildinEffects, buildinTextures} from './buildin';
+export * from './buildin';
 
 export async function init(canvas: HTMLCanvasElement) {
   await renderEnv.init(canvas);

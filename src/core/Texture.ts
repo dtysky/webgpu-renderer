@@ -82,7 +82,7 @@ export default class Texture extends HObject {
     }
   }
 
-  protected _load(src: ImageBitmap | ArrayBuffer, layer: number = 0) {
+  protected _load(src: TTextureSource, layer: number = 0) {
     if (src instanceof ImageBitmap) {
       this._loadImg(src, layer);
     } else {
@@ -102,7 +102,7 @@ export default class Texture extends HObject {
     renderEnv.device.queue.writeTexture(
       {texture: this._gpuTexture, origin: this._isArray ? {x: 0, y: 0, z: layer} : undefined},
       buffer as ArrayBuffer,
-      {},
+      {bytesPerRow: this._width * 4},
       {width: this._width, height: this._height, depthOrArrayLayers: 1}
     );
   }

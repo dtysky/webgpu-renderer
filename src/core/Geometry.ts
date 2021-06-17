@@ -73,8 +73,7 @@ export default class Geometry extends HObject {
         attributes: (GPUVertexAttribute & {name: string})[],
         arrayStride: number
       },
-      data: TTypedArray,
-      gpuData?: GPUBuffer
+      data: TTypedArray
     }[],
     protected _indexData: Uint16Array,
     public count: number,
@@ -89,8 +88,8 @@ export default class Geometry extends HObject {
     this._marcos = {};
     this._attributesDef = 'struct Attrs {\n';
 
-    _vertexes.forEach(({layout, data, gpuData}, index) => {
-      const vBuffer = gpuData ? gpuData : createGPUBuffer(data, GPUBufferUsage.VERTEX);
+    _vertexes.forEach(({layout, data}, index) => {
+      const vBuffer = createGPUBuffer(data, GPUBufferUsage.VERTEX);
 
       layout.attributes.forEach((attr) => {
         this._marcos[`USE_${attr.name.toUpperCase()}`] = true;

@@ -32,7 +32,8 @@ export default class Camera extends Node {
   public clearStencil: number;
   public stencilOp: GPUStoreOp;
 
-  public _skyboxMat: Material;
+  public _drawSkybox: boolean = false;
+  protected _skyboxMat: Material;
   protected _skyboxMesh: Mesh;
   protected _near: number;
   protected _far: number;
@@ -160,7 +161,7 @@ export default class Camera extends Node {
       mesh.render(pass, this, rt, lights);
     }
 
-    if (this._skyboxMesh) {
+    if (this._drawSkybox && this._skyboxMesh) {
       this._skyboxMesh.render(pass, this, rt, lights);
     }
 

@@ -93,7 +93,8 @@ export default class Effect extends HObject {
     /* 32bits */
     offset?: number,
     realLen?: number,
-    origLen?: number
+    origLen?: number,
+    size?: number
   }};
 
   get computePipeline() {
@@ -154,13 +155,14 @@ export default class Effect extends HObject {
       _uniformDesc.uniforms.forEach((ud) => {
         const {origLen, realLen, defaultValue} = this._getRealLayoutInfo(ud.type, ud.size || 1, ud.defaultValue);
 
-        this._uniformsInfo[ud.name] = {bindingId: 0, index, type: 'buffer', offset: uniforms32Length, defaultValue, origLen, realLen};
+        this._uniformsInfo[ud.name] = {bindingId: 0, index, type: 'buffer', offset: uniforms32Length, defaultValue, origLen, realLen, size: ud.size || 1};
         uniforms32Length += defaultValue.length;
         const sym = ud.type === 'number' ? `${ud.format || 'f32'}` : `${ud.type}<${ud.format || 'f32'}>`;
+        const pre = origLen !== realLen ? `[[stride(${realLen * 4})]]` : '';
         if (!ud.size) {
           this._shaderPrefix += `  [[align(16)]] ${ud.name}: ${sym};\n`;
         } else {
-          ud.size > 1 && (this._shaderPrefix += `  [[align(16)]] ${ud.name}: array<${sym}, ${ud.size}>;\n`);
+          ud.size > 1 && (this._shaderPrefix += ` [[align(16)]] ${ud.name}: ${pre} array<${sym}, ${ud.size}>;\n`);
         }
         index += 1;
       });
@@ -172,13 +174,14 @@ export default class Effect extends HObject {
 
     _uniformDesc.textures.forEach((ud) => {
       const isCube = CubeTexture.IS(ud.defaultValue);
+      const isArray = (ud.defaultValue as Texture).isArray;
 
       entries.push({
         binding: bindingId,
         visibility,
         texture: {
           sampleType: 'float' as GPUTextureSampleType,
-          viewDimension: isCube ? 'cube' : '2d'
+          viewDimension: isCube ? (isArray ? 'cube-array' : 'cube') : (isArray ? '2d-array' : '2d')
         }
       });
       this._uniformsInfo[ud.name] = {
@@ -304,7 +307,9 @@ export default class Effect extends HObject {
       _uniformDesc.uniforms.forEach((ud) => {
         const info = this._uniformsInfo[ud.name];
         values[ud.name] = {
-          value: new (this._uniformsInfo[ud.name].defaultValue.constructor as typeof Float32Array)(cpuBuffer.buffer, info.offset * 4, info.origLen),
+          value: new (this._uniformsInfo[ud.name].defaultValue.constructor as typeof Float32Array)(
+            cpuBuffer.buffer, info.offset * 4, info.realLen * info.size
+          ),
           gpuValue: gpuBuffer
         };
       });

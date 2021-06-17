@@ -83,7 +83,7 @@ export default class Material extends HObject {
   ) {
     const info = this._effect.uniformsInfo[name];
 
-    if (!info || value === undefined) {
+    if (!info || !value) {
       return;
     }
 
@@ -95,11 +95,11 @@ export default class Material extends HObject {
       value = value as TUniformTypedArray;
       const cpuValue = values.value as TUniformTypedArray;
       if (origLen !== realLen) {
-        const size = value.length / realLen;
+        const size = value.length / origLen;
 
         for (let index = 0; index < size; index += 1) {
           cpuValue.set(
-            new (value.constructor as typeof Uint32Array)(value.buffer, origLen * index, origLen * (index + 1)),
+            new (value.constructor as typeof Uint32Array)(value.buffer, origLen * index * 4, origLen),
             realLen * index
           );
         }
