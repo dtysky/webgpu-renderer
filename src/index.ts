@@ -35,7 +35,7 @@ export * from './buildin';
 
 export async function init(canvas: HTMLCanvasElement) {
   await renderEnv.init(canvas);
-  initBuildin();
+  await initBuildin();
 }
 
 export const math = {

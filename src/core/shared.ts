@@ -12,14 +12,31 @@ export type TUniformTypedArray = Float32Array | Uint32Array | Int32Array;
 
 export type TTextureSource = ImageBitmap | ArrayBuffer;
 
+export function isTextureSourceArray(value: TTextureSource | TTextureSource[]): value is TTextureSource[] {
+  return !!(value as TTextureSource[]).push;
+}
+
+export function isArray<T>(value: T | T[]): value is Array<T> {
+  return !!(value as T[]).push;
+}
+
+export function logCanvas(canvas: HTMLCanvasElement, width: number) {
+  const height = width * canvas.height / canvas.width;
+  const url = canvas.toDataURL();
+
+  /*tslint:disable-next-line */
+  console.log('%c+', `font-size: 1px; padding: ${height / 2}px ${width / 2}px; line-height: ${height}px; background: url(${url}); background-size: ${width}px ${height}px; background-repeat: no-repeat; color: transparent;`);
+}
+
 export function createGPUBuffer(array: TTypedArray, usage: GPUBufferUsageFlags) {
+  const size = array.byteLength + (4 - array.byteLength % 4);
   const buffer = renderEnv.device.createBuffer({
-    size: array.byteLength,
+    size,
     usage: usage | GPUBufferUsage.COPY_DST,
     mappedAtCreation: true
   });
 
-  const view = new (array.constructor as {new(buffer: ArrayBuffer): TTypedArray})(buffer.getMappedRange(0, array.byteLength));
+  const view = new (array.constructor as {new(buffer: ArrayBuffer): TTypedArray})(buffer.getMappedRange(0, size));
   view.set(array, 0);
 
   buffer.unmap();

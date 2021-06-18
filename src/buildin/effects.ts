@@ -16,6 +16,7 @@ const effects: {
   rSkybox: Effect,
   iBlit: Effect,
   rRTGBuffer: Effect,
+  iRTGShow: Effect,
   rRTSS: Effect,
   cCreateSimpleBlur: (radius: number) => Effect
 } = {} as any;
@@ -114,20 +115,25 @@ export function init() {
           name: 'u_roughnessFactor',
           type: 'number',
           defaultValue: new Float32Array([1])
+        },
+        {
+          name: 'u_normalTextureScale',
+          type: 'number',
+          defaultValue: new Float32Array([1])
         }
       ],
       textures: [
         {
           name: 'u_baseColorTexture',
-          defaultValue: textures.white
+          defaultValue: textures.empty
         },
         {
           name: 'u_normalTexture',
-          defaultValue: textures.white
+          defaultValue: textures.empty
         },
         {
           name: 'u_metallicRoughnessTexture',
-          defaultValue: textures.white
+          defaultValue: textures.empty
         }
       ],
       samplers: [
@@ -204,10 +210,10 @@ export function init() {
         // support materials up to 128
         {
           name: 'u_matId2TexturesId',
-          type: 'vec2',
-          format: 'u32',
+          type: 'vec4',
+          format: 'i32',
           size: 128,
-          defaultValue: new Uint32Array(2 * 128)
+          defaultValue: new Int32Array(2 * 128)
         },
         {
           name: 'u_worlds',
@@ -222,8 +228,8 @@ export function init() {
           defaultValue: new Float32Array(4 * 128)
         },
         {
-          name: 'u_metallicRoughnessFactors',
-          type: 'vec2',
+          name: 'u_metallicRoughnessFactorNormalScales',
+          type: 'vec3',
           size: 128,
           defaultValue: new Float32Array(128)
         }
@@ -231,15 +237,15 @@ export function init() {
       textures: [
         {
           name: 'u_baseColorTextures',
-          defaultValue: textures.array2white
+          defaultValue: textures.array1white
         },
         {
           name: 'u_normalTextures',
-          defaultValue: textures.array2white
+          defaultValue: textures.array1white
         },
         {
           name: 'u_metallicRoughnessTextures',
-          defaultValue: textures.array2white
+          defaultValue: textures.array1white
         }
       ],
       samplers: [
@@ -251,6 +257,7 @@ export function init() {
     },
     marcos: commonMarcos
   });
+  
 
   effects.rRTSS = new Effect('rRTSS', {
     vs: require('./shaders/image/image.vert.wgsl'),
@@ -312,7 +319,39 @@ export function init() {
       ]
     },
     marcos: commonMarcos
-  })
+  });
+
+  effects.iRTGShow = new Effect('iRTGShow', {
+    vs: require('./shaders/image/image.vert.wgsl'),
+    fs: require('./shaders/ray-tracing/gshow.frag.wgsl'),
+    uniformDesc: {
+      uniforms: [],
+      textures: [
+        {
+          name: 'u_positionMetal',
+          defaultValue: textures.white
+        },
+        {
+          name: 'u_diffuseRough',
+          defaultValue: textures.white
+        },
+        {
+          name: 'u_normalMeshIndex',
+          defaultValue: textures.white
+        },
+        {
+          name: 'u_faceNormalMatIndex',
+          defaultValue: textures.white
+        }
+      ],
+      samplers: [
+        {
+          name: 'u_sampler',
+          defaultValue: {magFilter: 'linear', minFilter: 'linear'}
+        }
+      ]
+    }
+  });
 
   effects.iBlit = new Effect('iBlit', {
     vs: require('./shaders/image/image.vert.wgsl'),

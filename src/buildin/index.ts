@@ -11,8 +11,8 @@ export {buildinGeometries};
 import buildinEffects, {init as initEffects} from './effects';
 export {buildinEffects};
 
-export function init() {
-  initTextures();
+export async function init() {
+  await initTextures();
   initGeometries();
   initEffects();
 }

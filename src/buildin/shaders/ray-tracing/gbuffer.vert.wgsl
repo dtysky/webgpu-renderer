@@ -1,5 +1,6 @@
 struct VertexOutput {
   [[builtin(position)]] position: vec4<f32>;
+  [[location(0)]] wPosition: vec4<f32>;
   [[location(1)]] texcoord_0: vec2<f32>;
   [[location(2)]] normal: vec3<f32>;
   [[location(3)]] meshMatIndex: vec2<u32>;
@@ -9,10 +10,13 @@ struct VertexOutput {
 fn main(attrs: Attrs) -> VertexOutput {
   var output: VertexOutput;
 
-  let matId: u32 = attrs.meshMatIndex[1];
-  let worldMat: mat4x4<f32> = uniforms.u_worlds[matId];
-
-  output.position = uniforms.u_vp * worldMat * vec4<f32>(attrs.position, 1.);
+  let meshId: u32 = attrs.meshMatIndex[0];
+  let worldMat: mat4x4<f32> = uniforms.u_worlds[meshId];
+  
+  let wPosition: vec4<f32> = worldMat * vec4<f32>(attrs.position, 1.);
+  
+  output.position = uniforms.u_vp * wPosition;
+  output.wPosition = wPosition;
   output.texcoord_0 = attrs.texcoord_0;
   output.normal = attrs.normal;
   output.meshMatIndex = attrs.meshMatIndex;

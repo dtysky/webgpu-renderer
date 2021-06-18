@@ -122,6 +122,10 @@ export default class Scene extends HObject {
     pass.endPass();
   }
 
+  public drawSkybox() {
+
+  }
+
   public endFrame() {
     const view = renderEnv.swapChain.getCurrentTexture().createView();
     const renderPassDescriptor: GPURenderPassDescriptor = {

@@ -4,13 +4,13 @@
  * @Link   : dtysky.moe
  * @Date   : 6/15/2021, 11:14:51 PM
  */
-import {buildinEffects} from '../buildin';
+import {buildinEffects, buildinTextures} from '../buildin';
 import Geometry from '../core/Geometry';
 import HObject from '../core/HObject';
 import ImageMesh from '../core/ImageMesh';
 import Material from '../core/Material';
 import Mesh from '../core/Mesh';
-import {createGPUBufferBySize, TTextureSource, TTypedArray} from '../core/shared';
+import {createGPUBufferBySize, logCanvas, TTextureSource, TTypedArray} from '../core/shared';
 import Texture from '../core/Texture';
 
 export interface IBVHAttributeValue<TArrayType = Float32Array> {
@@ -36,10 +36,10 @@ export default class BVH extends HObject {
   };
   protected _materials: Material[] = [];
   protected _commonUniforms: {
-    matId2TexturesId: Uint32Array;
+    matId2TexturesId: Int32Array;
     worldMatrixes: Float32Array;
     baseColorFactors: Float32Array;
-    metallicRoughnessFactors: Float32Array;
+    metallicRoughnessFactorNormalScales: Float32Array;
     baseColorTextures: Texture;
     normalTextures: Texture;
     metallicRoughnessTextures: Texture;
@@ -65,7 +65,7 @@ export default class BVH extends HObject {
   // batch all meshes and build bvh
   public process(meshes: Mesh[]) {
     this._buildAttributeBuffers(meshes);
-    this._buildCommonUniforms(this._materials);
+    this._buildCommonUniforms(meshes, this._materials);
     this._buildGBufferMesh();
 
     this._buildBVH();
@@ -110,9 +110,15 @@ export default class BVH extends HObject {
 
     let attrOffset: number = 0;
     let indexOffset: number = 0;
-    meshes.forEach(mesh => {
+
+    for (let meshIndex = 0; meshIndex < meshes.length; meshIndex += 1) {
+      const mesh = meshes[meshIndex];
       const {geometry, material} = mesh;
       const {indexData, vertexInfo, vertexCount, count} = geometry;
+
+      if (material.effect.name !== 'rPBR') {
+        throw new Error('Only support Effect rPBR!');
+      }
 
       let materialIndex = _materials.indexOf(material);
       if (materialIndex < 0) {
@@ -129,72 +135,95 @@ export default class BVH extends HObject {
       }
 
       for (let index = 0; index < vertexCount; index += 1) {
-        this._copyAttribute(vertexInfo.position, position, index);
-        this._copyAttribute(vertexInfo.texcoord_0, texcoord_0, index);
-        this._copyAttribute(vertexInfo.normal, normal, index);
+        this._copyAttribute(vertexInfo.position, position, attrOffset, index);
+        this._copyAttribute(vertexInfo.texcoord_0, texcoord_0, attrOffset, index);
+        this._copyAttribute(vertexInfo.normal, normal, attrOffset, index);
         
-        meshMatIndex.value.set([index, materialIndex], index * meshMatIndex.length);
+        meshMatIndex.value.set([meshIndex, materialIndex], (attrOffset + index) * meshMatIndex.length);
       }
       
       indexOffset += count;
       attrOffset += vertexCount;
-    });
+    }
   }
 
   protected _copyAttribute(
     src: {offset: number, stride: number, data: TTypedArray, length: number},
     dst: IBVHAttributeValue,
-    index: number
+    attrOffset: number, index: number
   ) {
     const srcOffset = src.offset + index * src.stride;
 
     dst.value.set(
       src.data.slice(srcOffset, srcOffset + src.length),
-      index * dst.length
+      (attrOffset + index) * dst.length
     );
   }
 
-  protected _buildCommonUniforms(materials: Material[]) {
-    const matId2TexturesId = new Uint32Array(materials.length * 4);
-    const worldMatrixes = new Float32Array(materials.length * 16);
+  protected _buildCommonUniforms(meshes: Mesh[], materials: Material[]) {
+    const worldMatrixes = new Float32Array(meshes.length * 16);
+    const matId2TexturesId = new Int32Array(materials.length * 4).fill(-1);
     const baseColorFactors = new Float32Array(materials.length * 4).fill(1);
-    const metallicRoughnessFactors = new Float32Array(materials.length * 2).fill(1);
+    const metallicRoughnessFactorNormalScales = new Float32Array(materials.length * 3).fill(1);
     const baseColorTextures: Texture[] = [];
     const normalTextures: Texture[] = [];
     const metallicRoughnessTextures: Texture[] = [];
 
+    meshes.forEach((mesh, index) => {
+      const worldMatrix = mesh.worldMat;
+      worldMatrixes.set(worldMatrix, index * 16);
+    });
+
     materials.forEach((mat, index) => {
-      const worldMatrix = mat.getUniform('u_world') as Float32Array;
       const baseColorFactor = mat.getUniform('u_baseColorFactor') as Float32Array;
       const metallicFactor = mat.getUniform('u_metallicFactor') as Float32Array;
       const roughnessFactor = mat.getUniform('u_roughnessFactor') as Float32Array;
+      const normalScale = mat.getUniform('u_normalTextureScale') as Float32Array;
       const baseColorTexture = mat.getUniform('u_baseColorTexture') as Texture;
       const normalTexture = mat.getUniform('u_normalTexture') as Texture;
       const metallicRoughnessTexture = mat.getUniform('u_metallicRoughnessTexture') as Texture;
 
-      worldMatrixes.set(worldMatrix, index * 16);
       baseColorFactor && baseColorFactors.set(baseColorFactor, index * 4);
-      metallicFactor !== undefined && metallicRoughnessFactors.set(metallicFactor.slice(0, 1), index * 2);
-      roughnessFactor !== undefined && metallicRoughnessFactors.set(roughnessFactor.slice(0, 1), index * 2 + 1);
+      metallicFactor !== undefined && metallicRoughnessFactorNormalScales.set(metallicFactor.slice(0, 1), index * 2);
+      roughnessFactor !== undefined && metallicRoughnessFactorNormalScales.set(roughnessFactor.slice(0, 1), index * 2 + 1);
+      normalScale !== undefined && metallicRoughnessFactorNormalScales.set(normalScale.slice(0, 1), index * 2 + 2);
       
       const mid = index * 4;
-      this._setTextures(mid, baseColorTextures, baseColorTexture, matId2TexturesId);
-      this._setTextures(mid + 1, normalTextures, normalTexture, matId2TexturesId);
-      this._setTextures(mid + 2, metallicRoughnessTextures, metallicRoughnessTexture, matId2TexturesId);
+      baseColorTexture !== buildinTextures.empty && this._setTextures(mid, baseColorTextures, baseColorTexture, matId2TexturesId);
+      normalTexture !== buildinTextures.empty && this._setTextures(mid + 1, normalTextures, normalTexture, matId2TexturesId);
+      metallicRoughnessTexture !== buildinTextures.empty && this._setTextures(mid + 2, metallicRoughnessTextures, metallicRoughnessTexture, matId2TexturesId);
     });
 
     this._commonUniforms = {
       matId2TexturesId,
       worldMatrixes,
       baseColorFactors,
-      metallicRoughnessFactors,
+      metallicRoughnessFactorNormalScales,
       baseColorTextures: this._generateTextureArray(baseColorTextures),
       normalTextures: this._generateTextureArray(normalTextures),
       metallicRoughnessTextures: this._generateTextureArray(metallicRoughnessTextures)
     };
   }
 
+  protected _setTextures(
+    offset: number, textures: Texture[], texture: Texture,
+    matId2TexturesId: Int32Array
+  ) {
+    if (texture) {
+      let idx = textures.indexOf(texture);
+      if (idx < 0) {
+        textures.push(texture);
+        idx = textures.length - 1;
+      }
+      matId2TexturesId[offset] = idx;
+    }
+  }
+
   protected _generateTextureArray(textures: Texture[]): Texture {
+    if (!textures.length) {
+      return buildinTextures.array1white;
+    }
+
     let width: number = 0;
     let height: number = 0;
 
@@ -215,7 +244,7 @@ export default class BVH extends HObject {
       if (!BVH.RESIZE_CANVAS) {
         BVH.RESIZE_CANVAS = document.createElement('canvas');
         BVH.RESIZE_CANVAS.width = 2048;
-        BVH.RESIZE_CANVAS.width = 2048;
+        BVH.RESIZE_CANVAS.height = 2048;
         BVH.RESIZE_CTX = BVH.RESIZE_CANVAS.getContext('2d');
       }
 
@@ -230,20 +259,6 @@ export default class BVH extends HObject {
       images,
       textures[0].format
     );
-  }
-
-  protected _setTextures(
-    offset: number, textures: Texture[], texture: Texture,
-    matId2TexturesId: Uint32Array
-  ) {
-    if (texture) {
-      let idx = textures.indexOf(texture);
-      if (idx < 0) {
-        textures.push(texture);
-        idx = textures.length - 1;
-      }
-      matId2TexturesId[offset] = idx;
-    }
   }
 
   protected _buildGBufferMesh() {
@@ -269,8 +284,9 @@ export default class BVH extends HObject {
     
     const material = new Material(buildinEffects.rRTGBuffer, {
       u_matId2TexturesId: _commonUniforms.matId2TexturesId,
+      u_worlds: _commonUniforms.worldMatrixes,
       u_baseColorFactors: _commonUniforms.baseColorFactors,
-      u_metallicRoughnessFactors: _commonUniforms.metallicRoughnessFactors,
+      u_metallicRoughnessFactorNormalScales: _commonUniforms.metallicRoughnessFactorNormalScales,
       u_baseColorTextures: _commonUniforms.baseColorTextures,
       u_normalTextures: _commonUniforms.normalTextures,
       u_metallicRoughnessTextures: _commonUniforms.metallicRoughnessTextures

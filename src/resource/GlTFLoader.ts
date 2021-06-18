@@ -141,6 +141,7 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
 
       if (normalTexture) {
         uniforms['u_normalTexture'] = textures[normalTexture.index]
+        uniforms['u_normalTextureScale'] = normalTexture.scale;
       }
 
       if (pbrMetallicRoughness) {
@@ -263,7 +264,7 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
         node = meshes[meshId];
       } else if (cameraId !== undefined) {
         node = cameras[cameraId];
-      } else if (extensions.KHR_lights_punctual) {
+      } else if (extensions?.KHR_lights_punctual) {
         node = lights[extensions.KHR_lights_punctual.light];
       } else {
         node = new Node();
@@ -271,7 +272,7 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
       node.name = name;
 
       if (matrix) {
-        node.worldMat = matrix;
+        node.setLocalMat(matrix);
       }
 
       nodes.push(node);
@@ -302,7 +303,7 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     const attributes: (GPUVertexAttribute & {name: string})[] = [];
     let arrayStride: number = 0;
     let id: number = 0;
-    let vertexData: Uint8Array;
+    let vertexData: Float32Array;
 
     let boundingBox: IBoundingBox;
 
@@ -311,7 +312,7 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
       const view = bufferViews[bufferView];
       const [format, byteLength] = this._convertVertexFormat(type, componentType);
       arrayStride += byteLength;
-      vertexData = vertexData || new Uint8Array(_buffers[view.buffer], view.byteOffset || 0, view.byteLength);
+      vertexData = vertexData || new Float32Array(_buffers[view.buffer], view.byteOffset || 0, view.byteLength / 4);
 
       if (attrName === 'POSITION' && max?.length === 3 && min?.length === 3) {
         boundingBox = this._getBoundingBox(max, min);

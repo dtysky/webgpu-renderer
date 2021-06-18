@@ -77,10 +77,7 @@ export default class Material extends HObject {
     });
   }
 
-  public setUniform(
-    name: string,
-    value: TUniformValue
-  ) {
+  public setUniform(name: string, value: TUniformValue, rtSubName?: string) {
     const info = this._effect.uniformsInfo[name];
 
     if (!info || !value) {
@@ -111,10 +108,13 @@ export default class Material extends HObject {
       values.value = value;
       console.warn('Not implemented!');
     } else if (RenderTexture.IS(value)) {
-      entries[bindingId].resource = values.gpuValue = value.colorView;
+      const view = rtSubName ? value.getColorViewByName(rtSubName): value.colorView;
+
+      entries[bindingId].resource = values.gpuValue = view;
       values.value = value;
       this._isDirty = true;
-    } else {
+      return;
+    } else  {
       value = value as Texture;
       if (value.isArray !== (values.value as Texture).isArray) {
         throw new Error('Require texture2d array!');

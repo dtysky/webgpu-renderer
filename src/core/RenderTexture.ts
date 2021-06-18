@@ -99,7 +99,7 @@ export default class RenderTexture extends HObject {
 
     this._colors = colors.map((info, index) => {
       const color = renderEnv.device.createTexture(this._colorDescs[index] = {
-        label: this.hash + '_color' + index,
+        label: this.hash + '_color_' + (info.name || index),
         size: {width, height},
         format: info.format || renderEnv.swapChainFormat,
         usage: (
@@ -109,7 +109,7 @@ export default class RenderTexture extends HObject {
         )
       } as GPUTextureDescriptor);
 
-      this._colorViews[index] = color.createView();
+      this._colorViews[index] = color.createView({label: color.label});
       this._colorFormats[index] = this._colorDescs[index].format;
 
       if (info.name) {

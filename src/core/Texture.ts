@@ -6,11 +6,7 @@
  */
 import HObject from './HObject';
 import renderEnv from './renderEnv';
-import {TTextureSource} from './shared';
-
-function isTextureSourceArray(value: any): value is TTextureSource[] {
-  return !!value.push;
-}
+import {TTextureSource, isTextureSourceArray} from './shared';
 
 export default class Texture extends HObject {
   public static  CLASS_NAME: string = 'Texture';

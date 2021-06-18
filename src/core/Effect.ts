@@ -23,7 +23,7 @@ export interface IUniformsDescriptor {
   }[],
   textures: {
     name: string,
-    format?: GPUTextureFormat,
+    format?: 'f32',
     defaultValue: Texture | CubeTexture,
     asOutput?: boolean
   }[],
