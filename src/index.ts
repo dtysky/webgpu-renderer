@@ -22,6 +22,7 @@ export {default as RenderTexture} from './core/RenderTexture';
 export {default as Texture} from './core/Texture';
 export {default as CubeTexture} from './core/CubeTexture';
 export {default as renderEnv} from './core/renderEnv';
+export {default as RayTracingManager} from './extension/RayTracingManager';
 export {default as BVH} from './extension/BVH';
 export {default as NodeControl} from './extension/NodeControl';
 

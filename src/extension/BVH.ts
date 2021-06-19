@@ -4,298 +4,273 @@
  * @Link   : dtysky.moe
  * @Date   : 6/15/2021, 11:14:51 PM
  */
-import {buildinEffects, buildinTextures} from '../buildin';
-import Geometry from '../core/Geometry';
+import { vec3 } from 'gl-matrix';
 import HObject from '../core/HObject';
-import ImageMesh from '../core/ImageMesh';
-import Material from '../core/Material';
-import Mesh from '../core/Mesh';
-import {createGPUBufferBySize, logCanvas, TTextureSource, TTypedArray} from '../core/shared';
-import Texture from '../core/Texture';
+import { callWithProfile, copyTypedArray, nthElement, partition } from '../core/shared';
 
-export interface IBVHAttributeValue<TArrayType = Float32Array> {
-  value: TArrayType;
-  length: number;
-  format: GPUVertexFormat;
+enum EAxis {
+  X,
+  Y, 
+  Z
 };
+
+class Bounds {
+  public max: Float32Array;
+  public min: Float32Array;
+  
+  private _isDirty: boolean = false;
+  private _center: Float32Array;
+  private _size: Float32Array;
+
+  get center() {
+    if (!this._center || this._isDirty) {
+      this._updateCenterSize();
+    }
+
+    return this._center;
+  }
+
+  get size() {
+    if (!this._size || this._isDirty) {
+      this._updateCenterSize();
+    }
+
+    return this._size;
+  }
+
+  get maxExtends(): EAxis {
+    const size = this.size;
+    if (size[0] > size[2]) {
+      return size[0] > size[1] ? EAxis.X : EAxis.Y;
+    } else {
+      return size[1] > size[2] ? EAxis.Z : EAxis.Y;
+    }
+  }
+
+  get surfaceArea() {
+    const {size} = this;
+
+    return 2 * (size[0] * size[2] + size[0] * size[1] + size[2] * size[1]);
+  }
+
+  public initEmpty() {
+    this.max = new Float32Array([-Infinity, -Infinity, -Infinity]);
+    this.min = new Float32Array([Infinity, Infinity, Infinity]);
+
+    return this;
+  }
+
+  public fromVertexes(v1: Float32Array, v2: Float32Array, v3: Float32Array) {
+    this.max = v1.slice();
+    this.min = v1.slice();
+
+    this.update(v2).update(v3);
+
+    return this;
+  }
+
+  public update(v: Float32Array) {
+    for (let index = 0; index < 3; index += 1) {
+      this.max[index] = Math.max(this.max[index], v[index]);
+      this.min[index] = Math.min(this.min[index], v[index]);
+    }
+
+    this._isDirty = true;
+    return this;
+  }
+
+  public mergeBounds(bounds: Bounds) {
+    const {max, min} = bounds;
+
+    for (let index = 0; index < 3; index += 1) {
+      this.max[index] = Math.max(this.max[index], max[index]);
+      this.min[index] = Math.min(this.min[index], min[index]);
+    }
+
+    this._isDirty = true;
+    return this;
+  }
+
+  public getOffset(axis: EAxis, v: Float32Array) {
+    let offset = v[axis] - this.min[axis];
+
+    if (this.max[axis] > this.min[axis]) {
+      offset /= (this.max[axis] - this.min[axis]);
+    }
+
+    return offset;
+  }
+
+  private _updateCenterSize() {
+    if (this._isDirty) {
+      this._center = this.max.map((m, i) => (m + this.min[i]) / 2);
+      this._size = this.max.map((m, i) => m - this.min[i]);
+      this._isDirty = true;
+    }
+  }
+}
+
+export interface IBVHNode {
+  axis: EAxis;
+  bounds: Bounds;
+  child0?: IBVHNode | IBVHLeaf;
+  child1?: IBVHNode | IBVHLeaf;
+}
+
+export interface IBVHLeaf {
+  // three points
+  infoStart: number;
+  infoEnd: number;
+  bounds: Bounds;
+}
+
+interface IBoundsInfo {
+  indexes: Uint16Array;
+  bounds: Bounds;
+}
+
+const tmpV1 = new Float32Array(3);
+const tmpV2 = new Float32Array(3);
+const tmpV3 = new Float32Array(3);
 
 export default class BVH extends HObject {
   public static CLASS_NAME: string = 'BVH';
-  public static RESIZE_CANVAS: HTMLCanvasElement;
-  public static RESIZE_CTX: CanvasRenderingContext2D;
   public isBVH: boolean = true;
 
-  protected _attributesInfo: {
-    position: IBVHAttributeValue,
-    texcoord_0: IBVHAttributeValue,
-    normal: IBVHAttributeValue,
-    meshMatIndex: IBVHAttributeValue<Uint32Array>
-  };
-  protected _indexInfo: {
-    value: Uint16Array
-  };
-  protected _materials: Material[] = [];
-  protected _commonUniforms: {
-    matId2TexturesId: Int32Array;
-    worldMatrixes: Float32Array;
-    baseColorFactors: Float32Array;
-    metallicRoughnessFactorNormalScales: Float32Array;
-    baseColorTextures: Texture;
-    normalTextures: Texture;
-    metallicRoughnessTextures: Texture;
-  };
   // protected _bvhGPUBuffer: GPUBuffer;
-  // protected _uniformBuffers: {
-  //   position: Float32Array,
-  //   texcoord_0: Float32Array,
-  //   normal: Float32Array,
-  //   tangent: Float32Array
-  // };
-  protected _gBufferMesh: Mesh;
-  protected _rtMesh: ImageMesh;
+  protected _rootNode: IBVHNode;
+  protected _boundsInfos: IBoundsInfo[];
 
-  get gBufferMesh() {
-    return this._gBufferMesh;
+  public process = (worldPositions: Float32Array, indexes: Uint16Array) => {
+    callWithProfile('BVH setup bounds info', this._setupBoundsInfo, [worldPositions, indexes]);
+    callWithProfile('BVH build tree', this._buildTree, []);
+    callWithProfile('BVH flatten', this._flatten, []);
   }
 
-  get rtMesh() {
-    return this._rtMesh;
-  }
+  protected _setupBoundsInfo = (worldPositions: Float32Array, indexes: Uint16Array) => {
+    this._boundsInfos = [];
 
-  // batch all meshes and build bvh
-  public process(meshes: Mesh[]) {
-    this._buildAttributeBuffers(meshes);
-    this._buildCommonUniforms(meshes, this._materials);
-    this._buildGBufferMesh();
+    for (let i = 0; i < indexes.length; i += 3) {
+      const idxes = indexes.slice(i, i + 3);
 
-    this._buildBVH();
-  }
+      copyTypedArray(3, tmpV1, 0, worldPositions, idxes[0] * 3);
+      copyTypedArray(3, tmpV2, 0, worldPositions, idxes[1] * 3);
+      copyTypedArray(3, tmpV3, 0, worldPositions, idxes[2] * 3);
 
-  protected _buildAttributeBuffers(meshes: Mesh[]) {
-    const {_materials} = this;
+      const bounds = new Bounds().fromVertexes(tmpV1, tmpV2, tmpV3);
 
-    let indexCount: number = 0;
-    let vertexCount: number = 0;
-    meshes.forEach(mesh => {
-      vertexCount += mesh.geometry.vertexCount;
-      indexCount += mesh.geometry.count;
-    });
-
-    const {value: indexes} = this._indexInfo = {
-      value: new Uint16Array(indexCount)
-    };
-
-    const {position, texcoord_0, normal, meshMatIndex} = this._attributesInfo = {
-      position: {
-        value: new Float32Array(vertexCount * 3),
-        length: 3,
-        format: 'float32x3'
-      },
-      texcoord_0: {
-        value: new Float32Array(vertexCount * 2),
-        length: 2,
-        format: 'float32x2'
-      },
-      normal: {
-        value: new Float32Array(vertexCount * 3),
-        length: 3,
-        format: 'float32x3'
-      },
-      meshMatIndex: {
-        value: new Uint32Array(vertexCount * 2),
-        length: 2,
-        format: 'uint32x2'
-      }
-    };
-
-    let attrOffset: number = 0;
-    let indexOffset: number = 0;
-
-    for (let meshIndex = 0; meshIndex < meshes.length; meshIndex += 1) {
-      const mesh = meshes[meshIndex];
-      const {geometry, material} = mesh;
-      const {indexData, vertexInfo, vertexCount, count} = geometry;
-
-      if (material.effect.name !== 'rPBR') {
-        throw new Error('Only support Effect rPBR!');
-      }
-
-      let materialIndex = _materials.indexOf(material);
-      if (materialIndex < 0) {
-        _materials.push(material);
-        materialIndex = _materials.length - 1;
-      }
-
-      indexData.forEach((value, index) => {
-        indexes[index + indexOffset] = value + attrOffset;
-      });
-
-      if (!vertexInfo.normal) {
-        geometry.calculateNormals();
-      }
-
-      for (let index = 0; index < vertexCount; index += 1) {
-        this._copyAttribute(vertexInfo.position, position, attrOffset, index);
-        this._copyAttribute(vertexInfo.texcoord_0, texcoord_0, attrOffset, index);
-        this._copyAttribute(vertexInfo.normal, normal, attrOffset, index);
-        
-        meshMatIndex.value.set([meshIndex, materialIndex], (attrOffset + index) * meshMatIndex.length);
-      }
-      
-      indexOffset += count;
-      attrOffset += vertexCount;
+      this._boundsInfos.push({ indexes: idxes, bounds });
     }
   }
 
-  protected _copyAttribute(
-    src: {offset: number, stride: number, data: TTypedArray, length: number},
-    dst: IBVHAttributeValue,
-    attrOffset: number, index: number
-  ) {
-    const srcOffset = src.offset + index * src.stride;
-
-    dst.value.set(
-      src.data.slice(srcOffset, srcOffset + src.length),
-      (attrOffset + index) * dst.length
-    );
+  protected _buildTree = () => {
+    this._rootNode = this._buildRecursive(0, this._boundsInfos.length) as IBVHNode;
   }
 
-  protected _buildCommonUniforms(meshes: Mesh[], materials: Material[]) {
-    const worldMatrixes = new Float32Array(meshes.length * 16);
-    const matId2TexturesId = new Int32Array(materials.length * 4).fill(-1);
-    const baseColorFactors = new Float32Array(materials.length * 4).fill(1);
-    const metallicRoughnessFactorNormalScales = new Float32Array(materials.length * 3).fill(1);
-    const baseColorTextures: Texture[] = [];
-    const normalTextures: Texture[] = [];
-    const metallicRoughnessTextures: Texture[] = [];
+  protected _buildRecursive(start: number, end: number): IBVHNode | IBVHLeaf {
+    const {_boundsInfos} = this;
 
-    meshes.forEach((mesh, index) => {
-      const worldMatrix = mesh.worldMat;
-      worldMatrixes.set(worldMatrix, index * 16);
-    });
-
-    materials.forEach((mat, index) => {
-      const baseColorFactor = mat.getUniform('u_baseColorFactor') as Float32Array;
-      const metallicFactor = mat.getUniform('u_metallicFactor') as Float32Array;
-      const roughnessFactor = mat.getUniform('u_roughnessFactor') as Float32Array;
-      const normalScale = mat.getUniform('u_normalTextureScale') as Float32Array;
-      const baseColorTexture = mat.getUniform('u_baseColorTexture') as Texture;
-      const normalTexture = mat.getUniform('u_normalTexture') as Texture;
-      const metallicRoughnessTexture = mat.getUniform('u_metallicRoughnessTexture') as Texture;
-
-      baseColorFactor && baseColorFactors.set(baseColorFactor, index * 4);
-      metallicFactor !== undefined && metallicRoughnessFactorNormalScales.set(metallicFactor.slice(0, 1), index * 2);
-      roughnessFactor !== undefined && metallicRoughnessFactorNormalScales.set(roughnessFactor.slice(0, 1), index * 2 + 1);
-      normalScale !== undefined && metallicRoughnessFactorNormalScales.set(normalScale.slice(0, 1), index * 2 + 2);
-      
-      const mid = index * 4;
-      baseColorTexture !== buildinTextures.empty && this._setTextures(mid, baseColorTextures, baseColorTexture, matId2TexturesId);
-      normalTexture !== buildinTextures.empty && this._setTextures(mid + 1, normalTextures, normalTexture, matId2TexturesId);
-      metallicRoughnessTexture !== buildinTextures.empty && this._setTextures(mid + 2, metallicRoughnessTextures, metallicRoughnessTexture, matId2TexturesId);
-    });
-
-    this._commonUniforms = {
-      matId2TexturesId,
-      worldMatrixes,
-      baseColorFactors,
-      metallicRoughnessFactorNormalScales,
-      baseColorTextures: this._generateTextureArray(baseColorTextures),
-      normalTextures: this._generateTextureArray(normalTextures),
-      metallicRoughnessTextures: this._generateTextureArray(metallicRoughnessTextures)
-    };
-  }
-
-  protected _setTextures(
-    offset: number, textures: Texture[], texture: Texture,
-    matId2TexturesId: Int32Array
-  ) {
-    if (texture) {
-      let idx = textures.indexOf(texture);
-      if (idx < 0) {
-        textures.push(texture);
-        idx = textures.length - 1;
-      }
-      matId2TexturesId[offset] = idx;
-    }
-  }
-
-  protected _generateTextureArray(textures: Texture[]): Texture {
-    if (!textures.length) {
-      return buildinTextures.array1white;
+    const bounds = new Bounds().initEmpty();
+    for (let i = start; i < end; i += 1) {
+      bounds.mergeBounds(_boundsInfos[i].bounds);
     }
 
-    let width: number = 0;
-    let height: number = 0;
+    const nPrimitives = end - start;
 
-    textures.forEach(tex => {
-      width = Math.max(width, tex.width);
-      height = Math.max(height, tex.height);
-    });
-
-    const images = textures.map(tex => {
-      if (tex.width === width && tex.height === height) {
-        return tex.source as TTextureSource;
+    if (nPrimitives === 1) {
+      return {infoStart: start, infoEnd: end, bounds};
+    } else {
+      const centroidBounds = new Bounds().initEmpty();
+      for (let i = start; i < end; i += 1) {
+        centroidBounds.update(_boundsInfos[i].bounds.center);
       }
+      const dim = centroidBounds.maxExtends;
 
-      if (!(tex.source instanceof ImageBitmap)) {
-        throw new Error('Can only resize image bitmap!');
-      }
+      let mid = Math.floor((start + end) / 2);
 
-      if (!BVH.RESIZE_CANVAS) {
-        BVH.RESIZE_CANVAS = document.createElement('canvas');
-        BVH.RESIZE_CANVAS.width = 2048;
-        BVH.RESIZE_CANVAS.height = 2048;
-        BVH.RESIZE_CTX = BVH.RESIZE_CANVAS.getContext('2d');
-      }
+      // middle split method
+      // const dimMid = (centroidBounds.max[dim] + centroidBounds.min[dim]) / 2;
+      // mid = partition(primitiveInfo, p => p.center[dim] < dimMid, start, end);
 
-      const ctx = BVH.RESIZE_CTX;
-      ctx.drawImage(tex.source as ImageBitmap, 0, 0, width, height);
+      // if (mid === start || mid === end) {
+      //   mid = Math.floor((start + end) / 2);
+      //   nthElement(primitiveInfo, (a, b) => a.center[dim] < b.center[dim], start, end, mid);
+      // }
 
-      return ctx.getImageData(0, 0, width, height).data.buffer;
-    })
+      // surface area heuristic method
+      if (nPrimitives <= 4) {
+        nthElement(_boundsInfos, (a, b) => a.bounds.center[dim] < b.bounds.center[dim], start, end, mid);
+      } else if (centroidBounds.max[dim] === centroidBounds.min[dim]) {
+        // can't split primitives based on centroid bounds. terminate.
+        return {infoStart: start, infoEnd: end, bounds};
+      } else {
 
-    return new Texture(
-      width, height,
-      images,
-      textures[0].format
-    );
-  }
-
-  protected _buildGBufferMesh() {
-    const {_attributesInfo, _indexInfo, _commonUniforms} = this;
-
-    const geometry = new Geometry(
-      Object.keys(_attributesInfo).map((name, index) => {
-        const {value, length, format} = (_attributesInfo[name] as any) as IBVHAttributeValue;
-
-        return {
-          layout: {
-            arrayStride: length * 4,
-            attributes: [{
-              name, offset: 0, format, shaderLocation: index
-            }]
-          },
-          data: value
+        const buckets: {bounds: Bounds, count: number}[] = [];
+        for (let i = 0; i < 12; i += 1) {
+          buckets.push({bounds: new Bounds().initEmpty(), count: 0});
         }
-      }),
-      _indexInfo.value,
-      _indexInfo.value.length
-    );
-    
-    const material = new Material(buildinEffects.rRTGBuffer, {
-      u_matId2TexturesId: _commonUniforms.matId2TexturesId,
-      u_worlds: _commonUniforms.worldMatrixes,
-      u_baseColorFactors: _commonUniforms.baseColorFactors,
-      u_metallicRoughnessFactorNormalScales: _commonUniforms.metallicRoughnessFactorNormalScales,
-      u_baseColorTextures: _commonUniforms.baseColorTextures,
-      u_normalTextures: _commonUniforms.normalTextures,
-      u_metallicRoughnessTextures: _commonUniforms.metallicRoughnessTextures
-    });
 
-    this._gBufferMesh = new Mesh(geometry, material);
+        for (let i = start; i < end; i += 1) {
+          let b = Math.floor(buckets.length * centroidBounds.getOffset(dim, _boundsInfos[i].bounds.center));
+
+          if (b === buckets.length) {
+            b = buckets.length - 1;
+          }
+
+          buckets[b].count += 1;
+          buckets[b].bounds.mergeBounds(_boundsInfos[i].bounds);
+        }
+
+        const cost = [];
+
+        for (let i = 0; i < buckets.length - 1; i += 1) {
+          const b0 = new Bounds().initEmpty();
+          const b1 = new Bounds().initEmpty();
+          let count0 = 0;
+          let count1 = 0;
+          for (let j = 0; j <= i; j += 1) {
+            b0.mergeBounds(buckets[j].bounds);
+            count0 += buckets[j].count;
+          }
+          for (let j = i + 1; j < buckets.length; j += 1) {
+            b1.mergeBounds(buckets[j].bounds);
+            count1 += buckets[j].count;
+          }
+
+          cost.push(0.1 + (count0 * b0.surfaceArea + count1 * b1.surfaceArea) / bounds.surfaceArea);
+        }
+
+        let minCost = cost[0];
+        let minCostSplitBucket = 0;
+        for (let i = 1; i < cost.length; i += 1) {
+          if (cost[i] < minCost) {
+            minCost = cost[i];
+            minCostSplitBucket = i;
+          }
+        }
+
+        mid = partition(_boundsInfos, p => {
+          let b = Math.floor(buckets.length * centroidBounds.getOffset(dim, p.bounds.center));
+          if (b === buckets.length) {
+            b = buckets.length - 1;
+          }
+          return b <= minCostSplitBucket;
+        }, start, end);
+      }
+
+
+      const child0 = this._buildRecursive(start, mid);
+      const child1 = this._buildRecursive(mid, end);
+      return {
+        axis: dim,
+        bounds: new Bounds().initEmpty().mergeBounds(child0.bounds).mergeBounds(child1.bounds),
+        child0,
+        child1
+      };
+    }
   }
 
-  protected _buildBVH() {
+  protected _flatten() {
 
   }
 }

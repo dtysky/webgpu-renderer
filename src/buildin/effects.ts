@@ -4,7 +4,7 @@
  * @Link   : dtysky.moe
  * @Date   : 2021/6/6下午8:56:49
  */
-import {mat4} from 'gl-matrix';
+import {mat4, vec4} from 'gl-matrix';
 import Effect from '../core/Effect';
 import renderEnv from '../core/renderEnv';
 import textures from './textures';
@@ -17,7 +17,7 @@ const effects: {
   iBlit: Effect,
   rRTGBuffer: Effect,
   iRTGShow: Effect,
-  rRTSS: Effect,
+  iRTSS: Effect,
   cCreateSimpleBlur: (radius: number) => Effect
 } = {} as any;
 
@@ -216,12 +216,6 @@ export function init() {
           defaultValue: new Int32Array(2 * 128)
         },
         {
-          name: 'u_worlds',
-          type: 'mat4x4',
-          size: 128,
-          defaultValue: mat4.identity(new Float32Array(16 * 128)) as Float32Array
-        },
-        {
           name: 'u_baseColorFactors',
           type: 'vec4',
           size: 128,
@@ -259,7 +253,7 @@ export function init() {
   });
   
 
-  effects.rRTSS = new Effect('rRTSS', {
+  effects.iRTSS = new Effect('rRTSS', {
     vs: require('./shaders/image/image.vert.wgsl'),
     fs: require('./shaders/ray-tracing/rtss.frag.wgsl'),
     uniformDesc: {
@@ -280,35 +274,83 @@ export function init() {
           defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
         },
         {
-          name: 'u_proj',
-          type: 'mat4x4',
-          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
-        },
-        {
           name: 'u_vp',
           type: 'mat4x4',
           defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
         },
         {
-          name: 'u_lightPos',
-          type: 'vec3',
-          defaultValue: new Float32Array([0, 0, 0])
+          name: 'u_envColor',
+          type: 'vec4',
+          defaultValue: new Float32Array(4).fill(1)
+        },
+        // support materials up to 128
+        {
+          name: 'u_matId2TexturesId',
+          type: 'vec4',
+          format: 'i32',
+          size: 128,
+          defaultValue: new Int32Array(2 * 128)
         },
         {
-          name: 'u_lightDir',
-          type: 'vec3',
-          defaultValue: new Float32Array([0, 0, 0])
+          name: 'u_baseColorFactors',
+          type: 'vec4',
+          size: 128,
+          defaultValue: new Float32Array(4 * 128)
         },
         {
-          name: 'u_lightColor',
+          name: 'u_metallicRoughnessFactorNormalScales',
           type: 'vec3',
-          defaultValue: new Float32Array([0, 0, 0])
+          size: 128,
+          defaultValue: new Float32Array(128)
         }
+        // {
+        //   name: 'u_lightPos',
+        //   type: 'vec3',
+        //   defaultValue: new Float32Array([0, 0, 0])
+        // },
+        // {
+        //   name: 'u_lightDir',
+        //   type: 'vec3',
+        //   defaultValue: new Float32Array([0, 0, 0])
+        // },
+        // {
+        //   name: 'u_lightColor',
+        //   type: 'vec3',
+        //   defaultValue: new Float32Array([0, 0, 0])
+        // }
       ],
       textures: [
         {
-          name: 'u_baseColorTexture',
-          defaultValue: textures.white
+          name: 'u_gbPositionMetal',
+          defaultValue: textures.empty
+        },
+        {
+          name: 'u_gbDiffuseRough',
+          defaultValue: textures.empty
+        },
+        {
+          name: 'u_gbNormalMeshIndex',
+          defaultValue: textures.empty
+        },
+        {
+          name: 'u_gbFaceNormalMatIndex',
+          defaultValue: textures.empty
+        },
+        {
+          name: 'u_envTexture',
+          defaultValue: textures.cubeWhite
+        },
+        {
+          name: 'u_baseColorTextures',
+          defaultValue: textures.array1white
+        },
+        {
+          name: 'u_normalTextures',
+          defaultValue: textures.array1white
+        },
+        {
+          name: 'u_metallicRoughnessTextures',
+          defaultValue: textures.array1white
         }
       ],
       samplers: [

@@ -52,6 +52,7 @@ fn getNormal(
     return normal;
   }
 
+  // http://www.thetenthplanet.de/archives/1180
   let dp1: vec3<f32> = dpdx(position);
   let dp2: vec3<f32> = dpdy(position);
   let duv1: vec2<f32> = dpdx(uv);

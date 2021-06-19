@@ -118,6 +118,14 @@ export default class Geometry extends HObject {
     const position = _vInfo.position;
     const data = new Float32Array(_vertexCount * 3);
 
+    let boundingMin: [number, number, number];
+    let boundingMax: [number, number, number];
+    const calcBounding = !this._boundingBox;
+    if (calcBounding) {
+      boundingMax = [-Infinity, -Infinity, -Infinity];
+      boundingMin = [Infinity, Infinity, Infinity];
+    }
+
     const vMultiFaceCount = new Uint8Array(_vertexCount);
     let v31: Float32Array;
     let v32: Float32Array;
@@ -130,6 +138,12 @@ export default class Geometry extends HObject {
       v32 = position.data.slice(offset, offset + position.length) as Float32Array;
       offset = position.offset + _indexData[i + 2] * position.stride;
       v33 = position.data.slice(offset, offset + position.length) as Float32Array;
+
+      if (calcBounding) {
+        this._calcBonding(boundingMax, boundingMin, v31);
+        this._calcBonding(boundingMax, boundingMin, v32);
+        this._calcBonding(boundingMax, boundingMin, v33);
+      }
 
       vec3.sub(v32, v32, v31);
       vec3.sub(v33, v33, v31);
@@ -152,6 +166,20 @@ export default class Geometry extends HObject {
     }
 
     _vInfo.normal = {offset: 0, length: 3, stride: 3, data};
+    if (calcBounding) {
+      this._boundingBox = {
+        start: boundingMin,
+        center: boundingMax.map((v, i) => (v + boundingMin[i]) / 2) as [number, number, number],
+        size: boundingMax.map((v, i) => v - boundingMin[i]) as [number, number, number]
+      };
+    }
+  }
+
+  protected _calcBonding(max: number[], min: number[], p: ArrayLike<number>) {
+    for (let index = 0; index < 3; index += 1) {
+      max[index] = Math.max(max[index], p[index]);
+      min[index] = Math.min(min[index], p[index]);
+    }
   }
 
   protected _convertFormat(f: GPUVertexFormat) {

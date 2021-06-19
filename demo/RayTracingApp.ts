@@ -6,7 +6,7 @@
 */
 import * as H from '../src/index';
 
-const MODEL_SRC = '/assets/models/complex/scene.gltf';
+const MODEL_SRC = '/assets/models/simple/scene.gltf';
 
 export default class RayTracingApp {
   private _scene: H.Scene;
@@ -15,7 +15,7 @@ export default class RayTracingApp {
   private _camera: H.Camera;
   private _gBufferRT: H.RenderTexture;
   private _gBufferDebugMesh: H.ImageMesh;
-  protected _bvh: H.BVH;
+  protected _rtManager: H.RayTracingManager;
 
   public async init() {
     const {renderEnv} = H;
@@ -53,59 +53,6 @@ export default class RayTracingApp {
       this._camera = model.cameras[0];
     }
     _scene.rootNode.addChild(model.rootNode);
-
-    // const texture = await H.resource.load({type: 'texture', name: 'uv-debug.tex', src: require('./assets/textures/uv-debug.png')});
-    // const geometry = new H.Geometry(
-    //   [
-    //     {
-    //       layout: {
-    //         arrayStride: 3 * 4,
-    //         attributes: [
-    //           {
-    //             name: 'position',
-    //             shaderLocation: 0,
-    //             offset: 0,
-    //             format: 'float32x3' as GPUVertexFormat
-    //           }
-    //         ]
-    //       },
-    //       data: new Float32Array([
-    //         -1, -1, 0,
-    //         1, -1, 0,
-    //         -1, 1, 0,
-    //         1, 1, 0,
-    //       ])
-    //     },
-    //     {
-    //       layout: {
-    //         arrayStride: 2 * 4,
-    //         attributes: [
-    //           {
-    //             name: 'texcoord_0',
-    //             shaderLocation: 1,
-    //             offset: 0,
-    //             format: 'float32x2' as GPUVertexFormat
-    //           }
-    //         ]
-    //       },
-    //       data: new Float32Array([
-    //         0, 1,
-    //         1, 1,
-    //         0, 0,
-    //         1, 0,
-    //       ])
-    //     },
-    //   ],
-    //   new Uint16Array([0, 1, 2, 2, 1, 3]),
-    //   6
-    // );
-
-    // const m1 = new H.Mesh(geometry, new H.Material(H.buildinEffects.rPBR, {u_baseColorTexture: H.buildinTextures.red}));
-    // m1.pos.set(new Float32Array([1, 1, 0]));
-    // const m2 = new H.Mesh(geometry, new H.Material(H.buildinEffects.rPBR, {u_baseColorTexture: texture}));
-    // m2.pos.set(new Float32Array([-1, -1, 0]));
-    // _scene.rootNode.addChild(m1);
-    // _scene.rootNode.addChild(m2);
     
     // this._camera.drawSkybox = true;
     this._camControl.control(this._camera);
@@ -123,9 +70,9 @@ export default class RayTracingApp {
 
     _scene.startFrame();
     
-    if (!this._bvh) {
-      this._bvh = new H.BVH();
-      this._bvh.process(this._scene.cullCamera(this._camera));
+    if (!this._rtManager) {
+      this._rtManager = new H.RayTracingManager();
+      this._rtManager.process(this._scene.cullCamera(this._camera));
     }
     
     this._renderGBuffer();
@@ -136,7 +83,7 @@ export default class RayTracingApp {
 
   private _renderGBuffer() {
     this._scene.setRenderTarget(this._gBufferRT);
-    this._scene.renderCamera(this._camera, [this._bvh.gBufferMesh]);
+    this._scene.renderCamera(this._camera, [this._rtManager.gBufferMesh]);
     // this._scene.renderCamera(this._camera, this._scene.cullCamera(this._camera));
   }
 

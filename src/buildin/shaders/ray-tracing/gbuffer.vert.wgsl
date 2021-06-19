@@ -9,11 +9,8 @@ struct VertexOutput {
 [[stage(vertex)]]
 fn main(attrs: Attrs) -> VertexOutput {
   var output: VertexOutput;
-
-  let meshId: u32 = attrs.meshMatIndex[0];
-  let worldMat: mat4x4<f32> = uniforms.u_worlds[meshId];
   
-  let wPosition: vec4<f32> = worldMat * vec4<f32>(attrs.position, 1.);
+  let wPosition: vec4<f32> = vec4<f32>(attrs.position, 1.);
   
   output.position = uniforms.u_vp * wPosition;
   output.wPosition = wPosition;
