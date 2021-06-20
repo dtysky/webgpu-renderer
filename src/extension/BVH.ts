@@ -5,19 +5,36 @@
  * @Date   : 6/15/2021, 11:14:51 PM
  */
 import { vec3 } from 'gl-matrix';
+import { buildinEffects } from '../buildin';
+import Geometry from '../core/Geometry';
 import HObject from '../core/HObject';
+import Material from '../core/Material';
+import Mesh from '../core/Mesh';
 import { callWithProfile, copyTypedArray, nthElement, partition } from '../core/shared';
+import Texture from '../core/Texture';
 
 enum EAxis {
   X,
-  Y, 
+  Y,
   Z
 };
 
 class Bounds {
+  public static BUILD_BOX_MAX_MIN_ORDER = [
+    // 0 is min, i is max
+    [1, 1, 1],
+    [1, 1, 0],
+    [0, 1, 0],
+    [0, 1, 1],
+    [1, 0, 1],
+    [1, 0, 0],
+    [0, 0, 0],
+    [0, 0, 1]
+  ];
+
   public max: Float32Array;
   public min: Float32Array;
-  
+
   private _isDirty: boolean = false;
   private _center: Float32Array;
   private _size: Float32Array;
@@ -48,7 +65,7 @@ class Bounds {
   }
 
   get surfaceArea() {
-    const {size} = this;
+    const { size } = this;
 
     return 2 * (size[0] * size[2] + size[0] * size[1] + size[2] * size[1]);
   }
@@ -80,7 +97,7 @@ class Bounds {
   }
 
   public mergeBounds(bounds: Bounds) {
-    const {max, min} = bounds;
+    const { max, min } = bounds;
 
     for (let index = 0; index < 3; index += 1) {
       this.max[index] = Math.max(this.max[index], max[index]);
@@ -101,6 +118,26 @@ class Bounds {
     return offset;
   }
 
+  // indexes is line-list format
+  public buildBox(): {positions: number[], indexes: number[]} {
+    const {max, min} = this;
+    const positions = [];
+    
+    Bounds.BUILD_BOX_MAX_MIN_ORDER.forEach(order => {
+      for (let i = 0; i < 3; i += 1) {
+        positions.push(order[i] ? max[i] : min[i])
+      }
+    });
+    
+    const indexes = [
+      0, 1, 1, 2, 2, 3, 3, 0,
+      4, 5, 5, 6, 6, 7, 7, 4,
+      0, 4, 1, 5, 2, 6, 3, 7
+    ];
+
+    return {positions, indexes};
+  }
+
   private _updateCenterSize() {
     if (this._isDirty) {
       this._center = this.max.map((m, i) => (m + this.min[i]) / 2);
@@ -113,8 +150,8 @@ class Bounds {
 export interface IBVHNode {
   axis: EAxis;
   bounds: Bounds;
-  child0?: IBVHNode | IBVHLeaf;
-  child1?: IBVHNode | IBVHLeaf;
+  child0: IBVHNode | IBVHLeaf;
+  child1: IBVHNode | IBVHLeaf;
 }
 
 export interface IBVHLeaf {
@@ -129,6 +166,10 @@ interface IBoundsInfo {
   bounds: Bounds;
 }
 
+function isBVHLeaf(value: IBVHNode | IBVHLeaf) : value is IBVHLeaf {
+  return (value as IBVHLeaf).infoEnd !== undefined;
+}
+
 const tmpV1 = new Float32Array(3);
 const tmpV2 = new Float32Array(3);
 const tmpV3 = new Float32Array(3);
@@ -140,11 +181,40 @@ export default class BVH extends HObject {
   // protected _bvhGPUBuffer: GPUBuffer;
   protected _rootNode: IBVHNode;
   protected _boundsInfos: IBoundsInfo[];
+  protected _bvhMaxDepth: number;
+  protected _bvhBuffer: Float32Array;
+  protected _bvhNodes: IBVHNode[];
+  protected _debugMesh: Mesh;
+
+  get maxDepth() {
+    return this._bvhMaxDepth;
+  }
+
+  /**
+   * nodes | leaves
+   * nodes: child0 and child1 info(u32), min3(f32), max3(f32)
+   * leaves: primitives count(u32), indexes3(u32),
+   * child info: 1bit type(0 is node, 1 is leaf) and 31bits offset, if node use offset * 8, else use offset * 4
+   */
+  get buffer() {
+    return this._bvhBuffer;
+  }
+
+  get debugMesh() {
+    if (!this._debugMesh) {
+      this._buildDebugMesh();
+    }
+
+    return this._debugMesh;
+  }
 
   public process = (worldPositions: Float32Array, indexes: Uint16Array) => {
     callWithProfile('BVH setup bounds info', this._setupBoundsInfo, [worldPositions, indexes]);
     callWithProfile('BVH build tree', this._buildTree, []);
     callWithProfile('BVH flatten', this._flatten, []);
+    
+    console.log('BHV nodes and leaves: ', this._boundsInfos.length);
+    this._debugMesh = null;
   }
 
   protected _setupBoundsInfo = (worldPositions: Float32Array, indexes: Uint16Array) => {
@@ -159,7 +229,7 @@ export default class BVH extends HObject {
 
       const bounds = new Bounds().fromVertexes(tmpV1, tmpV2, tmpV3);
 
-      this._boundsInfos.push({ indexes: idxes, bounds });
+      this._boundsInfos.push({indexes: idxes, bounds});
     }
   }
 
@@ -178,7 +248,7 @@ export default class BVH extends HObject {
     const nPrimitives = end - start;
 
     if (nPrimitives === 1) {
-      return {infoStart: start, infoEnd: end, bounds};
+      return { infoStart: start, infoEnd: end, bounds };
     } else {
       const centroidBounds = new Bounds().initEmpty();
       for (let i = start; i < end; i += 1) {
@@ -202,12 +272,12 @@ export default class BVH extends HObject {
         nthElement(_boundsInfos, (a, b) => a.bounds.center[dim] < b.bounds.center[dim], start, end, mid);
       } else if (centroidBounds.max[dim] === centroidBounds.min[dim]) {
         // can't split primitives based on centroid bounds. terminate.
-        return {infoStart: start, infoEnd: end, bounds};
+        return { infoStart: start, infoEnd: end, bounds };
       } else {
 
-        const buckets: {bounds: Bounds, count: number}[] = [];
+        const buckets: { bounds: Bounds, count: number }[] = [];
         for (let i = 0; i < 12; i += 1) {
-          buckets.push({bounds: new Bounds().initEmpty(), count: 0});
+          buckets.push({ bounds: new Bounds().initEmpty(), count: 0 });
         }
 
         for (let i = start; i < end; i += 1) {
@@ -270,7 +340,122 @@ export default class BVH extends HObject {
     }
   }
 
-  protected _flatten() {
+  protected _flatten = () => {
+    this._bvhNodes = [];
+    const flatInfo = {maxDepth: 1, nodes: [], leaves: []};
+    this._traverseNode(this._rootNode, flatInfo);
 
+    const {maxDepth, nodes, leaves} = flatInfo;
+    const buffer = new ArrayBuffer(4 * (nodes.length + leaves.length));
+    const f32View = new Float32Array(buffer);
+    const u32View = new Uint32Array(buffer);
+    const nodesLen = nodes.length;
+
+    this._bvhMaxDepth = maxDepth;
+    f32View.set(nodes);
+    u32View.set(leaves, nodesLen);
+
+    for (let i = 0; i < nodes.length; i += 8) {
+      for (let ci = 0; ci < 2; ci += 1) {
+        const offset = i + ci;
+
+        if (nodes[offset] & 0x8000000) {
+          // leaf
+          u32View[offset] = nodes[offset] + nodesLen / 4;
+        } else {
+          // node
+          u32View[offset] = nodes[offset];
+        }
+      }
+    }
+
+    this._bvhMaxDepth = flatInfo.maxDepth;
+    this._bvhBuffer = f32View;
+  }
+
+  protected _traverseNode = (
+    node: IBVHNode | IBVHLeaf,
+    // nodes: 2 children info and 6 float BVHNode bounding info
+    // children: use two uint32 store 2 children's info: 1bit type(0 is node, 1 is leaf) + 31bits index offset
+    // leaves: BVHLeaf index and length info
+    info: {maxDepth: number, nodes: number[], leaves: number[]},
+    depth: number = 1,
+    parentOffset: number = -1,
+    childIndex: number = 0
+  ) => {
+    info.maxDepth = Math.max(depth, info.maxDepth);
+    const {nodes, leaves} = info;
+    const {_boundsInfos, _bvhNodes} = this;
+
+    if (isBVHLeaf(node)) {
+      if (parentOffset >= 0) {
+        nodes[parentOffset * 8 + childIndex] = (1 << 31) & (leaves.length / 4);
+      }
+
+      const count = node.infoEnd - node.infoStart;
+      for (let i = node.infoStart; i < node.infoEnd; i += 1) {
+        const idxes = _boundsInfos[i].indexes;
+
+        leaves.push(count, idxes[0], idxes[1], idxes[2]);
+      }
+    } else {
+      _bvhNodes.push(node);
+      const bounds = node.bounds;
+      const nodeOffset = nodes.length / 8;
+
+      if (parentOffset >= 0) {
+        nodes[parentOffset * 8 + childIndex] = nodeOffset;
+      }
+
+      nodes.push(
+        0, 0,
+        bounds.min[0], bounds.min[1], bounds.min[2],
+        bounds.max[0], bounds.max[1], bounds.max[2]
+      );
+
+      this._traverseNode(node.child0, info, depth + 1, nodeOffset, 0);
+      this._traverseNode(node.child1, info, depth + 1, nodeOffset, 1);
+    }
+  }
+
+  protected _buildDebugMesh() {
+    const {_bvhNodes} = this;
+
+    const nodesLen = _bvhNodes.length;
+    // per box has 8 vertex
+    const positions = new Float32Array(nodesLen * 8 * 3);
+    // line-list
+    const indexes = new Uint32Array(nodesLen * 24);
+
+    let index = 0;
+    _bvhNodes.forEach(node => {
+      const box = node.bounds.buildBox();
+      const offset = index * 8;
+      const pOffset = index * 8 * 3;
+      const iOffset = index * 24;
+
+      positions.set(box.positions, pOffset);
+      indexes.set(box.indexes.map(v => v + offset), iOffset);
+
+      index += 1;
+    });
+
+    this._debugMesh = new Mesh(
+      new Geometry([{
+        layout: {
+          attributes: [{
+            name: 'position',
+            shaderLocation: 0,
+            format: 'float32x3',
+            offset: 0
+          }],
+          arrayStride: 12
+        },
+        data: positions
+      }], indexes, indexes.length),
+      new Material(buildinEffects.rGreen, undefined, undefined, {
+        primitiveType: 'line-list', cullMode: 'none'
+      })
+    );
   }
 }

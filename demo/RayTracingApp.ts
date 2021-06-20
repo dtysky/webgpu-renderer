@@ -75,8 +75,9 @@ export default class RayTracingApp {
       this._rtManager.process(this._scene.cullCamera(this._camera));
     }
     
-    this._renderGBuffer();
-    this._showGBufferResult();
+    this._showBVH();
+    // this._renderGBuffer();
+    // this._showGBufferResult();
     // this._renderRTSS();
     _scene.endFrame();
   }
@@ -84,12 +85,19 @@ export default class RayTracingApp {
   private _renderGBuffer() {
     this._scene.setRenderTarget(this._gBufferRT);
     this._scene.renderCamera(this._camera, [this._rtManager.gBufferMesh]);
-    // this._scene.renderCamera(this._camera, this._scene.cullCamera(this._camera));
   }
 
   private _showGBufferResult() {
     this._scene.setRenderTarget(null);
     this._scene.renderImages([this._gBufferDebugMesh], this._camera);
+  }
+
+  private _showBVH() {
+    this._scene.setRenderTarget(null);
+    this._scene.renderCamera(this._camera, [
+      ...this._scene.cullCamera(this._camera),
+      this._rtManager.bvhDebugMesh
+    ]);
   }
 
   protected _renderRTSS() {

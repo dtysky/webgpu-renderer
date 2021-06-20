@@ -31,6 +31,7 @@ export default class Geometry extends HObject {
   };
   protected _vBuffers: GPUBuffer[];
   protected _iBuffer: GPUBuffer;
+  protected _indexFormat: GPUIndexFormat;
   protected _vertexCount: number;
   protected _marcos: {[key: string]: number | boolean};
   protected _attributesDef: string;
@@ -63,6 +64,10 @@ export default class Geometry extends HObject {
     return this._attributesDef;
   }
 
+  get indexFormat(): GPUIndexFormat {
+    return this._indexFormat;
+  }
+
   get marcos() {
     return this._marcos;
   }
@@ -75,7 +80,7 @@ export default class Geometry extends HObject {
       },
       data: TTypedArray
     }[],
-    protected _indexData: Uint16Array,
+    protected _indexData: Uint16Array | Uint32Array,
     public count: number,
     protected _boundingBox?: IBoundingBox
   ) {
@@ -84,6 +89,7 @@ export default class Geometry extends HObject {
     this._iBuffer = createGPUBuffer(_indexData, GPUBufferUsage.INDEX);
     this._vBuffers = new Array(_vertexes.length);
     this._vLayouts = new Array(_vertexes.length);
+    this._indexFormat = _indexData instanceof Uint16Array ? 'uint16' : 'uint32';
     this._vInfo = {};
     this._marcos = {};
     this._attributesDef = 'struct Attrs {\n';

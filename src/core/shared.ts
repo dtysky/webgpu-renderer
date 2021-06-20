@@ -29,7 +29,7 @@ export function callWithProfile<FN extends (...args: any) => any>(name: string, 
 export function copyTypedArray(
   size: number,
   dst: TTypedArray, dstOffset: number,
-  src: TTypedArray, srcOffset: number
+  src: TTypedArray | number[], srcOffset: number
 ) {
   for (let index = 0; index < size; index += 1) {
     dst[dstOffset + index] = src[srcOffset + index];

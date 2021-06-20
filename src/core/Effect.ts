@@ -13,6 +13,16 @@ import CubeTexture from "./CubeTexture";
 
 export type TUniformValue = TUniformTypedArray | Texture | CubeTexture | GPUSamplerDescriptor | RenderTexture;
 
+export interface IRenderStates {
+  cullMode?: GPUCullMode;
+  primitiveType?: GPUPrimitiveTopology;
+}
+
+export const DEFAULT_RENDER_STATES: IRenderStates = {
+  cullMode: 'back',
+  primitiveType: 'triangle-list'
+};
+
 export interface IUniformsDescriptor {
   uniforms: {
     name: string,
@@ -51,6 +61,7 @@ export interface IEffectOptionsRender {
   fs: string;
   uniformDesc: IUniformsDescriptor;
   marcos?: {[key: string]: number | boolean};
+  renderState?: IRenderStates;
 }
 export interface IEffectOptionsCompute {
   cs: string;
@@ -68,6 +79,7 @@ export default class Effect extends HObject {
   public isEffect: boolean = true;
 
   protected _marcos?: {[key: string]: number | boolean};
+  protected _renderStates: IRenderStates;
   protected _marcosRegex: {[key: string]: RegExp};
   protected _vs: string;
   protected _fs: string;
@@ -113,6 +125,10 @@ export default class Effect extends HObject {
     return this._csShader;
   }
 
+  get renderStates() {
+    return this._renderStates;
+  }
+
   constructor(
     name: string,
     private _options: TEffectOptions
@@ -124,6 +140,7 @@ export default class Effect extends HObject {
     const options = _options;
     const _uniformDesc = this._uniformDesc = options.uniformDesc;
     const visibility = (options as IEffectOptionsCompute).cs ? GPUShaderStage.COMPUTE : GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT;
+    this._renderStates = Object.assign({}, DEFAULT_RENDER_STATES, (options as IEffectOptionsRender).renderState || {});
 
     this._marcos = options.marcos || {};
     this._marcosRegex = {};

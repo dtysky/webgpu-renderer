@@ -56,6 +56,10 @@ import BVH from './BVH';
    get rtMesh() {
      return this._rtMesh;
    }
+
+   get bvhDebugMesh() {
+     return this._bvh.debugMesh;
+   }
  
    // batch all meshes and build bvh
    public process(meshes: Mesh[]) {

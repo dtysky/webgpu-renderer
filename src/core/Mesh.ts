@@ -66,7 +66,7 @@ export default class Mesh extends Node {
     _geometry.vertexes.forEach((vertex, index) => {
       pass.setVertexBuffer(index, vertex);
     });
-    pass.setIndexBuffer(_geometry.indexes, 'uint16');
+    pass.setIndexBuffer(_geometry.indexes, _geometry.indexFormat);
     pass.setBindGroup(0, _material.bindingGroup);
     pass.setPipeline(this._pipelines[rt.pipelineHash]);
     pass.drawIndexed(_geometry.count, 1, 0, 0, 0);
@@ -97,8 +97,8 @@ export default class Mesh extends Node {
       },
   
       primitive: {
-        topology: 'triangle-list',
-        cullMode: 'back'
+        topology: _material.primitiveType,
+        cullMode: _material.cullMode
       },
 
       depthStencil: rt.depthStencilFormat && {
