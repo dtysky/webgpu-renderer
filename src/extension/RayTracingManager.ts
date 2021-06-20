@@ -45,7 +45,7 @@ import BVH from './BVH';
      normalTextures: Texture;
      metallicRoughnessTextures: Texture;
    };
-   protected _bvh: BVH = new BVH();
+   protected _bvh: BVH;
    protected _gBufferMesh: Mesh;
    protected _rtMesh: ImageMesh;
  
@@ -60,6 +60,12 @@ import BVH from './BVH';
    get bvhDebugMesh() {
      return this._bvh.debugMesh;
    }
+
+   constructor(protected _maxPrimitivesPerBVHLeaf: number = 4) {
+     super();
+
+     this._bvh = new BVH(_maxPrimitivesPerBVHLeaf);
+   }
  
    // batch all meshes and build bvh
    public process(meshes: Mesh[]) {
@@ -67,6 +73,8 @@ import BVH from './BVH';
     callWithProfile('build CommonUniforms', this._buildCommonUniforms, [this._materials]);
     callWithProfile('build GBufferMesh', this._buildGBufferMesh, []);
     this._bvh.process(this._attributesInfo.position.value as Float32Array, this._indexInfo.value);
+
+    console.log(`Build done(max primitives per leaf is ${this._maxPrimitivesPerBVHLeaf}): mesh(${meshes.length}), material(${this._materials.length}), vertexes: ${this._attributesInfo.position.value.length / 3}, triangles(${this._indexInfo.value.length / 3}), bvhNodes(${this._bvh.nodesCount}), bvhLeaves(${this._bvh.leavesCount})`);
    }
  
    protected _buildAttributeBuffers = (meshes: Mesh[]) => {

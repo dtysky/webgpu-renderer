@@ -184,6 +184,7 @@ export default class BVH extends HObject {
   protected _bvhMaxDepth: number;
   protected _bvhBuffer: Float32Array;
   protected _bvhNodes: IBVHNode[];
+  protected _bvhLeaves: IBVHLeaf[];
   protected _debugMesh: Mesh;
 
   get maxDepth() {
@@ -208,12 +209,23 @@ export default class BVH extends HObject {
     return this._debugMesh;
   }
 
+  get nodesCount() {
+    return this._bvhNodes.length;
+  }
+
+  get leavesCount() {
+    return this._bvhLeaves.length;
+  }
+
+  constructor(protected _maxPrimitivesPerLeaf: number) {
+    super();
+  }
+
   public process = (worldPositions: Float32Array, indexes: Uint16Array) => {
     callWithProfile('BVH setup bounds info', this._setupBoundsInfo, [worldPositions, indexes]);
     callWithProfile('BVH build tree', this._buildTree, []);
     callWithProfile('BVH flatten', this._flatten, []);
-    
-    console.log('BHV nodes and leaves: ', this._boundsInfos.length);
+
     this._debugMesh = null;
   }
 
@@ -247,7 +259,7 @@ export default class BVH extends HObject {
 
     const nPrimitives = end - start;
 
-    if (nPrimitives === 1) {
+    if (nPrimitives <= this._maxPrimitivesPerLeaf) {
       return { infoStart: start, infoEnd: end, bounds };
     } else {
       const centroidBounds = new Bounds().initEmpty();
@@ -272,12 +284,11 @@ export default class BVH extends HObject {
         nthElement(_boundsInfos, (a, b) => a.bounds.center[dim] < b.bounds.center[dim], start, end, mid);
       } else if (centroidBounds.max[dim] === centroidBounds.min[dim]) {
         // can't split primitives based on centroid bounds. terminate.
-        return { infoStart: start, infoEnd: end, bounds };
+        return {infoStart: start, infoEnd: end, bounds};
       } else {
-
         const buckets: { bounds: Bounds, count: number }[] = [];
         for (let i = 0; i < 12; i += 1) {
-          buckets.push({ bounds: new Bounds().initEmpty(), count: 0 });
+          buckets.push({bounds: new Bounds().initEmpty(), count: 0});
         }
 
         for (let i = start; i < end; i += 1) {
@@ -291,7 +302,7 @@ export default class BVH extends HObject {
           buckets[b].bounds.mergeBounds(_boundsInfos[i].bounds);
         }
 
-        const cost = [];
+        const cost: number[] = [];
 
         for (let i = 0; i < buckets.length - 1; i += 1) {
           const b0 = new Bounds().initEmpty();
@@ -328,9 +339,9 @@ export default class BVH extends HObject {
         }, start, end);
       }
 
-
       const child0 = this._buildRecursive(start, mid);
       const child1 = this._buildRecursive(mid, end);
+
       return {
         axis: dim,
         bounds: new Bounds().initEmpty().mergeBounds(child0.bounds).mergeBounds(child1.bounds),
@@ -341,6 +352,7 @@ export default class BVH extends HObject {
   }
 
   protected _flatten = () => {
+    this._bvhLeaves = [];
     this._bvhNodes = [];
     const flatInfo = {maxDepth: 1, nodes: [], leaves: []};
     this._traverseNode(this._rootNode, flatInfo);
@@ -385,9 +397,10 @@ export default class BVH extends HObject {
   ) => {
     info.maxDepth = Math.max(depth, info.maxDepth);
     const {nodes, leaves} = info;
-    const {_boundsInfos, _bvhNodes} = this;
+    const {_boundsInfos, _bvhNodes, _bvhLeaves} = this;
 
     if (isBVHLeaf(node)) {
+      _bvhLeaves.push(node);
       if (parentOffset >= 0) {
         nodes[parentOffset * 8 + childIndex] = (1 << 31) & (leaves.length / 4);
       }
