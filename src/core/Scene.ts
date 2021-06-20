@@ -36,6 +36,10 @@ export default class Scene extends HObject {
     return this._rootNode;
   }
 
+  get screen() {
+    return this._screen;
+  }
+
   constructor() {
     super();
 
@@ -112,10 +116,12 @@ export default class Scene extends HObject {
     pass.endPass();
   }
 
-  public computeUnits(units: ComputeUnit[]) {
+  public computeUnits(units: ComputeUnit[], camera?: Camera, lights?: Light[]) {
     const pass = this._command.beginComputePass();
 
     for (const unit of units) {
+      camera.fillUniforms(unit);
+      lights?.forEach((light, index) => light.fillUniforms(index, unit));
       unit.compute(pass);
     }
 

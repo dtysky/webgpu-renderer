@@ -6,11 +6,14 @@
  */
  import { vec3 } from 'gl-matrix';
  import {buildinEffects, buildinTextures} from '../buildin';
+import ComputeUnit from '../core/ComputeUnit';
  import Geometry from '../core/Geometry';
  import HObject from '../core/HObject';
  import ImageMesh from '../core/ImageMesh';
  import Material from '../core/Material';
  import Mesh from '../core/Mesh';
+import renderEnv from '../core/renderEnv';
+import RenderTexture from '../core/RenderTexture';
  import {callWithProfile, TTextureSource, TTypedArray} from '../core/shared';
  import Texture from '../core/Texture';
 import BVH from './BVH';
@@ -34,7 +37,7 @@ import BVH from './BVH';
      meshMatIndex: IBVHAttributeValue<Uint32Array>
    };
    protected _indexInfo: {
-     value: Uint16Array
+     value: Uint32Array
    };
    protected _materials: Material[] = [];
    protected _commonUniforms: {
@@ -47,14 +50,14 @@ import BVH from './BVH';
    };
    protected _bvh: BVH;
    protected _gBufferMesh: Mesh;
-   protected _rtMesh: ImageMesh;
+   protected _rtUnit: ComputeUnit;
  
    get gBufferMesh() {
      return this._gBufferMesh;
    }
  
-   get rtMesh() {
-     return this._rtMesh;
+   get rtUnit() {
+     return this._rtUnit;
    }
 
    get bvhDebugMesh() {
@@ -68,13 +71,14 @@ import BVH from './BVH';
    }
  
    // batch all meshes and build bvh
-   public process(meshes: Mesh[]) {
+   public process(meshes: Mesh[], output: RenderTexture) {
     callWithProfile('build AttributeBuffers', this._buildAttributeBuffers, [meshes]);
     callWithProfile('build CommonUniforms', this._buildCommonUniforms, [this._materials]);
     callWithProfile('build GBufferMesh', this._buildGBufferMesh, []);
     this._bvh.process(this._attributesInfo.position.value as Float32Array, this._indexInfo.value);
+    callWithProfile('build RTUnit', this._buildRTUnit, [output]);
 
-    console.log(`Build done(max primitives per leaf is ${this._maxPrimitivesPerBVHLeaf}): mesh(${meshes.length}), material(${this._materials.length}), vertexes: ${this._attributesInfo.position.value.length / 3}, triangles(${this._indexInfo.value.length / 3}), bvhNodes(${this._bvh.nodesCount}), bvhLeaves(${this._bvh.leavesCount})`);
+    console.log(`Build done(max primitives per leaf is ${this._maxPrimitivesPerBVHLeaf}): mesh(${meshes.length}), material(${this._materials.length}), vertexes(${this._attributesInfo.position.value.length / 3}), triangles(${this._indexInfo.value.length / 3}), bvhNodes(${this._bvh.nodesCount}), bvhLeaves(${this._bvh.leavesCount})`);
    }
  
    protected _buildAttributeBuffers = (meshes: Mesh[]) => {
@@ -88,7 +92,7 @@ import BVH from './BVH';
      });
  
      const {value: indexes} = this._indexInfo = {
-       value: new Uint16Array(indexCount)
+       value: new Uint32Array(indexCount)
      };
  
      const {position, texcoord_0, normal, meshMatIndex} = this._attributesInfo = {
@@ -277,7 +281,8 @@ import BVH from './BVH';
                name, offset: 0, format, shaderLocation: index
              }]
            },
-           data: value
+           data: value,
+           usage: GPUBufferUsage.STORAGE
          }
        }),
        _indexInfo.value,
@@ -294,6 +299,36 @@ import BVH from './BVH';
      });
  
      this._gBufferMesh = new Mesh(geometry, material);
+   }
+
+   protected _buildRTUnit = (output: RenderTexture) => {
+     const {_gBufferMesh, _commonUniforms, _bvh} = this;
+     const {geometry} = _gBufferMesh;
+
+    this._rtUnit = new ComputeUnit(
+      buildinEffects.cRTSS,
+      {x: Math.ceil(renderEnv.width / 16), y: Math.ceil(renderEnv.height / 16)},
+      {
+        u_output: output,
+        u_matId2TexturesId: _commonUniforms.matId2TexturesId,
+        u_baseColorFactors: _commonUniforms.baseColorFactors,
+        u_metallicRoughnessFactorNormalScales: _commonUniforms.metallicRoughnessFactorNormalScales,
+        u_baseColorTextures: _commonUniforms.baseColorTextures,
+        u_normalTextures: _commonUniforms.normalTextures,
+        u_metallicRoughnessTextures: _commonUniforms.metallicRoughnessTextures,
+        u_bvh: _bvh.buffer,
+        // u_positions: _attributesInfo.position.value,
+        // u_uvs: _attributesInfo.texcoord_0.value,
+        // u_normals: _attributesInfo.normal.value
+      }
+    );
+
+    let values = geometry.getValues('position');
+    this._rtUnit.setUniform('u_positions', values.cpu as Float32Array, values.gpu);
+    values = geometry.getValues('texcoord_0');
+    this._rtUnit.setUniform('u_uvs', values.cpu as Float32Array, values.gpu);
+    values = geometry.getValues('normal');
+    this._rtUnit.setUniform('u_normals', values.cpu as Float32Array, values.gpu);
    }
  }
  

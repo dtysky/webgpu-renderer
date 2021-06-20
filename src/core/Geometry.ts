@@ -25,8 +25,9 @@ export default class Geometry extends HObject {
   }[];
   protected _vInfo: {
     [name: string]: {
+      data: TTypedArray, index: number,
       // offset and stride is based 4-bytes
-      offset: number, length: number, stride: number, data: TTypedArray
+      offset: number, length: number, stride: number
     }
   };
   protected _vBuffers: GPUBuffer[];
@@ -78,7 +79,8 @@ export default class Geometry extends HObject {
         attributes: (GPUVertexAttribute & {name: string})[],
         arrayStride: number
       },
-      data: TTypedArray
+      data: TTypedArray,
+      usage?: number
     }[],
     protected _indexData: Uint16Array | Uint32Array,
     public count: number,
@@ -94,14 +96,15 @@ export default class Geometry extends HObject {
     this._marcos = {};
     this._attributesDef = 'struct Attrs {\n';
 
-    _vertexes.forEach(({layout, data}, index) => {
-      const vBuffer = createGPUBuffer(data, GPUBufferUsage.VERTEX);
+    _vertexes.forEach(({layout, data, usage}, index) => {
+      const vBuffer = createGPUBuffer(data, GPUBufferUsage.VERTEX | (usage | 0));
 
       layout.attributes.forEach((attr) => {
         this._marcos[`USE_${attr.name.toUpperCase()}`] = true;
         this._attributesDef += `  [[location(${attr.shaderLocation})]] ${attr.name}: ${this._convertFormat(attr.format)};\n`;
         this._vInfo[attr.name.toLowerCase()] = {
-          data, offset: attr.offset / 4, stride: layout.arrayStride / 4, length: this._getLength(attr.format)
+          data, index,
+          offset: attr.offset / 4, stride: layout.arrayStride / 4, length: this._getLength(attr.format)
         };
       });
 
@@ -171,7 +174,8 @@ export default class Geometry extends HObject {
       }
     }
 
-    _vInfo.normal = {offset: 0, length: 3, stride: 3, data};
+    // todo: index
+    _vInfo.normal = {offset: 0, length: 3, stride: 3, data, index: 0};
     if (calcBounding) {
       this._boundingBox = {
         start: boundingMin,
@@ -179,6 +183,13 @@ export default class Geometry extends HObject {
         size: boundingMax.map((v, i) => v - boundingMin[i]) as [number, number, number]
       };
     }
+  }
+
+  public getValues(name: string) {
+    return {
+      cpu: this._vInfo[name].data,
+      gpu: this._vBuffers[this._vInfo[name].index]
+    };
   }
 
   protected _calcBonding(max: number[], min: number[], p: ArrayLike<number>) {

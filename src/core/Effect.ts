@@ -4,7 +4,7 @@
  * @Author  :dtysky(dtysky@outlook.com)
  * @Date    : 2021/6/7下午1:51:11
  */
- import {createGPUBuffer, hashCode, TUniformTypedArray} from "./shared";
+ import {createGPUBuffer, hashCode, TTypedArray, TUniformTypedArray} from "./shared";
 import renderEnv from "./renderEnv";
 import RenderTexture from "./RenderTexture";
 import Texture from "./Texture";
@@ -40,6 +40,13 @@ export interface IUniformsDescriptor {
   samplers: {
     name: string,
     defaultValue: GPUSamplerDescriptor
+  }[],
+  storages?: {
+    name: string,
+    type: 'number' | 'vec2' | 'vec3' | 'vec4',
+    format?: 'f32' | 'u32' | 'i32',
+    defaultValue:TUniformTypedArray,
+    gpuValue?: GPUBuffer
   }[]
 }
 
@@ -99,9 +106,9 @@ export default class Effect extends HObject {
   protected _uniformsInfo: {[name: string]: {
     bindingId: number,
     index: number,
-    type: 'texture' | 'buffer' | 'sampler',
+    type: 'texture' | 'buffer' | 'sampler' | 'storage',
     defaultValue?: TUniformTypedArray | Texture | GPUSamplerDescriptor,
-    defaultGpuValue?: GPUSampler | GPUTextureView,
+    defaultGpuValue?: GPUSampler | GPUTextureView | GPUBuffer,
     /* 32bits */
     offset?: number,
     realLen?: number,
@@ -238,6 +245,29 @@ export default class Effect extends HObject {
       this._uniformsBufferDefault.set(new Uint32Array(ud.defaultValue.buffer), this._uniformsInfo[ud.name].offset);
     });
 
+    if (_uniformDesc.storages) {
+      const structCache: {[hash: string]: string} = {};
+
+      _uniformDesc.storages.forEach((ud) => {
+        entries.push({
+          binding: bindingId,
+          visibility,
+          buffer: {type: 'read-only-storage' as GPUBufferBindingType}
+        });
+
+        const hash = `Storage${ud.type}${ud.format || 'f32'}`;
+        if (!structCache[hash]) {
+          this._shaderPrefix += (structCache[hash] = structCache[hash] || this._getStorageStruct(hash, ud.type, ud.format || 'f32')) + '\n';
+        }
+        const gpuValue = ud.gpuValue ? ud.gpuValue : createGPUBuffer(ud.defaultValue, GPUBufferUsage.STORAGE);
+        this._uniformsInfo[ud.name] = {bindingId, index, type: 'storage', defaultValue: ud.defaultValue, defaultGpuValue: gpuValue};
+        this._shaderPrefix += `[[group(0), binding(${bindingId})]] var<storage,read> ${ud.name}: ${hash};\n`
+
+        index += 1;
+        bindingId += 1;
+      });
+    }
+
     this._uniformLayoutDesc = {entries};
 
     if (isComputeOptions(options)) {
@@ -307,6 +337,30 @@ export default class Effect extends HObject {
     };
   }
 
+  protected _getStorageStruct(
+    hash: string,
+    type: 'number' | 'vec2' | 'vec3' | 'vec4',
+    format: 'f32' | 'u32' | 'i32'
+  ) {
+    if (type === 'number') {
+      return `[[block]] struct ${hash} { x: ${format}; };`
+    }
+
+    if (type === 'vec2') {
+      return `[[block]] struct ${hash} { x: ${format}; y: ${format}; };`
+    }
+
+    if (type === 'vec3') {
+      return `[[block]] struct ${hash} { x: ${format}; y: ${format}; z: ${format}; };`
+    }
+
+    if (type === 'vec4') {
+      return `[[block]] struct ${hash} { x: ${format}; y: ${format}; z: ${format}; w: ${format}; };`
+    }
+
+    throw new Error('Not support type!');
+  }
+
   public createDefaultUniformBlock(): IUniformBlock {
     const {_uniformDesc, _uniformsInfo, _uniformsBufferDefault} = this;
     const values: IUniformBlock['values'] = {};
@@ -337,15 +391,25 @@ export default class Effect extends HObject {
       values[ud.name] = {value: ud.defaultValue, gpuValue: view};
       groupEntries.push({
         binding: _uniformsInfo[ud.name].bindingId,
-        resource: view
+        resource: view as GPUTextureView
       });
     });
+
     _uniformDesc.samplers.forEach((ud) => {
       const sampler = _uniformsInfo[ud.name].defaultGpuValue;
       values[ud.name] = {value: ud.defaultValue, gpuValue: sampler};
       groupEntries.push({
         binding: _uniformsInfo[ud.name].bindingId,
-        resource: sampler
+        resource: sampler as GPUSampler
+      });
+    });
+
+    _uniformDesc.storages && _uniformDesc.storages.forEach((ud) => {
+      const buffer = _uniformsInfo[ud.name].defaultGpuValue as GPUBuffer;
+      values[ud.name] = {value: ud.defaultValue, gpuValue: buffer};
+      groupEntries.push({
+        binding: _uniformsInfo[ud.name].bindingId,
+        resource: {buffer}
       });
     });
 

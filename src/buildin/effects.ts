@@ -4,9 +4,10 @@
  * @Link   : dtysky.moe
  * @Date   : 2021/6/6下午8:56:49
  */
-import {mat4, vec4} from 'gl-matrix';
+import {mat4} from 'gl-matrix';
 import Effect from '../core/Effect';
 import renderEnv from '../core/renderEnv';
+import {createGPUBuffer} from '../core/shared';
 import textures from './textures';
 
 const effects: {
@@ -17,7 +18,7 @@ const effects: {
   iBlit: Effect,
   rRTGBuffer: Effect,
   iRTGShow: Effect,
-  iRTSS: Effect,
+  cRTSS: Effect,
   cCreateSimpleBlur: (radius: number) => Effect
 } = {} as any;
 
@@ -32,6 +33,11 @@ const commonMarcos = {
 };
 
 export function init() {
+  const emptyStorageBuffer = {
+    value: new Float32Array(4),
+    gpuValue: createGPUBuffer(new Float32Array(4), GPUBufferUsage.STORAGE)
+  };
+
   effects.rGreen = new Effect('rGreen', {
     vs: require('./shaders/basic/model.vert.wgsl'),
     fs: require('./shaders/basic/green.frag.wgsl'),
@@ -253,9 +259,8 @@ export function init() {
   });
   
 
-  effects.iRTSS = new Effect('rRTSS', {
-    vs: require('./shaders/image/image.vert.wgsl'),
-    fs: require('./shaders/ray-tracing/rtss.frag.wgsl'),
+  effects.cRTSS = new Effect('cRTSS', {
+    cs: require('./shaders/ray-tracing/rtss.comp.wgsl'),
     uniformDesc: {
       uniforms: [
         {
@@ -302,24 +307,55 @@ export function init() {
           type: 'vec3',
           size: 128,
           defaultValue: new Float32Array(128)
+        },
+        {
+          name: 'u_lightPos',
+          type: 'vec3',
+          defaultValue: new Float32Array([0, 0, 0])
+        },
+        {
+          name: 'u_lightDir',
+          type: 'vec3',
+          defaultValue: new Float32Array([1, 1, 1])
+        },
+        {
+          name: 'u_lightColor',
+          type: 'vec3',
+          defaultValue: new Float32Array([1, 1, 1])
         }
-        // {
-        //   name: 'u_lightPos',
-        //   type: 'vec3',
-        //   defaultValue: new Float32Array([0, 0, 0])
-        // },
-        // {
-        //   name: 'u_lightDir',
-        //   type: 'vec3',
-        //   defaultValue: new Float32Array([0, 0, 0])
-        // },
-        // {
-        //   name: 'u_lightColor',
-        //   type: 'vec3',
-        //   defaultValue: new Float32Array([0, 0, 0])
-        // }
+      ],
+      storages: [
+        {
+          name: 'u_positions',
+          type: 'vec3',
+          defaultValue: emptyStorageBuffer.value,
+          gpuValue: emptyStorageBuffer.gpuValue,
+        },
+        {
+          name: 'u_normals',
+          type: 'vec3',
+          defaultValue: emptyStorageBuffer.value,
+          gpuValue: emptyStorageBuffer.gpuValue,
+        },
+        {
+          name: 'u_uvs',
+          type: 'vec2',
+          defaultValue: emptyStorageBuffer.value,
+          gpuValue: emptyStorageBuffer.gpuValue,
+        },
+        {
+          name: 'u_bvh',
+          type: 'vec4',
+          defaultValue: emptyStorageBuffer.value,
+          gpuValue: emptyStorageBuffer.gpuValue,
+        }
       ],
       textures: [
+        {
+          name: 'u_output',
+          defaultValue: textures.empty,
+          asOutput: true
+        },
         {
           name: 'u_gbPositionMetal',
           defaultValue: textures.empty

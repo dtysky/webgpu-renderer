@@ -7,7 +7,7 @@
 import HObject from "./HObject";
 import Effect, { IRenderStates, IUniformBlock, TUniformValue } from "./Effect";
 import renderEnv from "./renderEnv";
-import {TUniformTypedArray} from "./shared";
+import {createGPUBuffer, TUniformTypedArray} from "./shared";
 import RenderTexture from "./RenderTexture";
 import Texture from "./Texture";
 
@@ -88,7 +88,7 @@ export default class Material extends HObject {
     });
   }
 
-  public setUniform(name: string, value: TUniformValue, rtSubName?: string) {
+  public setUniform(name: string, value: TUniformValue, rtSubNameOrGPUBuffer?: string | GPUBuffer) {
     const info = this._effect.uniformsInfo[name];
 
     if (!info || !value) {
@@ -118,8 +118,14 @@ export default class Material extends HObject {
     } else if (type === 'sampler') {
       values.value = value;
       console.warn('Not implemented!');
+    } else if (type === 'storage') {
+      values.value = value;
+      (entries[bindingId].resource as {buffer: GPUBuffer}).buffer = values.gpuValue = rtSubNameOrGPUBuffer
+        ? rtSubNameOrGPUBuffer as GPUBuffer
+        : createGPUBuffer(value as TUniformTypedArray, GPUBufferUsage.STORAGE);
+      this._isDirty = true;
     } else if (RenderTexture.IS(value)) {
-      const view = rtSubName ? value.getColorViewByName(rtSubName): value.colorView;
+      const view = rtSubNameOrGPUBuffer ? value.getColorViewByName(rtSubNameOrGPUBuffer as string): value.colorView;
 
       entries[bindingId].resource = values.gpuValue = view;
       values.value = value;

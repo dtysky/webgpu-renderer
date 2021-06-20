@@ -4,7 +4,7 @@
  * @Author  :dtysky(dtysky@outlook.com)
  * @Date    : 6/13/2021, 8:47:22 PM
 */
-import { quat, vec3 } from 'gl-matrix';
+import { mat4, quat, vec3 } from 'gl-matrix';
 import renderEnv from '../core/renderEnv';
 import HObject from '../core/HObject';
 import Node from '../core/Node';
@@ -29,6 +29,7 @@ export default class NodeControl extends HObject {
     canvas.addEventListener('mouseleave', this._handleEnd);
     canvas.addEventListener('mouseout', this._handleEnd);
     canvas.addEventListener('mousemove', this._handleMove);
+    canvas.addEventListener('wheel', this._handleZoom);
 
     canvas.addEventListener('touchstart', this._handleTouchStart);
     canvas.addEventListener('touchend', this._handleEnd);
@@ -70,6 +71,14 @@ export default class NodeControl extends HObject {
 
     this._x = clientX;
     this._y = clientY;
+  }
+
+  protected _handleZoom = (event: WheelEvent) => {
+    const {worldMat, pos} = this._target;
+    const forward = worldMat.slice(8, 12);
+    vec3.normalize(forward, forward);
+    vec3.scale(forward, forward, event.deltaY / 200);
+    vec3.add(pos, pos, forward);
   }
 
   protected _handleTouchStart = (event: TouchEvent) => {

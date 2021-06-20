@@ -162,7 +162,7 @@ export interface IBVHLeaf {
 }
 
 interface IBoundsInfo {
-  indexes: Uint16Array;
+  indexes: Uint32Array;
   bounds: Bounds;
 }
 
@@ -221,7 +221,7 @@ export default class BVH extends HObject {
     super();
   }
 
-  public process = (worldPositions: Float32Array, indexes: Uint16Array) => {
+  public process = (worldPositions: Float32Array, indexes: Uint32Array) => {
     callWithProfile('BVH setup bounds info', this._setupBoundsInfo, [worldPositions, indexes]);
     callWithProfile('BVH build tree', this._buildTree, []);
     callWithProfile('BVH flatten', this._flatten, []);
@@ -229,7 +229,7 @@ export default class BVH extends HObject {
     this._debugMesh = null;
   }
 
-  protected _setupBoundsInfo = (worldPositions: Float32Array, indexes: Uint16Array) => {
+  protected _setupBoundsInfo = (worldPositions: Float32Array, indexes: Uint32Array) => {
     this._boundsInfos = [];
 
     for (let i = 0; i < indexes.length; i += 3) {

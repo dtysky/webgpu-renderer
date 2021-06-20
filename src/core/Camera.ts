@@ -6,6 +6,7 @@
  */
 import {mat4, vec3} from 'gl-matrix';
 import {buildinGeometries} from '../buildin';
+import ComputeUnit from './ComputeUnit';
 import Light from './Light';
 import Material from './Material';
 import Mesh from './Mesh';
@@ -122,11 +123,16 @@ export default class Camera extends Node {
     }
   }
 
-  public fillUniforms(material: Material) {
+  public fillUniforms(material: Material | ComputeUnit) {
     material.setUniform('u_vp', this._vpMat);
     material.setUniform('u_view', this._viewMat);
     material.setUniform('u_proj', this._projMat);
-    material.setUniform('u_skyVP', this._skyVPMat);
+
+    if (this._skyboxMat) {
+      material.setUniform('u_skyVP', this._skyVPMat);
+      material.setUniform('u_envTexture', this._skyboxMat.getUniform('u_cubeTexture'));
+      material.setUniform('u_envColor', this._skyboxMat.getUniform('u_color'));
+    }
   }
 
   public render(
@@ -173,7 +179,7 @@ export default class Camera extends Node {
   }
 
   protected _updateViewMat() {
-    const { controlMode, target, _worldMat } = this;
+    const {controlMode, target, _worldMat} = this;
 
     if (controlMode === 'target' && !target) {
       throw new Error('Camera with control mode "target" must has target!');
