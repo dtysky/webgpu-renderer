@@ -264,14 +264,9 @@ export function init() {
     uniformDesc: {
       uniforms: [
         {
-          name: 'u_screenSize',
-          type: 'vec2',
-          defaultValue: new Float32Array([renderEnv.width, renderEnv.height])
-        },
-        {
           name: 'u_randomSeed',
-          type: 'vec2',
-          defaultValue: new Float32Array([0, 0])
+          type: 'vec4',
+          defaultValue: new Float32Array([0, 0, 0, 0])
         },
         {
           name: 'u_view',

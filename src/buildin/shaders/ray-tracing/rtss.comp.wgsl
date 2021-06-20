@@ -15,5 +15,6 @@ fn main(
   // let center: vec2<i32> = vec2<i32>(localInvocationID.xy) + vec2<i32>(c_radius, c_radius);
   // var color: vec4<f32> = vec4<f32>(0., 0., 0., 1.);
 
+  // textureStore(u_output, baseIndex, uniforms.u_randomSeed);
   textureStore(u_output, baseIndex, vec4<f32>(1., 0., 0., 1.));
 }

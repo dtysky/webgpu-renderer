@@ -70,7 +70,7 @@ export default class RayTracingApp {
   }
 
   public update(dt: number) {
-    // this._frame();
+    this._frame();
   }
 
   private _frame() {
@@ -84,6 +84,7 @@ export default class RayTracingApp {
       this._connectGBufferRenderTexture(this._rtManager.rtUnit);
     }
     
+    this._rtManager.rtUnit.setUniform('u_randomSeed', new Float32Array([Math.random(), Math.random(), Math.random(), Math.random()]));
     // this._showBVH();
     this._renderGBuffer();
     // this._showGBufferResult();
