@@ -27,40 +27,51 @@ export default class BasicTestApp {
     this._camera.pos.set([0, 0, 6]);
 
     const geometry = new H.Geometry(
-      {
-        arrayStride: 4 * 8,
-        attributes: [
-          {
-            name: 'position',
-            shaderLocation: 0,
-            offset: 0,
-            format: 'float32x3' as GPUVertexFormat
+      [
+        {
+          layout: {
+            arrayStride: 3 * 4,
+            attributes: [
+              {
+                name: 'position',
+                shaderLocation: 0,
+                offset: 0,
+                format: 'float32x3' as GPUVertexFormat
+              }
+            ]
           },
-          {
-            name: 'texcoord_0',
-            shaderLocation: 1,
-            offset: 4 * 3,
-            format: 'float32x2' as GPUVertexFormat
+          data: new Float32Array([
+            -1, -1, 0,
+            1, -1, 0,
+            -1, 1, 0,
+            1, 1, 0,
+          ])
+        },
+        {
+          layout: {
+            arrayStride: 2 * 4,
+            attributes: [
+              {
+                name: 'texcoord_0',
+                shaderLocation: 1,
+                offset: 0,
+                format: 'float32x2' as GPUVertexFormat
+              }
+            ]
           },
-          {
-            name: 'normal',
-            shaderLocation: 2,
-            offset: 4 * 5,
-            format: 'float32x3' as GPUVertexFormat
-          }
-        ]
-      },
-      new Float32Array([
-        -1, -1, 0, 0, 1, 0, 0, 0,
-        1, -1, 0, 1, 1, 0, 0, 0,
-        -1, 1, 0, 0, 0, 0, 0, 0,
-        1, 1, 0, 1, 0, 0, 0, 0,
-      ]),
+          data: new Float32Array([
+            0, 1,
+            1, 1,
+            0, 0,
+            1, 0,
+          ])
+        },
+      ],
       new Uint16Array([0, 1, 2, 2, 1, 3]),
       6
     );
     const texture = await H.resource.load({type: 'texture', name: 'uv-debug.tex', src: require('./assets/textures/uv-debug.png')});
-    const effect = new H.Effect({
+    const effect = new H.Effect('test', {
       vs: require('./assets/shaders/test/vertex.vert.wgsl'),
       fs: require('./assets/shaders/test/fragment.frag.wgsl'),
       uniformDesc: {

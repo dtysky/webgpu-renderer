@@ -4,7 +4,7 @@
  * @Author  :dtysky(dtysky@outlook.com)
  * @Date    : 2021/6/7下午1:51:11
  */
- import {createGPUBuffer, hashCode, TUniformTypedArray} from "./shared";
+ import {createGPUBuffer, hashCode, TTypedArray, TUniformTypedArray} from "./shared";
 import renderEnv from "./renderEnv";
 import RenderTexture from "./RenderTexture";
 import Texture from "./Texture";
@@ -12,6 +12,16 @@ import HObject from "./HObject";
 import CubeTexture from "./CubeTexture";
 
 export type TUniformValue = TUniformTypedArray | Texture | CubeTexture | GPUSamplerDescriptor | RenderTexture;
+
+export interface IRenderStates {
+  cullMode?: GPUCullMode;
+  primitiveType?: GPUPrimitiveTopology;
+}
+
+export const DEFAULT_RENDER_STATES: IRenderStates = {
+  cullMode: 'back',
+  primitiveType: 'triangle-list'
+};
 
 export interface IUniformsDescriptor {
   uniforms: {
@@ -23,13 +33,20 @@ export interface IUniformsDescriptor {
   }[],
   textures: {
     name: string,
-    format?: GPUTextureFormat,
+    format?: 'f32',
     defaultValue: Texture | CubeTexture,
     asOutput?: boolean
   }[],
   samplers: {
     name: string,
     defaultValue: GPUSamplerDescriptor
+  }[],
+  storages?: {
+    name: string,
+    type: 'number' | 'vec2' | 'vec3' | 'vec4',
+    format?: 'f32' | 'u32' | 'i32',
+    defaultValue:TUniformTypedArray,
+    gpuValue?: GPUBuffer
   }[]
 }
 
@@ -51,6 +68,7 @@ export interface IEffectOptionsRender {
   fs: string;
   uniformDesc: IUniformsDescriptor;
   marcos?: {[key: string]: number | boolean};
+  renderState?: IRenderStates;
 }
 export interface IEffectOptionsCompute {
   cs: string;
@@ -68,6 +86,7 @@ export default class Effect extends HObject {
   public isEffect: boolean = true;
 
   protected _marcos?: {[key: string]: number | boolean};
+  protected _renderStates: IRenderStates;
   protected _marcosRegex: {[key: string]: RegExp};
   protected _vs: string;
   protected _fs: string;
@@ -87,13 +106,14 @@ export default class Effect extends HObject {
   protected _uniformsInfo: {[name: string]: {
     bindingId: number,
     index: number,
-    type: 'texture' | 'buffer' | 'sampler',
+    type: 'texture' | 'buffer' | 'sampler' | 'storage',
     defaultValue?: TUniformTypedArray | Texture | GPUSamplerDescriptor,
-    defaultGpuValue?: GPUSampler | GPUTextureView,
+    defaultGpuValue?: GPUSampler | GPUTextureView | GPUBuffer,
     /* 32bits */
     offset?: number,
     realLen?: number,
-    origLen?: number
+    origLen?: number,
+    size?: number
   }};
 
   get computePipeline() {
@@ -112,15 +132,22 @@ export default class Effect extends HObject {
     return this._csShader;
   }
 
+  get renderStates() {
+    return this._renderStates;
+  }
+
   constructor(
+    name: string,
     private _options: TEffectOptions
   ) {
     super();
 
+    this.name = name
     const {device} = renderEnv;
     const options = _options;
     const _uniformDesc = this._uniformDesc = options.uniformDesc;
     const visibility = (options as IEffectOptionsCompute).cs ? GPUShaderStage.COMPUTE : GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT;
+    this._renderStates = Object.assign({}, DEFAULT_RENDER_STATES, (options as IEffectOptionsRender).renderState || {});
 
     this._marcos = options.marcos || {};
     this._marcosRegex = {};
@@ -152,13 +179,14 @@ export default class Effect extends HObject {
       _uniformDesc.uniforms.forEach((ud) => {
         const {origLen, realLen, defaultValue} = this._getRealLayoutInfo(ud.type, ud.size || 1, ud.defaultValue);
 
-        this._uniformsInfo[ud.name] = {bindingId: 0, index, type: 'buffer', offset: uniforms32Length, defaultValue, origLen, realLen};
+        this._uniformsInfo[ud.name] = {bindingId: 0, index, type: 'buffer', offset: uniforms32Length, defaultValue, origLen, realLen, size: ud.size || 1};
         uniforms32Length += defaultValue.length;
         const sym = ud.type === 'number' ? `${ud.format || 'f32'}` : `${ud.type}<${ud.format || 'f32'}>`;
+        const pre = origLen !== realLen ? `[[stride(${realLen * 4})]]` : '';
         if (!ud.size) {
           this._shaderPrefix += `  [[align(16)]] ${ud.name}: ${sym};\n`;
         } else {
-          ud.size > 1 && (this._shaderPrefix += `  [[align(16)]] ${ud.name}: array<${sym}, ${ud.size}>;\n`);
+          ud.size > 1 && (this._shaderPrefix += ` [[align(16)]] ${ud.name}: ${pre} array<${sym}, ${ud.size}>;\n`);
         }
         index += 1;
       });
@@ -170,13 +198,14 @@ export default class Effect extends HObject {
 
     _uniformDesc.textures.forEach((ud) => {
       const isCube = CubeTexture.IS(ud.defaultValue);
+      const isArray = (ud.defaultValue as Texture).isArray;
 
       entries.push({
         binding: bindingId,
         visibility,
         texture: {
           sampleType: 'float' as GPUTextureSampleType,
-          viewDimension: isCube ? 'cube' : '2d'
+          viewDimension: isCube ? (isArray ? 'cube-array' : 'cube') : (isArray ? '2d-array' : '2d')
         }
       });
       this._uniformsInfo[ud.name] = {
@@ -187,6 +216,8 @@ export default class Effect extends HObject {
         this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: texture_storage_2d<${ud.format || 'rgba8unorm'}, write>;\n`
       } else if (isCube) {
         this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: texture_cube<${ud.format || 'f32'}>;\n`
+      } else if ((ud.defaultValue as Texture).isArray) {
+        this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: texture_2d_array<${ud.format || 'f32'}>;\n`
       } else {
         this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: texture_2d<${ud.format || 'f32'}>;\n`
       }
@@ -213,6 +244,29 @@ export default class Effect extends HObject {
     _uniformDesc.uniforms.forEach((ud, index) => {
       this._uniformsBufferDefault.set(new Uint32Array(ud.defaultValue.buffer), this._uniformsInfo[ud.name].offset);
     });
+
+    if (_uniformDesc.storages) {
+      const structCache: {[hash: string]: string} = {};
+
+      _uniformDesc.storages.forEach((ud) => {
+        entries.push({
+          binding: bindingId,
+          visibility,
+          buffer: {type: 'read-only-storage' as GPUBufferBindingType}
+        });
+
+        const hash = `Storage${ud.type}${ud.format || 'f32'}`;
+        if (!structCache[hash]) {
+          this._shaderPrefix += (structCache[hash] = structCache[hash] || this._getStorageStruct(hash, ud.type, ud.format || 'f32')) + '\n';
+        }
+        const gpuValue = ud.gpuValue ? ud.gpuValue : createGPUBuffer(ud.defaultValue, GPUBufferUsage.STORAGE);
+        this._uniformsInfo[ud.name] = {bindingId, index, type: 'storage', defaultValue: ud.defaultValue, defaultGpuValue: gpuValue};
+        this._shaderPrefix += `[[group(0), binding(${bindingId})]] var<storage,read> ${ud.name}: ${hash};\n`
+
+        index += 1;
+        bindingId += 1;
+      });
+    }
 
     this._uniformLayoutDesc = {entries};
 
@@ -283,6 +337,30 @@ export default class Effect extends HObject {
     };
   }
 
+  protected _getStorageStruct(
+    hash: string,
+    type: 'number' | 'vec2' | 'vec3' | 'vec4',
+    format: 'f32' | 'u32' | 'i32'
+  ) {
+    if (type === 'number') {
+      return `[[block]] struct ${hash} { x: ${format}; };`
+    }
+
+    if (type === 'vec2') {
+      return `[[block]] struct ${hash} { x: ${format}; y: ${format}; };`
+    }
+
+    if (type === 'vec3') {
+      return `[[block]] struct ${hash} { x: ${format}; y: ${format}; z: ${format}; };`
+    }
+
+    if (type === 'vec4') {
+      return `[[block]] struct ${hash} { x: ${format}; y: ${format}; z: ${format}; w: ${format}; };`
+    }
+
+    throw new Error('Not support type!');
+  }
+
   public createDefaultUniformBlock(): IUniformBlock {
     const {_uniformDesc, _uniformsInfo, _uniformsBufferDefault} = this;
     const values: IUniformBlock['values'] = {};
@@ -300,7 +378,9 @@ export default class Effect extends HObject {
       _uniformDesc.uniforms.forEach((ud) => {
         const info = this._uniformsInfo[ud.name];
         values[ud.name] = {
-          value: new (this._uniformsInfo[ud.name].defaultValue.constructor as typeof Float32Array)(cpuBuffer.buffer, info.offset * 4, info.realLen),
+          value: new (this._uniformsInfo[ud.name].defaultValue.constructor as typeof Float32Array)(
+            cpuBuffer.buffer, info.offset * 4, info.realLen * info.size
+          ),
           gpuValue: gpuBuffer
         };
       });
@@ -311,15 +391,25 @@ export default class Effect extends HObject {
       values[ud.name] = {value: ud.defaultValue, gpuValue: view};
       groupEntries.push({
         binding: _uniformsInfo[ud.name].bindingId,
-        resource: view
+        resource: view as GPUTextureView
       });
     });
+
     _uniformDesc.samplers.forEach((ud) => {
       const sampler = _uniformsInfo[ud.name].defaultGpuValue;
       values[ud.name] = {value: ud.defaultValue, gpuValue: sampler};
       groupEntries.push({
         binding: _uniformsInfo[ud.name].bindingId,
-        resource: sampler
+        resource: sampler as GPUSampler
+      });
+    });
+
+    _uniformDesc.storages && _uniformDesc.storages.forEach((ud) => {
+      const buffer = _uniformsInfo[ud.name].defaultGpuValue as GPUBuffer;
+      values[ud.name] = {value: ud.defaultValue, gpuValue: buffer};
+      groupEntries.push({
+        binding: _uniformsInfo[ud.name].bindingId,
+        resource: {buffer}
       });
     });
 

@@ -15,6 +15,10 @@ export default class ComputeUnit extends HObject {
 
   protected _material: Material;
 
+  get groups() {
+    return this._groups;
+  }
+
   constructor(
     protected _effect: Effect,
     protected _groups: {x: number, y?: number, z?: number},
@@ -37,8 +41,8 @@ export default class ComputeUnit extends HObject {
     pass.dispatch(_groups.x, _groups.y, _groups.z);
   }
 
-  public setUniform(name: string, value: TUniformValue) {
-    this._material.setUniform(name, value);
+  public setUniform(name: string, value: TUniformValue, rtSubNameOrGPUBuffer?: string | GPUBuffer) {
+    this._material.setUniform(name, value, rtSubNameOrGPUBuffer);
   }
 
   public setGroups(x: number, y?: number, z?: number) {

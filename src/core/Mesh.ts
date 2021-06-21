@@ -63,8 +63,10 @@ export default class Mesh extends Node {
     _material.setUniform('u_world', this._worldMat);
     lights.forEach((light, index) => light.fillUniforms(index, _material));
 
-    pass.setVertexBuffer(0, _geometry.vertexes);
-    pass.setIndexBuffer(_geometry.indexes, 'uint16');
+    _geometry.vertexes.forEach((vertex, index) => {
+      pass.setVertexBuffer(index, vertex);
+    });
+    pass.setIndexBuffer(_geometry.indexes, _geometry.indexFormat);
     pass.setBindGroup(0, _material.bindingGroup);
     pass.setPipeline(this._pipelines[rt.pipelineHash]);
     pass.drawIndexed(_geometry.count, 1, 0, 0, 0);
@@ -85,7 +87,7 @@ export default class Mesh extends Node {
       vertex: {
         module: vs,
         entryPoint: "main",
-        buffers: [_geometry.vertexLayout]
+        buffers: _geometry.vertexLayouts
       },
   
       fragment: {
@@ -95,8 +97,8 @@ export default class Mesh extends Node {
       },
   
       primitive: {
-        topology: 'triangle-list',
-        cullMode: 'back'
+        topology: _material.primitiveType,
+        cullMode: _material.cullMode
       },
 
       depthStencil: rt.depthStencilFormat && {

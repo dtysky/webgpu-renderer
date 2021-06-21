@@ -20,6 +20,7 @@ export default class Node extends HObject {
   protected _scale: Float32Array;
   protected _quat: Float32Array;
   protected _worldMat: Float32Array;
+  protected _parent: Node;
   protected _children: Node[] = [];
 
   get pos() {
@@ -38,11 +39,6 @@ export default class Node extends HObject {
     return this._worldMat;
   }
 
-  set worldMat(value: Float32Array) {
-    this._worldMat.set(value);
-    this._updateTRSFromMat();
-  }
-
   constructor() {
     super();
 
@@ -55,12 +51,20 @@ export default class Node extends HObject {
 
   public addChild(node: Node) {
     this._children.push(node);
+    node._parent = this;
   }
 
   public removeChild(node: Node) {
     const idx = this._children.indexOf(node);
 
-    idx >= 0 && this._children.splice(idx, 1);
+    if (idx >= 0) {
+      this._children.splice(idx, 1);
+      node._parent = null;
+    }
+  }
+
+  public setLocalMat(value: Float32Array) {
+    this._updateTRSFromMat(value);
   }
 
   public updateMatrix() {
@@ -69,6 +73,10 @@ export default class Node extends HObject {
 
   public updateWorldMatrix() {
     mat4.fromRotationTranslationScale(this._worldMat, this._quat, this._pos, this._scale);
+
+    if (this._parent) {
+      mat4.mul(this._worldMat, this._parent.worldMat, this._worldMat);
+    }
   }
 
   public dfs<T extends any>(callback: (node: Node, params?: T) => T, defaultParams?: T) {
@@ -93,9 +101,9 @@ export default class Node extends HObject {
     });
   }
 
-  private _updateTRSFromMat() {
-    mat4.getTranslation(this._pos, this._worldMat);
-    mat4.getRotation(this._quat, this._worldMat);
-    mat4.getScaling(this._scale, this._worldMat);
+  private _updateTRSFromMat(mat: Float32Array) {
+    mat4.getTranslation(this._pos, mat);
+    mat4.getRotation(this._quat, mat);
+    mat4.getScaling(this._scale, mat);
   }
 }

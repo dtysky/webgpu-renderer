@@ -23,7 +23,6 @@ export default class TextureLoader extends Loader<ITextureLoaderOptions, Texture
 
     const bitmap = await createImageBitmap(img);
     const res = new Texture(img.naturalHeight, img.naturalHeight, bitmap);
-    bitmap.close();
 
     return res;
   }

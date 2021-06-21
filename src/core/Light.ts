@@ -5,6 +5,7 @@
  * @Date    : 6/11/2021, 9:57:52 PM
 */
 import { mat4, vec3 } from 'gl-matrix';
+import ComputeUnit from './ComputeUnit';
 import Material from './Material';
 import Node from './Node';
 
@@ -38,7 +39,7 @@ export default class Light extends Node {
     vec3.transformMat4(this._worldDir, [0, 0, 1], this._worldMat);
   }
 
-  public fillUniforms(index: number, material: Material) {
+  public fillUniforms(index: number, material: Material | ComputeUnit) {
     material.setUniform('u_lightPos', this._worldPos);
     material.setUniform('u_lightDir', this._worldDir);
     material.setUniform('u_lightColor', this._color);

@@ -14,24 +14,28 @@ export default geometries;
 
 export function init() {
   geometries.skybox = new Geometry(
-    {
-      arrayStride: 8,
-      attributes: [
-        {
-          name: 'position',
-          shaderLocation: 0, offset: 0,
-          format: 'float32x2' as GPUVertexFormat
+    [
+      {
+        layout: {
+          arrayStride: 8,
+          attributes: [
+            {
+              name: 'position',
+              shaderLocation: 0, offset: 0,
+              format: 'float32x2' as GPUVertexFormat
+            },
+          ]
         },
-      ]
-    },
-    new Float32Array([
-      -1.0, -1.0,
-      1.0, -1.0,
-      -1.0, 1.0,
-      -1.0, 1.0,
-      1.0, -1.0,
-      1.0, 1.0
-    ]),
+        data: new Float32Array([
+          -1.0, -1.0,
+          1.0, -1.0,
+          -1.0, 1.0,
+          -1.0, 1.0,
+          1.0, -1.0,
+          1.0, 1.0
+        ]),
+      }
+    ],
     new Uint16Array([
       0,1,2,3,4,5,
     ]),

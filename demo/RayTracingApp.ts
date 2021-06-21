@@ -12,9 +12,13 @@ export default class RayTracingApp {
   private _scene: H.Scene;
   private _camControl: H.NodeControl;
   private _model: H.IGlTFResource;
+  private _lights: H.Light[];
   private _camera: H.Camera;
   private _gBufferRT: H.RenderTexture;
-  private _rtMesh: H.ImageMesh;
+  private _gBufferDebugMesh: H.ImageMesh;
+  protected _rtManager: H.RayTracingManager;
+  protected _rtOutput: H.RenderTexture;
+  protected _rtBlit: H.ImageMesh;
 
   public async init() {
     const {renderEnv} = H;
@@ -33,23 +37,33 @@ export default class RayTracingApp {
       width: renderEnv.width,
       height: renderEnv.height,
       colors: [
-        {name: 'worldPos', format: 'rgba16float'},
-        {name: 'worldNormal', format: 'rgba16float'},
-        // {name: 'matDiffuse', format: 'rgba16float'},
-        // {name: 'matSpecRough', format: 'rgba16float'},
-        // {name: 'matExtParams', format: 'rgba16float'}
+        {name: 'positionMetal', format: 'rgba16float'},
+        {name: 'diffuseRough', format: 'rgba16float'},
+        {name: 'normalMeshIndex', format: 'rgba16float'},
+        {name: 'faceNormalMatIndex', format: 'rgba16float'}
       ],
       depthStencil: {needStencil: false}
     });
 
-    this._rtMesh = new H.ImageMesh(new H.Material(H.buildinEffects.rRTSS));
+    this._gBufferDebugMesh = new H.ImageMesh(new H.Material(H.buildinEffects.iRTGShow));
+    this._connectGBufferRenderTexture(this._gBufferDebugMesh.material);
 
+    this._rtOutput = new H.RenderTexture({
+      width: renderEnv.width,
+      height: renderEnv.height,
+      forCompute: true,
+      colors: [{name: 'color', format: 'rgba8unorm'}]
+    });
+    this._rtBlit = new H.ImageMesh(new H.Material(H.buildinEffects.iBlit, {u_texture: this._rtOutput}));
+    
     const model = this._model = await H.resource.load({type: 'gltf', name: 'scene.gltf', src: MODEL_SRC});
     if (model.cameras.length) {
       this._camera = model.cameras[0];
     }
+    this._lights = model.lights;
     _scene.rootNode.addChild(model.rootNode);
     
+    // this._camera.drawSkybox = true;
     this._camControl.control(this._camera);
 
     this._frame();
@@ -60,27 +74,52 @@ export default class RayTracingApp {
   }
 
   private _frame() {
-    const {device} = H.renderEnv;
     const {_scene} = this;
 
     _scene.startFrame();
+    
+    if (!this._rtManager) {
+      this._rtManager = new H.RayTracingManager();
+      this._rtManager.process(this._scene.cullCamera(this._camera), this._rtOutput);
+      this._connectGBufferRenderTexture(this._rtManager.rtUnit);
+    }
+    
+    this._rtManager.rtUnit.setUniform('u_randomSeed', new Float32Array([Math.random(), Math.random(), Math.random(), Math.random()]));
+    // this._showBVH();
     this._renderGBuffer();
-    // this._renderRTSS();
+    // this._showGBufferResult();
+    this._computeRTSS();
     _scene.endFrame();
   }
 
   private _renderGBuffer() {
-    // this._scene.setRenderTarget(this._gBufferRT);
-    this._scene.renderCamera(this._camera, this._scene.cullCamera(this._camera));
-    // this._scene.renderCamera(this._camera, []);
+    this._scene.setRenderTarget(this._gBufferRT);
+    this._scene.renderCamera(this._camera, [this._rtManager.gBufferMesh]);
+  }
+
+  protected _computeRTSS() {
+    this._scene.setRenderTarget(null);
+    this._scene.computeUnits([this._rtManager.rtUnit], this._camera, this._lights);
+    this._scene.renderImages([this._rtBlit]);
   }
 
   private _showGBufferResult() {
-
+    this._scene.setRenderTarget(null);
+    this._scene.renderImages([this._gBufferDebugMesh], this._camera);
   }
 
-  protected _renderRTSS() {
+  private _showBVH() {
     this._scene.setRenderTarget(null);
-    this._scene.renderImages([this._rtMesh]);
+    this._scene.renderCamera(this._camera, [
+      ...this._scene.cullCamera(this._camera),
+      this._rtManager.bvhDebugMesh
+    ]);
+  }
+
+  private _connectGBufferRenderTexture(material: H.Material | H.ComputeUnit) {
+    material.setUniform('u_positionMetal', this._gBufferRT, 'positionMetal');
+    material.setUniform('u_diffuseRough', this._gBufferRT, 'diffuseRough');
+    material.setUniform('u_normalMeshIndex', this._gBufferRT, 'normalMeshIndex');
+    material.setUniform('u_faceNormalMatIndex', this._gBufferRT, 'faceNormalMatIndex');
   }
 }

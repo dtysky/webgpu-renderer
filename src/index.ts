@@ -22,7 +22,9 @@ export {default as RenderTexture} from './core/RenderTexture';
 export {default as Texture} from './core/Texture';
 export {default as CubeTexture} from './core/CubeTexture';
 export {default as renderEnv} from './core/renderEnv';
-export {default as NodeControl} from './core/NodeControl';
+export {default as RayTracingManager} from './extension/RayTracingManager';
+export {default as BVH} from './extension/BVH';
+export {default as NodeControl} from './extension/NodeControl';
 
 export {default as resource, Resource} from './resource';
 export {default as TextureLoader, ITextureLoaderOptions} from './resource/TextureLoader';
@@ -30,11 +32,11 @@ export {default as GlTFLoader, IGlTFResource, IGlTFLoaderOptions} from './resour
 // export {default as TextureLoader, ITextureLoaderOptions} from './resource/TextureLoader';
 
 import {init as initBuildin} from './buildin';
-export {buildinEffects, buildinTextures} from './buildin';
+export * from './buildin';
 
 export async function init(canvas: HTMLCanvasElement) {
   await renderEnv.init(canvas);
-  initBuildin();
+  await initBuildin();
 }
 
 export const math = {

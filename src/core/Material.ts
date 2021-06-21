@@ -5,22 +5,23 @@
  * @Date   : 2021/6/6下午7:26:33
  */
 import HObject from "./HObject";
-import Effect, { IUniformBlock, TUniformValue } from "./Effect";
+import Effect, { IRenderStates, IUniformBlock, TUniformValue } from "./Effect";
 import renderEnv from "./renderEnv";
-import {TUniformTypedArray} from "./shared";
+import {createGPUBuffer, TUniformTypedArray} from "./shared";
 import RenderTexture from "./RenderTexture";
 import Texture from "./Texture";
 
 export default class Material extends HObject {
   public static  CLASS_NAME: string = 'Material';
   public isMaterial: boolean = true;
-  
+
   protected _version: number = 0;
   protected _isBufferDirty: boolean = false;
   protected _isDirty: boolean = false;
   protected _uniformBlock: IUniformBlock;
   protected _bindingGroup: GPUBindGroup;
   protected _marcos: {[key: string]: number | boolean};
+  protected _renderStates: IRenderStates;
 
   get effect() {
     return this._effect;
@@ -56,10 +57,19 @@ export default class Material extends HObject {
     return this._bindingGroup;
   }
 
+  get primitiveType() {
+    return this._renderStates.primitiveType || this._effect.renderStates.primitiveType;
+  }
+
+  get cullMode() {
+    return this._renderStates.cullMode || this._effect.renderStates.cullMode;
+  }
+
   constructor(
     protected _effect: Effect,
     values?: {[name: string]: TUniformValue},
-    marcos?: {[key: string]: number | boolean}
+    marcos?: {[key: string]: number | boolean},
+    renderStates?: IRenderStates
   ) {
     super();
 
@@ -70,6 +80,7 @@ export default class Material extends HObject {
     }
 
     this._marcos = marcos || {};
+    this._renderStates = renderStates || {};
 
     this._bindingGroup = renderEnv.device.createBindGroup({
       layout: this._uniformBlock.layout,
@@ -77,13 +88,10 @@ export default class Material extends HObject {
     });
   }
 
-  public setUniform(
-    name: string,
-    value: TUniformValue
-  ) {
+  public setUniform(name: string, value: TUniformValue, rtSubNameOrGPUBuffer?: string | GPUBuffer) {
     const info = this._effect.uniformsInfo[name];
 
-    if (!info || value === undefined) {
+    if (!info || !value) {
       return;
     }
 
@@ -95,11 +103,11 @@ export default class Material extends HObject {
       value = value as TUniformTypedArray;
       const cpuValue = values.value as TUniformTypedArray;
       if (origLen !== realLen) {
-        const size = value.length / realLen;
+        const size = value.length / origLen;
 
         for (let index = 0; index < size; index += 1) {
           cpuValue.set(
-            new (value.constructor as typeof Uint32Array)(value.buffer, origLen * index, origLen * (index + 1)),
+            new (value.constructor as typeof Uint32Array)(value.buffer, origLen * index * 4, origLen),
             realLen * index
           );
         }
@@ -110,12 +118,25 @@ export default class Material extends HObject {
     } else if (type === 'sampler') {
       values.value = value;
       console.warn('Not implemented!');
+    } else if (type === 'storage') {
+      values.value = value;
+      (entries[bindingId].resource as {buffer: GPUBuffer}).buffer = values.gpuValue = rtSubNameOrGPUBuffer
+        ? rtSubNameOrGPUBuffer as GPUBuffer
+        : createGPUBuffer(value as TUniformTypedArray, GPUBufferUsage.STORAGE);
+      this._isDirty = true;
     } else if (RenderTexture.IS(value)) {
-      entries[bindingId].resource = values.gpuValue = value.colorView;
+      const view = rtSubNameOrGPUBuffer ? value.getColorViewByName(rtSubNameOrGPUBuffer as string): value.colorView;
+
+      entries[bindingId].resource = values.gpuValue = view;
       values.value = value;
       this._isDirty = true;
-    } else {
+      return;
+    } else  {
       value = value as Texture;
+      if (value.isArray !== (values.value as Texture).isArray) {
+        throw new Error('Require texture2d array!');
+      }
+
       entries[bindingId].resource = values.gpuValue = value.view;
       values.value = value;
       this._isDirty = true;
