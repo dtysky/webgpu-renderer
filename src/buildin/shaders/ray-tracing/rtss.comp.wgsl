@@ -68,7 +68,7 @@ fn main(
     let t: vec4<f32> = uniforms.u_skyVP * vec4<f32>(baseUV.x * 2. - 1., 1. - baseUV.y * 2., 1., 1.);
     let cubeUV: vec3<f32> = normalize(t.xyz / t.w);
     let bgColor: vec4<f32> = textureSampleLevel(u_envTexture, u_sampler, cubeUV, 0.);
-    textureStore(u_output, baseIndex, vec4<f32>(bgColor.rgb * uniforms.u_envColor.rgb, bgColor.a));    
+    textureStore(u_output, baseIndex, vec4<f32>(bgColor.rgb * uniforms.u_envColor.rgb, bgColor.a));
     return;
   }
 
