@@ -27,7 +27,7 @@ fn genWorldRay(uv: vec2<f32>, gBInfo: GBufferInfo) -> Ray {
   var ray: Ray;
 
   ray.origin = pixelWorldPos.xyz;
-  ray.dir = gBInfo.position - pixelWorldPos.xyz;
+  ray.dir = normalize(gBInfo.position - pixelWorldPos.xyz);
 
   return ray;
 };
