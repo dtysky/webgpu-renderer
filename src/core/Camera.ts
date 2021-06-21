@@ -42,6 +42,7 @@ export default class Camera extends Node {
   protected _aspect: number;
   protected _viewMat: Float32Array;
   protected _projMat: Float32Array;
+  protected _projInverseMat: Float32Array;
   protected _vpMat: Float32Array;
   protected _skyVPMat: Float32Array;
 
@@ -97,6 +98,7 @@ export default class Camera extends Node {
     this.viewport = viewOptions.viewport || { x: 0, y: 0, w: 1, h: 1 };
     this._viewMat = mat4.identity(new Float32Array(16)) as Float32Array;
     this._projMat = mat4.identity(new Float32Array(16)) as Float32Array;
+    this._projInverseMat = mat4.identity(new Float32Array(16)) as Float32Array;
     this._vpMat = mat4.identity(new Float32Array(16)) as Float32Array;
     this._skyVPMat = mat4.identity(new Float32Array(16)) as Float32Array;
   }
@@ -127,6 +129,8 @@ export default class Camera extends Node {
     material.setUniform('u_vp', this._vpMat);
     material.setUniform('u_view', this._viewMat);
     material.setUniform('u_proj', this._projMat);
+    material.setUniform('u_viewInverse', this._worldMat);
+    material.setUniform('u_projInverse', this._projInverseMat);
 
     if (this._skyboxMat) {
       material.setUniform('u_skyVP', this._skyVPMat);
@@ -206,5 +210,6 @@ export default class Camera extends Node {
 
   protected _updateProjMat() {
     mat4.perspective(this._projMat, this._fov, this._aspect, this._near, this._far);
+    mat4.invert(this._projInverseMat, this._projMat);
   }
 }

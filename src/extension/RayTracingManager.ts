@@ -317,9 +317,6 @@ import BVH from './BVH';
         u_normalTextures: _commonUniforms.normalTextures,
         u_metallicRoughnessTextures: _commonUniforms.metallicRoughnessTextures,
         u_bvh: _bvh.buffer,
-        // u_positions: _attributesInfo.position.value,
-        // u_uvs: _attributesInfo.texcoord_0.value,
-        // u_normals: _attributesInfo.normal.value
       }
     );
 

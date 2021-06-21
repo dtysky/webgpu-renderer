@@ -269,12 +269,17 @@ export function init() {
           defaultValue: new Float32Array([0, 0, 0, 0])
         },
         {
-          name: 'u_view',
+          name: 'u_viewInverse',
           type: 'mat4x4',
           defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
         },
         {
-          name: 'u_vp',
+          name: 'u_projInverse',
+          type: 'mat4x4',
+          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
+        },
+        {
+          name: 'u_skyVP',
           type: 'mat4x4',
           defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
         },
@@ -388,6 +393,10 @@ export function init() {
         {
           name: 'u_sampler',
           defaultValue: {magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'nearest'}
+        },
+        {
+          name: 'u_samplerGB',
+          defaultValue: {magFilter: 'nearest', minFilter: 'nearest'}
         }
       ]
     },
@@ -401,19 +410,19 @@ export function init() {
       uniforms: [],
       textures: [
         {
-          name: 'u_positionMetal',
+          name: 'u_gbPositionMetal',
           defaultValue: textures.white
         },
         {
-          name: 'u_diffuseRough',
+          name: 'u_gbDiffuseRough',
           defaultValue: textures.white
         },
         {
-          name: 'u_normalMeshIndex',
+          name: 'u_gbNormalMeshIndex',
           defaultValue: textures.white
         },
         {
-          name: 'u_faceNormalMatIndex',
+          name: 'u_gbFaceNormalMatIndex',
           defaultValue: textures.white
         }
       ],

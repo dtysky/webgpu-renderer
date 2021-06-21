@@ -16,7 +16,9 @@ fn main(attrs: Attrs) -> VertexOutput {
   output.wPosition = wPosition;
   output.texcoord_0 = attrs.texcoord_0;
   output.normal = attrs.normal;
-  output.meshMatIndex = attrs.meshMatIndex;
+  // meshIndex will be stored in normalMeshIndex.a, a of clearColor is 1
+  output.meshMatIndex.x = attrs.meshMatIndex.x + 2u;
+  output.meshMatIndex.y = attrs.meshMatIndex.y;
 
   return output;
 }
