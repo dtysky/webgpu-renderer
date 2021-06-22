@@ -6,7 +6,7 @@
 */
 import * as H from '../src/index';
 
-const MODEL_SRC = '/assets/models/simple/scene.gltf';
+const MODEL_SRC = '/assets/models/complex/scene.gltf';
 
 export default class RayTracingApp {
   private _scene: H.Scene;
@@ -117,9 +117,9 @@ export default class RayTracingApp {
   }
 
   private _connectGBufferRenderTexture(material: H.Material | H.ComputeUnit) {
-    material.setUniform('u_positionMetal', this._gBufferRT, 'positionMetal');
-    material.setUniform('u_diffuseRough', this._gBufferRT, 'diffuseRough');
-    material.setUniform('u_normalMeshIndex', this._gBufferRT, 'normalMeshIndex');
-    material.setUniform('u_faceNormalMatIndex', this._gBufferRT, 'faceNormalMatIndex');
+    material.setUniform('u_gbPositionMetal', this._gBufferRT, 'positionMetal');
+    material.setUniform('u_gbDiffuseRough', this._gBufferRT, 'diffuseRough');
+    material.setUniform('u_gbNormalMeshIndex', this._gBufferRT, 'normalMeshIndex');
+    material.setUniform('u_gbFaceNormalMatIndex', this._gBufferRT, 'faceNormalMatIndex');
   }
 }

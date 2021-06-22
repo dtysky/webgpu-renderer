@@ -45,6 +45,7 @@ export interface IUniformsDescriptor {
     name: string,
     type: 'number' | 'vec2' | 'vec3' | 'vec4',
     format?: 'f32' | 'u32' | 'i32',
+    writable?: boolean,
     defaultValue:TUniformTypedArray,
     gpuValue?: GPUBuffer
   }[]
@@ -261,7 +262,7 @@ export default class Effect extends HObject {
         }
         const gpuValue = ud.gpuValue ? ud.gpuValue : createGPUBuffer(ud.defaultValue, GPUBufferUsage.STORAGE);
         this._uniformsInfo[ud.name] = {bindingId, index, type: 'storage', defaultValue: ud.defaultValue, defaultGpuValue: gpuValue};
-        this._shaderPrefix += `[[group(0), binding(${bindingId})]] var<storage,read> ${ud.name}: ${hash};\n`
+        this._shaderPrefix += `[[group(0), binding(${bindingId})]] var<storage, ${ud.writable ? 'read_write' : 'read'}> ${ud.name}: ${hash};\n`
 
         index += 1;
         bindingId += 1;
