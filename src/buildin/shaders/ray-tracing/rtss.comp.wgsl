@@ -1,3 +1,6 @@
+let MAX_TRACE_COUNT: u32 = 1u;
+let BVH_DEPTH: i32 = ${BVH_DEPTH};
+
 struct VertexOutput {
   [[builtin(position)]] position: vec4<f32>;
   [[location(0)]] uv: vec2<f32>;
@@ -6,6 +9,7 @@ struct VertexOutput {
 struct Ray {
   origin: vec3<f32>;
   dir: vec3<f32>;
+  invDir: vec3<f32>;
 };
 
 struct HitPoint {
@@ -14,10 +18,15 @@ struct HitPoint {
   diffuse: vec3<f32>;
   rough: f32;
   normal: vec3<f32>;
-  meshIndex: f32;
+  meshIndex: u32;
   faceNormal: vec3<f32>;
-  matIndex: f32;
+  matIndex: u32;
   hit: bool;
+};
+
+struct Light {
+  color: vec3<f32>;
+  energy: f32;
 };
 
 fn genWorldRayByGBuffer(uv: vec2<f32>, gBInfo: HitPoint) -> Ray {
@@ -28,6 +37,7 @@ fn genWorldRayByGBuffer(uv: vec2<f32>, gBInfo: HitPoint) -> Ray {
 
   ray.origin = pixelWorldPos.xyz;
   ray.dir = normalize(gBInfo.position - pixelWorldPos.xyz);
+  ray.invDir = 1. / ray.dir;
 
   return ray;
 };
@@ -40,7 +50,7 @@ fn getGBInfo(uv: vec2<f32>) -> HitPoint {
   let nomMesh: vec4<f32> = textureSampleLevel(u_gbNormalMeshIndex, u_samplerGB, uv, 0.);
   let fnomMat: vec4<f32> = textureSampleLevel(u_gbFaceNormalMatIndex, u_samplerGB, uv, 0.);
 
-  info.hit = u32(nomMesh.w) == 1u;
+  info.hit = u32(nomMesh.w) != 1u;
   info.position = wPMtl.xyz;
   info.metal = wPMtl.w;
   info.diffuse = dfRgh.xyz;
@@ -52,6 +62,79 @@ fn getGBInfo(uv: vec2<f32>) -> HitPoint {
 
   return info;
 };
+
+fn calcLight(preRay: Ray, point: HitPoint) -> Light {
+  var light: Light;
+
+  light.color = point.diffuse;
+  light.energy = .8;
+
+  return light;
+}
+
+fn genRayByHitPoint(preRay: Ray, point: HitPoint) -> Ray {
+  var ray: Ray;
+
+  return ray;
+}
+
+// https://tavianator.com/2011/ray_box.html
+fn boxHitTest(ray: Ray, max: vec3<f32>, min: vec3<f32>) -> float {
+  let t1: vec3<f32> = (min - ray.origin) * ray.invDir;
+  let t2: vec3<f32> = (max - ray.origin) * ray.invDir;
+  let tvmin: vec3<f32> = min(t1, t2);
+  let tvmax: vec3<f32> = max(t1, t2);
+  let tmin: f32 = max(tvmin.x, max(tvmin.y, tvmin.z));
+  let tmax: f32 = min(tvmax.x, min(tvmax.y, tvmax.z));
+
+  if (tmin > tmax || tmin > 9999.) {
+    return -1.;
+  } else if (tmin > 0.) {
+    return tmin;
+  }
+
+  return tmax;
+}
+
+fn hitTest(ray: Ray) -> HitPoint {
+  var hit: HitPoint;
+
+  return hit;
+}
+
+fn traceLight(startRay: Ray, gBInfo: HitPoint) -> vec3<f32> {
+  var light: Light = calcLight(startRay, gBInfo);
+  var energy: f32 = light.energy;
+  var lightColor: vec3<f32> = light.color * energy;
+  var hit: HitPoint;
+  var ray: Ray = startRay;
+
+  for (var i: u32 = 0u; i < MAX_TRACE_COUNT; i = i + 1u) {
+    hit = hitTest(ray);
+    
+    if (!hit.hit) {
+      let bgLight: vec3<f32> = textureSampleLevel(u_envTexture, u_sampler, ray.dir, 0.).rgb;
+      lightColor =lightColor + bgLight * energy;
+      break;
+    }
+
+    light = calcLight(ray, hit);
+    energy = energy * light.energy;
+    lightColor = lightColor + light.color * energy;
+
+    if (energy < 0.01) {
+      break;
+    }
+
+    ray = genRayByHitPoint(ray, hit);
+  }
+
+  return lightColor;
+}
+
+fn traceShadow(ray: Ray) -> f32 {
+  return 1.;
+}
 
 [[stage(compute), workgroup_size(16, 16, 1)]]
 fn main(
@@ -73,6 +156,8 @@ fn main(
   }
 
   let worldRay: Ray = genWorldRayByGBuffer(baseUV, gBInfo);
+  let light: vec3<f32> = traceLight(worldRay, gBInfo);
+  let shadow: f32 = traceShadow(worldRay);
 
-  textureStore(u_output, baseIndex, vec4<f32>(worldRay.dir, 1.));
+  textureStore(u_output, baseIndex, vec4<f32>(light * shadow, 1.));
 }

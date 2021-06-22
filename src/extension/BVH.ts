@@ -193,7 +193,7 @@ export default class BVH extends HObject {
 
   /**
    * nodes | leaves
-   * nodes: child0 and child1 info(u32), min3(f32), max3(f32)
+   * nodes: child0 and min3(f32), child1(u32) and max3(f32)
    * leaves: primitives count(u32), indexes3(u32),
    * child info: 1bit type(0 is node, 1 is leaf) and 31bits offset, if node use offset * 8, else use offset * 4
    */
@@ -421,13 +421,12 @@ export default class BVH extends HObject {
       }
 
       nodes.push(
-        0, 0,
-        bounds.min[0], bounds.min[1], bounds.min[2],
-        bounds.max[0], bounds.max[1], bounds.max[2]
+        0, bounds.min[0], bounds.min[1], bounds.min[2],
+        0, bounds.max[0], bounds.max[1], bounds.max[2]
       );
 
       this._traverseNode(node.child0, info, depth + 1, nodeOffset, 0);
-      this._traverseNode(node.child1, info, depth + 1, nodeOffset, 1);
+      this._traverseNode(node.child1, info, depth + 1, nodeOffset, 4);
     }
   }
 

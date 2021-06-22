@@ -11,7 +11,8 @@ import RayTracingApp from './RayTracingApp';
 const fpsDom = document.createElement('div');
 fpsDom.style.position = 'fixed';
 fpsDom.style.left = fpsDom.style.top = '0';
-fpsDom.style.color = 'white';
+fpsDom.style.color = 'red';
+fpsDom.style.fontSize = '24px';
 document.body.append(fpsDom);
 
 const app = new RayTracingApp();

@@ -70,7 +70,7 @@ export default class RayTracingApp {
   }
 
   public update(dt: number) {
-    this._frame();
+    // this._frame();
   }
 
   private _frame() {
