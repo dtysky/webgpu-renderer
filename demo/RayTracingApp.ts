@@ -6,7 +6,7 @@
 */
 import * as H from '../src/index';
 
-const MODEL_SRC = '/assets/models/complex/scene.gltf';
+const MODEL_SRC = '/assets/models/simple/scene.gltf';
 
 export default class RayTracingApp {
   private _scene: H.Scene;
