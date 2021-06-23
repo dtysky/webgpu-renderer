@@ -195,7 +195,7 @@ export default class BVH extends HObject {
    * nodes | leaves
    * nodes: child0 and min3(f32), child1(u32) and max3(f32)
    * leaves: primitives count(u32), indexes3(u32),
-   * child info: 1bit type(0 is node, 1 is leaf) and 31bits offset, if node use offset * 8, else use offset * 4
+   * child info: 1bit type(0 is node, 1 is leaf) and 31bits offset(in vec4)
    */
   get buffer() {
     return this._bvhBuffer;
@@ -360,7 +360,7 @@ export default class BVH extends HObject {
     const {maxDepth, nodes, leaves} = flatInfo;
     const buffer = new ArrayBuffer(4 * (nodes.length + leaves.length));
     const f32View = new Float32Array(buffer);
-    const u32View = new Uint32Array(buffer);
+    const u32View = new Int32Array(buffer);
     const nodesLen = nodes.length;
 
     this._bvhMaxDepth = maxDepth;
@@ -417,7 +417,7 @@ export default class BVH extends HObject {
       const nodeOffset = nodes.length / 8;
 
       if (parentOffset >= 0) {
-        nodes[parentOffset * 8 + childIndex] = nodeOffset;
+        nodes[parentOffset * 8 + childIndex] = nodeOffset * 2;
       }
 
       nodes.push(

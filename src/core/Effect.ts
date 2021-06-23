@@ -95,11 +95,10 @@ export default class Effect extends HObject {
   protected _shaders: {[hash: number]: {
     vs?: GPUShaderModule,
     fs?: GPUShaderModule,
+    cs?: GPUShaderModule
   }} = {};
   protected _uniformDesc: IUniformsDescriptor;
   protected _shaderPrefix: string;
-  protected _csShader: GPUShaderModule;
-  protected _csPipeline: GPUComputePipeline;
   protected _uniformLayoutDesc: GPUBindGroupLayoutDescriptor;
   protected _uniformLayout: GPUBindGroupLayout;
   protected _uniformBindDesc: GPUBindGroupDescriptor;
@@ -117,10 +116,6 @@ export default class Effect extends HObject {
     size?: number
   }};
 
-  get computePipeline() {
-    return this._csPipeline;
-  }
-
   get uniformLayout() {
     return this._uniformLayout;
   }
@@ -129,12 +124,12 @@ export default class Effect extends HObject {
     return this._uniformsInfo;
   }
 
-  get cs() {
-    return this._csShader;
-  }
-
   get renderStates() {
     return this._renderStates;
+  }
+
+  get isCompute() {
+    return !!this._cs;
   }
 
   constructor(
@@ -155,7 +150,7 @@ export default class Effect extends HObject {
     for (const key in this._marcos) {
       const value = this._marcos[key];
       if (typeof value === 'number') {
-        this._marcosRegex[key] = new RegExp(`\$\{${key}\}`, 'g');
+        this._marcosRegex[key] = new RegExp(`\\\$\\{${key}\\\}`, 'g');
       } else {
         this._marcosRegex[key] = new RegExp(`#if defined\\(${key}\\)([\\s\\S]+?)#endif`, 'g');
       }
@@ -273,14 +268,14 @@ export default class Effect extends HObject {
 
     if (isComputeOptions(options)) {
       this._cs = options.cs
-      this._csShader = device.createShaderModule({code: this._shaderPrefix + this._cs});
-      this._csPipeline = device.createComputePipeline({
+      const csShader = this.getShader({}, '').cs;
+      const csPipeline = device.createComputePipeline({
         compute: {
-          module: this._csShader,
+          module: csShader,
           entryPoint: 'main'
         }
       });
-      this._uniformLayout = this._csPipeline.getBindGroupLayout(0);
+      this._uniformLayout = csPipeline.getBindGroupLayout(0);
     } else {
       this._vs = options.vs;
       this._fs = options.fs;
@@ -344,19 +339,11 @@ export default class Effect extends HObject {
     format: 'f32' | 'u32' | 'i32'
   ) {
     if (type === 'number') {
-      return `[[block]] struct ${hash} { x: ${format}; };`
+      return `[[block]] struct ${hash} { value: array<${format}>; };`
     }
 
-    if (type === 'vec2') {
-      return `[[block]] struct ${hash} { x: ${format}; y: ${format}; };`
-    }
-
-    if (type === 'vec3') {
-      return `[[block]] struct ${hash} { x: ${format}; y: ${format}; z: ${format}; };`
-    }
-
-    if (type === 'vec4') {
-      return `[[block]] struct ${hash} { x: ${format}; y: ${format}; z: ${format}; w: ${format}; };`
+    if (type === 'vec2' || type === 'vec3' || type === 'vec4') {
+      return `[[block]] struct ${hash} { value: array<${type}<${format}>>; };`
     }
 
     throw new Error('Not support type!');
@@ -430,7 +417,7 @@ export default class Effect extends HObject {
       return shaders;
     }
 
-    const tmp = [this._vs, this._fs];
+    const tmp = [this._vs, this._fs, this._cs];
 
     for (const key in this._marcos) {
       const value = marcos[key];
@@ -451,10 +438,11 @@ export default class Effect extends HObject {
       });
     }
 
-    const [vs, fs] = tmp;
+    const [vs, fs, cs] = tmp;
     const res = this._shaders[hash] = {
       vs: vs && device.createShaderModule({code: attributesDef + this._shaderPrefix + vs}),
-      fs: fs && device.createShaderModule({code: this._shaderPrefix + fs})
+      fs: fs && device.createShaderModule({code: this._shaderPrefix + fs}),
+      cs: cs && device.createShaderModule({code: this._shaderPrefix + cs})
     };
 
     return res;

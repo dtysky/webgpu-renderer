@@ -344,6 +344,13 @@ export function init() {
           gpuValue: emptyStorageBuffer.gpuValue,
         },
         {
+          name: 'u_meshMatIndexes',
+          type: 'vec2',
+          format: 'u32',
+          defaultValue: emptyStorageBuffer.value,
+          gpuValue: emptyStorageBuffer.gpuValue,
+        },
+        {
           name: 'u_bvh',
           type: 'vec4',
           defaultValue: emptyStorageBuffer.value,
@@ -400,7 +407,7 @@ export function init() {
         }
       ]
     },
-    marcos: commonMarcos
+    marcos: {BVH_DEPTH: 0}
   });
 
   effects.iRTGShow = new Effect('iRTGShow', {

@@ -8,12 +8,15 @@
 import HObject from "./HObject";
 import Effect, { TUniformValue } from "./Effect";
 import Material from "./Material";
+import renderEnv from "./renderEnv";
 
 export default class ComputeUnit extends HObject {
   public static CLASS_NAME = 'ComputeUnit';
   public isComputeUnite: boolean = true;
 
   protected _material: Material;
+  protected _matVersion: number = -1;
+  protected _pipeline: GPUComputePipeline;
 
   get groups() {
     return this._groups;
@@ -22,21 +25,27 @@ export default class ComputeUnit extends HObject {
   constructor(
     protected _effect: Effect,
     protected _groups: {x: number, y?: number, z?: number},
-    values?: {[name: string]: TUniformValue}
+    values?: {[name: string]: TUniformValue},
+    marcos?: {[name: string]: number | boolean}
   ) {
     super();
 
-    if (!_effect.cs) {
+    if (!_effect.isCompute) {
       throw new Error('ComputeUnit can only receive effect has compute shader!');
     }
 
-    this._material = new Material(_effect, values);
+    this._material = new Material(_effect, values, marcos);
   }
 
   public compute(pass: GPUComputePassEncoder) {
     const {_material, _groups} = this;
 
-    pass.setPipeline(_material.effect.computePipeline);
+    if (_material.version !== this._matVersion) {
+      this._createPipeline();
+      this._matVersion = _material.version;
+    }
+
+    pass.setPipeline(this._pipeline);
     pass.setBindGroup(0, _material.bindingGroup);
     pass.dispatch(_groups.x, _groups.y, _groups.z);
   }
@@ -47,5 +56,24 @@ export default class ComputeUnit extends HObject {
 
   public setGroups(x: number, y?: number, z?: number) {
     this._groups = {x, y, z};
+  }
+
+  protected _createPipeline() {
+    const {device} = renderEnv;
+    const {_material} = this;
+    
+    const marcos = Object.assign({}, _material.marcos);
+    const {cs} = _material.effect.getShader(marcos, '');
+
+    this._pipeline = device.createComputePipeline({
+      layout: device.createPipelineLayout({bindGroupLayouts: [
+        _material.effect.uniformLayout
+      ]}),
+  
+      compute: {
+        module: cs,
+        entryPoint: "main"
+      }
+    });
   }
 }

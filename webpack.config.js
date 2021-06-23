@@ -39,15 +39,9 @@ module.exports = {
         exclude: /node_modules/
       },
       {
-        test: /\.(vert|frag|comp)$/,
-        use: {
-          loader: './loader/webpack-glslang-loader'
-        }
-      },
-      {
         test: /\.wgsl$/,
         use: {
-          loader: 'raw-loader',
+          loader: './loader/webpack-wgsl-loader',
           options: {
             esModule: false
           }

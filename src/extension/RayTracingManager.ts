@@ -9,7 +9,6 @@
 import ComputeUnit from '../core/ComputeUnit';
  import Geometry from '../core/Geometry';
  import HObject from '../core/HObject';
- import ImageMesh from '../core/ImageMesh';
  import Material from '../core/Material';
  import Mesh from '../core/Mesh';
 import renderEnv from '../core/renderEnv';
@@ -78,7 +77,7 @@ import BVH from './BVH';
     this._bvh.process(this._attributesInfo.position.value as Float32Array, this._indexInfo.value);
     callWithProfile('build RTUnit', this._buildRTUnit, [output]);
 
-    console.log(`Build done(max primitives per leaf is ${this._maxPrimitivesPerBVHLeaf}): mesh(${meshes.length}), material(${this._materials.length}), vertexes(${this._attributesInfo.position.value.length / 3}), triangles(${this._indexInfo.value.length / 3}), bvhNodes(${this._bvh.nodesCount}), bvhLeaves(${this._bvh.leavesCount})`);
+    console.log(`Build done(max primitives per leaf is ${this._maxPrimitivesPerBVHLeaf}): mesh(${meshes.length}), material(${this._materials.length}), vertexes(${this._attributesInfo.position.value.length / 3}), triangles(${this._indexInfo.value.length / 3}), bvhNodes(${this._bvh.nodesCount}), bvhLeaves(${this._bvh.leavesCount}), bvhDepth(${this._bvh.maxDepth})`);
    }
  
    protected _buildAttributeBuffers = (meshes: Mesh[]) => {
@@ -317,7 +316,8 @@ import BVH from './BVH';
         u_normalTextures: _commonUniforms.normalTextures,
         u_metallicRoughnessTextures: _commonUniforms.metallicRoughnessTextures,
         u_bvh: _bvh.buffer,
-      }
+      },
+      {BVH_DEPTH: this._bvh.maxDepth}
     );
 
     let values = geometry.getValues('position');
@@ -326,6 +326,8 @@ import BVH from './BVH';
     this._rtUnit.setUniform('u_uvs', values.cpu as Float32Array, values.gpu);
     values = geometry.getValues('normal');
     this._rtUnit.setUniform('u_normals', values.cpu as Float32Array, values.gpu);
+    values = geometry.getValues('meshmatindex');
+    this._rtUnit.setUniform('u_meshMatIndexes', values.cpu as Uint32Array, values.gpu);
    }
  }
  

@@ -13,29 +13,7 @@ struct FragmentOutput {
   [[location(3)]] faceNormalMatIndex: vec4<f32>;
 };
 
-fn getRoughness(factor: f32, textureId: i32, uv: vec2<f32>) -> f32 {
-  if (textureId == -1) {
-    return factor;
-  }
-
-  return factor * textureSample(u_metallicRoughnessTextures, u_sampler, uv, textureId).g;
-}
-
-fn getMetallic(factor: f32, textureId: i32, uv: vec2<f32>) -> f32 {
-if (textureId == -1) {
-    return factor;
-  }
-
-  return factor * textureSample(u_metallicRoughnessTextures, u_sampler, uv, textureId).b;
-}
-
-fn getBaseColor(factor: vec4<f32>, textureId: i32, uv: vec2<f32>) -> vec4<f32> {
-  if (textureId == -1) {
-    return factor;
-  }
-
-  return factor * textureSample(u_baseColorTextures, u_sampler, uv, textureId);
-}
+require('./common.chuck.wgsl');
 
 fn getFaceNormal(position: vec3<f32>) -> vec3<f32> {
   return normalize(cross(dpdx(position), dpdy(position)));
@@ -70,6 +48,7 @@ fn getNormal(
 
   return normalize(tbn * tNormal);
 }
+
 
 [[stage(fragment)]]
 fn main(vo: VertexOutput) -> FragmentOutput {
