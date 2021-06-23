@@ -1,4 +1,4 @@
-let MAX_TRACE_COUNT: u32 = 1u;
+let MAX_TRACE_COUNT: u32 = 4u;
 let MAX_RAY_LENGTH: f32 = 9999.;
 let BVH_DEPTH: i32 = ${BVH_DEPTH};
 
@@ -28,6 +28,8 @@ struct HitPoint {
 struct Light {
   color: vec3<f32>;
   energy: f32;
+  reflection: Ray;
+  refraction: Ray;
 };
 
 struct BVHNode {
@@ -99,20 +101,25 @@ fn getGBInfo(uv: vec2<f32>) -> HitPoint {
   return info;
 };
 
-fn calcLight(preRay: Ray, point: HitPoint) -> Light {
+fn calcLight(ray: Ray, hit: HitPoint, isLast: bool) -> Light {
   var light: Light;
 
-  light.color = point.diffuse;
+  if (isLast) {
+    light.color = textureSampleLevel(u_envTexture, u_sampler, ray.dir, 0.).rgb;
+    light.energy = 1.;
+    return light;
+  }
+
+  light.color = hit.diffuse;
   light.energy = .8;
+
+  light.reflection.origin = hit.position;
+  light.reflection.dir = reflect(ray.dir, hit.normal);
+  light.reflection.dir = 1. / light.reflection.dir;
 
   return light;
 }
 
-fn genRayByHitPoint(preRay: Ray, point: HitPoint) -> Ray {
-  var ray: Ray;
-
-  return ray;
-}
 
 fn getBVHNodeInfo(offset: i32) -> BVHNode {
   var node: BVHNode;
@@ -178,28 +185,75 @@ fn getNormal(
   }
 
   // // http://www.thetenthplanet.de/archives/1180
-  // let dp1: vec3<f32> = dpdx(position);
-  // let dp2: vec3<f32> = dpdy(position);
-  // let duv1: vec2<f32> = dpdx(uv);
-  // let duv2: vec2<f32> = dpdy(uv);
-  // let dp2perp: vec3<f32> = cross(dp2, normal);
-  // let dp1perp: vec3<f32> = cross(normal, dp1);
-  // var dpdu: vec3<f32> = dp2perp * duv1.x + dp1perp * duv2.x;
-  // var dpdv: vec3<f32> = dp2perp * duv1.y + dp1perp * duv2.y;
-  // let invmax: f32 = inverseSqrt(max(dot(dpdu, dpdu), dot(dpdv, dpdv)));
-  // dpdu = dpdu * invmax;
-  // dpdv = dpdv * invmax;
-  // let tbn: mat3x3<f32> = mat3x3<f32>(dpdu, dpdv, normal);
-  // var tNormal: vec3<f32> = 2. * textureSample(u_normalTextures, u_sampler, uv, textureId).xyz - 1.;
-  // tNormal = tNormal * vec3<f32>(normalScale, normalScale, 1.);
+  let dp1: vec3<f32> = frag.p1 - frag.p0;
+  let dp2: vec3<f32> = frag.p2 - frag.p0;
+  let duv1: vec2<f32> = frag.uv2 - frag.uv0;
+  let duv2: vec2<f32> = frag.uv1 - frag.uv0;
+  let dp2perp: vec3<f32> = cross(dp2, normal);
+  let dp1perp: vec3<f32> = cross(normal, dp1);
+  var dpdu: vec3<f32> = dp2perp * duv1.x + dp1perp * duv2.x;
+  var dpdv: vec3<f32> = dp2perp * duv1.y + dp1perp * duv2.y;
+  let invmax: f32 = inverseSqrt(max(dot(dpdu, dpdu), dot(dpdv, dpdv)));
+  dpdu = dpdu * invmax;
+  dpdv = dpdv * invmax;
+  let tbn: mat3x3<f32> = mat3x3<f32>(dpdu, dpdv, normal);
+  var tNormal: vec3<f32> = 2. * textureSampleLevel(u_normalTextures, u_sampler, uv, textureId, 0.).xyz - 1.;
+  tNormal = tNormal * vec3<f32>(normalScale, normalScale, 1.);
 
-  // return normalize(tbn * tNormal);
-  return normal;
+  return normalize(tbn * tNormal);
 }
 
 
-fn triangleHitTest(leaf: BVHLeaf) -> FragmentInfo {
+fn triangleHitTest(ray: Ray, leaf: BVHLeaf) -> FragmentInfo {
   var info: FragmentInfo;
+  let indexes: vec3<i32> = leaf.indexes;
+  info.p0 = u_positions.value[indexes.x];
+  info.p1 = u_positions.value[indexes.y];
+  info.p2 = u_positions.value[indexes.z];
+
+  let e0: vec3<f32> = info.p1 - info.p0;
+  let e1: vec3<f32> = info.p2 - info.p0;
+  let p: vec3<f32> = cross(ray.dir, e1);
+  var det: f32 = dot(e1, p);
+  var t: vec3<f32> = ray.origin - info.p0;
+
+  if (det < 0.) {
+    t = -t;
+    det = -det;
+  }
+
+  if (det < 0.0001) {
+    return info;
+  }
+
+  let u: f32 = dot(t, p);
+
+  if (u < 0. || u > det) {
+    return info;
+  }
+
+  let q: vec3<f32> = cross(t, e0);
+  let v: f32 = dot(ray.dir, q);
+
+  if (v < 0. || v + u > det) {
+    return info;
+  }
+
+  let lt: f32 = dot(e1, q);
+  let invDet: f32 = 1. / det;
+
+  info.hit = true;
+  info.hitPoint = ray.origin + ray.dir * lt * invDet;
+  info.weights = vec3<f32>(0., u, v) * invDet;
+  info.weights.x = 1. - info.weights.y - info.weights.z;
+  info.uv0 = u_uvs.value[indexes.x];
+  info.uv1 = u_uvs.value[indexes.y];
+  info.uv2 = u_uvs.value[indexes.z];
+  info.n0 = u_normals.value[indexes.x];
+  info.n1 = u_normals.value[indexes.y];
+  info.n2 = u_normals.value[indexes.z];
+  info.meshIndex = u_meshMatIndexes.value[indexes.x].x;
+  info.matIndex = u_meshMatIndexes.value[indexes.x].y;
 
   return info;
 }
@@ -223,14 +277,14 @@ fn fillHitPoint(frag: FragmentInfo) -> HitPoint {
   return info;
 }
 
-fn leafHitTest(offset: i32) -> HitPoint {
+fn leafHitTest(ray: Ray, offset: i32) -> HitPoint {
   var hit: HitPoint;
   var info: FragmentInfo;
   var leaf: BVHLeaf = getBVHLeafInfo(offset);
   let primitives: i32 = leaf.primitives;
   
   for (var i: i32 = 0; i < BVH_DEPTH; i = i + 1) {
-    info = triangleHitTest(leaf);
+    info = triangleHitTest(ray, leaf);
 
     if (info.hit) {
       break;
@@ -257,12 +311,12 @@ fn hitTest(ray: Ray) -> HitPoint {
 
   for (var i: i32 = 0; i < BVH_DEPTH; i = i + 1) {
     if (node.isChild0Leaf) {
-      hit = leafHitTest(node.child0Offset);
+      hit = leafHitTest(ray, node.child0Offset);
       break;
     }
 
     if (node.isChild1Leaf) {
-      hit = leafHitTest(node.child1Offset);
+      hit = leafHitTest(ray, node.child1Offset);
       break;
     }
 
@@ -288,27 +342,22 @@ fn hitTest(ray: Ray) -> HitPoint {
 }
 
 fn traceLight(startRay: Ray, gBInfo: HitPoint) -> vec3<f32> {
-  var light: Light = calcLight(startRay, gBInfo);
+  var light: Light = calcLight(startRay, gBInfo, false);
   var energy: f32 = light.energy;
   var lightColor: vec3<f32> = light.color * energy;
   var hit: HitPoint;
-  var ray: Ray = startRay;
+  var ray: Ray = light.reflection;
 
   for (var i: u32 = 0u; i < MAX_TRACE_COUNT; i = i + 1u) {
     hit = hitTest(ray);
-    ray = genRayByHitPoint(ray, hit);
-    
-    if (!hit.hit) {
-      let bgLight: vec3<f32> = textureSampleLevel(u_envTexture, u_sampler, ray.dir, 0.).rgb;
-      lightColor =lightColor + bgLight * energy;
-      break;
-    }
+    let isLast: bool = !hit.hit || i == MAX_TRACE_COUNT - 1u;
 
-    light = calcLight(ray, hit);
+    light = calcLight(ray, hit, isLast);
     energy = energy * light.energy;
     lightColor = lightColor + light.color * energy;
+    ray = light.reflection;
 
-    if (energy < 0.01) {
+    if (energy < 0.01 || isLast) {
       break;
     }
   }

@@ -25,7 +25,7 @@ export default class RayTracingApp {
 
     const _scene = this._scene = new H.Scene();
     const rootNode = this._scene.rootNode = new H.Node();
-    this._camControl = new H.NodeControl();
+    this._camControl = new H.NodeControl('arc');
 
     rootNode.addChild(this._camera = new H.Camera(
       {clearColor: [0, 1, 0, 1]},
@@ -63,14 +63,13 @@ export default class RayTracingApp {
     this._lights = model.lights;
     _scene.rootNode.addChild(model.rootNode);
     
-    // this._camera.drawSkybox = true;
-    this._camControl.control(this._camera);
+    this._camControl.control(this._camera, new H.Node());
 
     this._frame();
   }
 
   public update(dt: number) {
-    // this._frame();
+    this._frame();
   }
 
   private _frame() {

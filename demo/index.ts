@@ -24,7 +24,7 @@ function update(dt: number) {
 
   const fps = 1000 / dt;
 
-  if (Math.abs(fps - preFPS) > 1) {
+  if (Math.abs(fps - preFPS) > 2) {
     fpsDom.innerText = `${fps.toFixed(2)}fps`;
   }
 

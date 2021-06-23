@@ -9,6 +9,13 @@ import renderEnv from '../core/renderEnv';
 import HObject from '../core/HObject';
 import Node from '../core/Node';
 
+const tmpV0 = new Float32Array(3);
+const tmpV1 = new Float32Array(3);
+const tmpV2 = new Float32Array(3);
+const tmpQ1 = new Float32Array(4);
+const tmpMat = new Float32Array(16);
+const UP = new Float32Array([0, 1, 0]);
+
 export default class NodeControl extends HObject {
   public static CLASS_NAME: string = 'NodeControl';
   public isNodeControl: boolean = true;
@@ -17,9 +24,11 @@ export default class NodeControl extends HObject {
   protected _x: number;
   protected _y: number;
   protected _touchId: number;
+  protected _node: Node;
   protected _target: Node;
+  protected _arcRadius: number;
 
-  constructor() {
+  constructor(protected _mode: 'free' | 'arc' = 'free') {
     super();
 
     const {canvas} = renderEnv;
@@ -37,13 +46,26 @@ export default class NodeControl extends HObject {
     canvas.addEventListener('touchmove', this._handleTouchMove);
   }
 
-  public control(node: Node) {
-    this._target = node;
+  public control(node: Node, target?: Node) {
+    this._node = node;
+    this._target = target;
+
+    if (!target && this._mode === 'arc') {
+      throw new Error('Mode arc must be given target!');
+    }
   }
 
   protected _handleStart = (event: {clientX: number, clientY: number}) => {
     this._x = event.clientX;
     this._y = event.clientY;
+
+    if (this._mode === 'arc') {
+      this._arcRadius = vec3.distance(
+        mat4.getTranslation(tmpV0, this._target.worldMat),
+        mat4.getTranslation(tmpV1, this._node.worldMat)
+      );
+    }
+
     this._start = true;
   }
 
@@ -52,9 +74,9 @@ export default class NodeControl extends HObject {
   }
 
   protected _handleMove = (event: {clientX: number, clientY: number}) => {
-    const {_start, _target, _x, _y} = this;
+    const {_start, _node, _x, _y} = this;
 
-    if (!_start || !_target) {
+    if (!_start || !_node) {
       return;
     }
 
@@ -62,23 +84,49 @@ export default class NodeControl extends HObject {
     const dy = (clientX - _x) / 200;
     const dx = (clientY - _y) / 200;
 
-    quat.rotateX(_target.quat, _target.quat, dx);
-    const tmpQuat = quat.invert(new Float32Array(4), _target.quat);
-    const up = new Float32Array([0, 1, 0]);
-    vec3.transformQuat(up, up, tmpQuat);
-    quat.setAxisAngle(tmpQuat, up, dy);
-    quat.multiply(_target.quat, _target.quat, tmpQuat);
+    if (this._mode === 'free') {
+      quat.rotateX(_node.quat, _node.quat, dx);
+      quat.invert(tmpQ1, _node.quat);
+      const up = new Float32Array([0, 1, 0]);
+      vec3.transformQuat(up, up, tmpQ1);
+      quat.setAxisAngle(tmpQ1, up, dy);
+      quat.multiply(_node.quat, _node.quat, tmpQ1);
+    } else {
+      mat4.getTranslation(tmpV0, this._target.worldMat);
+      mat4.getTranslation(tmpV1, this._node.worldMat);
+      tmpV1[0] += dx;
+      tmpV1[1] += dy;
+      const forward = vec3.sub(tmpV2, tmpV0, tmpV1);
+      vec3.normalize(forward, forward);
+      vec3.scale(forward, forward, this._arcRadius);
+      vec3.add(tmpV1, tmpV0, forward);
+      mat4.lookAt(tmpMat, tmpV1, tmpV0, UP);
+      this._node.pos.set(tmpV1);
+      mat4.getRotation(this._node.quat, tmpMat);
+    }
 
     this._x = clientX;
     this._y = clientY;
   }
 
   protected _handleZoom = (event: WheelEvent) => {
-    const {worldMat, pos} = this._target;
-    const forward = worldMat.slice(8, 12);
+    const {worldMat, pos} = this._node;
+    let forward = worldMat.slice(8, 12);
+
+    if (this._mode === 'arc') {
+      mat4.getTranslation(tmpV0, this._target.worldMat);
+      mat4.getTranslation(tmpV1, this._node.worldMat);
+      vec3.sub(forward, tmpV0, tmpV1);
+    }
+
+    const delta = -event.deltaY / 200;
     vec3.normalize(forward, forward);
-    vec3.scale(forward, forward, event.deltaY / 200);
+    vec3.scale(forward, forward, delta);
     vec3.add(pos, pos, forward);
+
+    if (this._mode === 'arc') {
+      this._arcRadius += delta;
+    }
   }
 
   protected _handleTouchStart = (event: TouchEvent) => {
