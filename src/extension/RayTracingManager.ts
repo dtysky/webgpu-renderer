@@ -63,6 +63,10 @@ import BVH from './BVH';
      return this._bvh.debugMesh;
    }
 
+   get bvh() {
+     return this._bvh;
+   }
+
    constructor(protected _maxPrimitivesPerBVHLeaf: number = 4) {
      super();
 

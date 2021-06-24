@@ -101,26 +101,6 @@ fn getGBInfo(uv: vec2<f32>) -> HitPoint {
   return info;
 };
 
-fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool) -> Light {
-  var light: Light;
-
-  if (isLastOut) {
-    light.color = textureSampleLevel(u_envTexture, u_sampler, ray.dir, 0.).rgb;
-    light.energy = 1.;
-    return light;
-  }
-
-  light.color = hit.diffuse;
-  light.energy = .8;
-
-  light.reflection.origin = hit.position;
-  light.reflection.dir = reflect(ray.dir, hit.normal);
-  light.reflection.dir = 1. / light.reflection.dir;
-
-  return light;
-}
-
-
 fn getBVHNodeInfo(offset: i32) -> BVHNode {
   var node: BVHNode;
   let realOffset: i32 = offset * 2;
@@ -339,6 +319,25 @@ fn hitTest(ray: Ray) -> HitPoint {
   }
 
   return hit;
+}
+
+fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool) -> Light {
+  var light: Light;
+
+  if (isLastOut) {
+    light.color = textureSampleLevel(u_envTexture, u_sampler, ray.dir, 0.).rgb;
+    light.energy = 1.;
+    return light;
+  }
+
+  light.color = hit.diffuse;
+  light.energy = .8;
+
+  light.reflection.origin = hit.position;
+  light.reflection.dir = reflect(ray.dir, hit.normal);
+  light.reflection.dir = 1. / light.reflection.dir;
+
+  return light;
 }
 
 fn traceLight(startRay: Ray, gBInfo: HitPoint) -> vec3<f32> {
