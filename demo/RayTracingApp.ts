@@ -6,7 +6,7 @@
 */
 import * as H from '../src/index';
 
-const MODEL_SRC = '/assets/models/simple/scene.gltf';
+const MODEL_SRC = '/assets/models/walls/scene.gltf';
 
 export default class RayTracingApp {
   private _scene: H.Scene;
@@ -25,7 +25,7 @@ export default class RayTracingApp {
 
     const _scene = this._scene = new H.Scene();
     const rootNode = this._scene.rootNode = new H.Node();
-    this._camControl = new H.NodeControl('arc');
+    this._camControl = new H.NodeControl('free');
 
     rootNode.addChild(this._camera = new H.Camera(
       {clearColor: [0, 1, 0, 1]},
@@ -64,12 +64,13 @@ export default class RayTracingApp {
     _scene.rootNode.addChild(model.rootNode);
     
     this._camControl.control(this._camera, new H.Node());
+    console.log(model)
 
     this._frame();
   }
 
   public update(dt: number) {
-    this._frame();
+    // this._frame();
   }
 
   private _frame() {
@@ -84,10 +85,10 @@ export default class RayTracingApp {
     }
     
     this._rtManager.rtUnit.setUniform('u_randomSeed', new Float32Array([Math.random(), Math.random(), Math.random(), Math.random()]));
-    // this._showBVH();
-    this._renderGBuffer();
+    this._showBVH();
+    // this._renderGBuffer();
     // this._showGBufferResult();
-    this._computeRTSS();
+    // this._computeRTSS();
     _scene.endFrame();
   }
 
@@ -98,20 +99,20 @@ export default class RayTracingApp {
 
   protected _computeRTSS() {
     this._scene.setRenderTarget(null);
-    this._scene.computeUnits([this._rtManager.rtUnit], this._camera, this._lights);
+    this._scene.computeUnits([this._rtManager.rtUnit]);
     this._scene.renderImages([this._rtBlit]);
   }
 
   private _showGBufferResult() {
     this._scene.setRenderTarget(null);
-    this._scene.renderImages([this._gBufferDebugMesh], this._camera);
+    this._scene.renderImages([this._gBufferDebugMesh]);
   }
 
   private _showBVH() {
     this._scene.setRenderTarget(null);
     this._scene.renderCamera(this._camera, [
       ...this._scene.cullCamera(this._camera),
-      this._rtManager.bvhDebugMesh
+      // this._rtManager.bvhDebugMesh
     ]);
   }
 

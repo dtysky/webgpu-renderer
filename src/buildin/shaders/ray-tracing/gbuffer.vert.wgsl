@@ -12,7 +12,7 @@ fn main(attrs: Attrs) -> VertexOutput {
   
   let wPosition: vec4<f32> = vec4<f32>(attrs.position, 1.);
   
-  output.position = uniforms.u_vp * wPosition;
+  output.position = global.u_vp * wPosition;
   output.wPosition = wPosition;
   output.texcoord_0 = attrs.texcoord_0;
   output.normal = attrs.normal;

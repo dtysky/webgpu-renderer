@@ -4,14 +4,10 @@
  * @Author  :dtysky(dtysky@outlook.com)
  * @Date    : 2021/6/7下午1:51:11
  */
- import {createGPUBuffer, hashCode, TTypedArray, TUniformTypedArray} from "./shared";
+import {hashCode} from "./shared";
 import renderEnv from "./renderEnv";
-import RenderTexture from "./RenderTexture";
-import Texture from "./Texture";
 import HObject from "./HObject";
-import CubeTexture from "./CubeTexture";
-
-export type TUniformValue = TUniformTypedArray | Texture | CubeTexture | GPUSamplerDescriptor | RenderTexture;
+import UBTemplate, {EUBGroup, IUniformsDescriptor} from "./UBTemplate";
 
 export interface IRenderStates {
   cullMode?: GPUCullMode;
@@ -22,47 +18,6 @@ export const DEFAULT_RENDER_STATES: IRenderStates = {
   cullMode: 'back',
   primitiveType: 'triangle-list'
 };
-
-export interface IUniformsDescriptor {
-  uniforms: {
-    name: string,
-    type: 'number' | 'vec2' | 'vec3' | 'vec4' | 'mat2x2' | 'mat3x3' | 'mat4x4',
-    format?: 'f32' | 'u32' | 'i32',
-    size?: number,
-    defaultValue: TUniformTypedArray
-  }[],
-  textures: {
-    name: string,
-    format?: 'f32',
-    defaultValue: Texture | CubeTexture,
-    asOutput?: boolean
-  }[],
-  samplers: {
-    name: string,
-    defaultValue: GPUSamplerDescriptor
-  }[],
-  storages?: {
-    name: string,
-    type: 'number' | 'vec2' | 'vec3' | 'vec4',
-    format?: 'f32' | 'u32' | 'i32',
-    writable?: boolean,
-    defaultValue:TUniformTypedArray,
-    gpuValue?: GPUBuffer
-  }[]
-}
-
-export interface IUniformBlock {
-  layout: GPUBindGroupLayout;
-  entries: GPUBindGroupEntry[];
-  cpuBuffer: Uint32Array;
-  gpuBuffer: GPUBuffer;
-  values: {
-    [name: string]: {
-      value: TUniformValue,
-      gpuValue: GPUBuffer | GPUSampler | GPUTextureView
-    }
-  };
-}
 
 export interface IEffectOptionsRender {
   vs: string;
@@ -97,31 +52,14 @@ export default class Effect extends HObject {
     fs?: GPUShaderModule,
     cs?: GPUShaderModule
   }} = {};
-  protected _uniformDesc: IUniformsDescriptor;
-  protected _shaderPrefix: string;
-  protected _uniformLayoutDesc: GPUBindGroupLayoutDescriptor;
-  protected _uniformLayout: GPUBindGroupLayout;
-  protected _uniformBindDesc: GPUBindGroupDescriptor;
-  protected _uniformsBufferDefault: Uint32Array;
-  protected _uniformsInfo: {[name: string]: {
-    bindingId: number,
-    index: number,
-    type: 'texture' | 'buffer' | 'sampler' | 'storage',
-    defaultValue?: TUniformTypedArray | Texture | GPUSamplerDescriptor,
-    defaultGpuValue?: GPUSampler | GPUTextureView | GPUBuffer,
-    /* 32bits */
-    offset?: number,
-    realLen?: number,
-    origLen?: number,
-    size?: number
-  }};
+  protected _ubTemplate: UBTemplate;
 
-  get uniformLayout() {
-    return this._uniformLayout;
+  get ubTemplate() {
+    return this._ubTemplate;
   }
 
-  get uniformsInfo() {
-    return this._uniformsInfo;
+  get uniformLayout() {
+    return this._ubTemplate.uniformLayout;
   }
 
   get renderStates() {
@@ -139,10 +77,9 @@ export default class Effect extends HObject {
     super();
 
     this.name = name
-    const {device} = renderEnv;
     const options = _options;
-    const _uniformDesc = this._uniformDesc = options.uniformDesc;
     const visibility = (options as IEffectOptionsCompute).cs ? GPUShaderStage.COMPUTE : GPUShaderStage.VERTEX | GPUShaderStage.FRAGMENT;
+    this._ubTemplate = new UBTemplate(options.uniformDesc, EUBGroup.Material, visibility);
     this._renderStates = Object.assign({}, DEFAULT_RENDER_STATES, (options as IEffectOptionsRender).renderState || {});
 
     this._marcos = options.marcos || {};
@@ -156,261 +93,34 @@ export default class Effect extends HObject {
       }
     }
 
-    let index: number = 0;
-    let bindingId: number = 0;
-    this._shaderPrefix = '';
-    this._uniformsInfo = {};
-
-    const entries: GPUBindGroupLayoutEntry[] = [];
-    
-    if (_uniformDesc.uniforms.length) {
-      this._shaderPrefix += '[[block]] struct Uniforms {\n';
-      entries.push({
-        binding: 0,
-        visibility,
-        buffer: {type: 'uniform' as GPUBufferBindingType}
-      });
-
-      let uniforms32Length: number = 0;
-      _uniformDesc.uniforms.forEach((ud) => {
-        const {origLen, realLen, defaultValue} = this._getRealLayoutInfo(ud.type, ud.size || 1, ud.defaultValue);
-
-        this._uniformsInfo[ud.name] = {bindingId: 0, index, type: 'buffer', offset: uniforms32Length, defaultValue, origLen, realLen, size: ud.size || 1};
-        uniforms32Length += defaultValue.length;
-        const sym = ud.type === 'number' ? `${ud.format || 'f32'}` : `${ud.type}<${ud.format || 'f32'}>`;
-        const pre = origLen !== realLen ? `[[stride(${realLen * 4})]]` : '';
-        if (!ud.size) {
-          this._shaderPrefix += `  [[align(16)]] ${ud.name}: ${sym};\n`;
-        } else {
-          ud.size > 1 && (this._shaderPrefix += ` [[align(16)]] ${ud.name}: ${pre} array<${sym}, ${ud.size}>;\n`);
-        }
-        index += 1;
-      });
-      this._uniformsBufferDefault = new Uint32Array(uniforms32Length);
-      this._shaderPrefix += `};\n[[binding(0), group(0)]] var<uniform> uniforms: Uniforms;\n`
-
-      bindingId += 1;
-    }
-
-    _uniformDesc.textures.forEach((ud) => {
-      const isCube = CubeTexture.IS(ud.defaultValue);
-      const isArray = (ud.defaultValue as Texture).isArray;
-
-      entries.push({
-        binding: bindingId,
-        visibility,
-        texture: {
-          sampleType: 'float' as GPUTextureSampleType,
-          viewDimension: isCube ? (isArray ? 'cube-array' : 'cube') : (isArray ? '2d-array' : '2d')
-        }
-      });
-      this._uniformsInfo[ud.name] = {
-        bindingId, index, type: 'texture',
-        defaultGpuValue: (ud.defaultValue as Texture).view
-      };
-      if (ud.asOutput) {
-        this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: texture_storage_2d<${ud.format || 'rgba8unorm'}, write>;\n`
-      } else if (isCube) {
-        this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: texture_cube<${ud.format || 'f32'}>;\n`
-      } else if ((ud.defaultValue as Texture).isArray) {
-        this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: texture_2d_array<${ud.format || 'f32'}>;\n`
-      } else {
-        this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: texture_2d<${ud.format || 'f32'}>;\n`
-      }
-      bindingId += 1;
-      index += 1;
-    });
-
-    _uniformDesc.samplers.forEach((ud) => {
-      entries.push({
-        binding: bindingId,
-        visibility,
-        sampler: {type: 'filtering'}
-      });
-      this._uniformsInfo[ud.name] = {
-        bindingId, index, type: 'sampler',
-        defaultGpuValue: device.createSampler(ud.defaultValue as GPUSamplerDescriptor)
-      };
-      this._shaderPrefix += `[[group(0), binding(${bindingId})]] var ${ud.name}: sampler;\n`
-      bindingId += 1;
-      index += 1;
-    });
-    this._shaderPrefix += '\n';
-
-    _uniformDesc.uniforms.forEach((ud, index) => {
-      this._uniformsBufferDefault.set(new Uint32Array(ud.defaultValue.buffer), this._uniformsInfo[ud.name].offset);
-    });
-
-    if (_uniformDesc.storages) {
-      const structCache: {[hash: string]: string} = {};
-
-      _uniformDesc.storages.forEach((ud) => {
-        entries.push({
-          binding: bindingId,
-          visibility,
-          buffer: {type: 'read-only-storage' as GPUBufferBindingType}
-        });
-
-        const hash = `Storage${ud.type}${ud.format || 'f32'}`;
-        if (!structCache[hash]) {
-          this._shaderPrefix += (structCache[hash] = structCache[hash] || this._getStorageStruct(hash, ud.type, ud.format || 'f32')) + '\n';
-        }
-        const gpuValue = ud.gpuValue ? ud.gpuValue : createGPUBuffer(ud.defaultValue, GPUBufferUsage.STORAGE);
-        this._uniformsInfo[ud.name] = {bindingId, index, type: 'storage', defaultValue: ud.defaultValue, defaultGpuValue: gpuValue};
-        this._shaderPrefix += `[[group(0), binding(${bindingId})]] var<storage, ${ud.writable ? 'read_write' : 'read'}> ${ud.name}: ${hash};\n`
-
-        index += 1;
-        bindingId += 1;
-      });
-    }
-
-    this._uniformLayoutDesc = {entries};
-
     if (isComputeOptions(options)) {
       this._cs = options.cs
-      const csShader = this.getShader({}, '').cs;
-      const csPipeline = device.createComputePipeline({
-        compute: {
-          module: csShader,
-          entryPoint: 'main'
-        }
-      });
-      this._uniformLayout = csPipeline.getBindGroupLayout(0);
+      // const csShader = this.getShader({}, '').cs;
+      // const csPipeline = device.createComputePipeline({
+      //   compute: {
+      //     module: csShader,
+      //     entryPoint: 'main'
+      //   }
+      // });
+      // this._uniformLayout = csPipeline.getBindGroupLayout(0);
     } else {
       this._vs = options.vs;
       this._fs = options.fs;
-      this._uniformLayout = device.createBindGroupLayout(this._uniformLayoutDesc);
+      // this._uniformLayout = device.createBindGroupLayout(this._uniformLayoutDesc);
     }
   }
 
-  protected _getRealLayoutInfo(
-    type: "number" | "vec2" | "vec3" | "vec4" | "mat2x2" | "mat3x3" | "mat4x4",
-    size: number,
-    defaultValue: TUniformTypedArray
-  ) {
-    let origLen: number;
-    let realLen: number;
-
-    switch (type) {
-      case 'number':
-        origLen = 1;
-        realLen = 4;
-        break;
-      case 'vec2':
-        origLen = 2;
-        realLen = 4;
-        break;
-      case 'vec3':
-        origLen = 3;
-        realLen = 4;
-        break;
-      case 'vec4':
-      case 'mat2x2':
-        origLen = 4;
-        realLen = 4;
-        break;
-      case 'mat3x3':
-        origLen = 9;
-        realLen = 12;
-        break;
-      case 'mat4x4':
-        origLen = 16;
-        realLen = 16;
-        break;
-    }
-
-    const constructor = defaultValue.constructor as any;
-    const value = new constructor(realLen * size) as typeof defaultValue;
-
-    for (let index = 0; index < size; index += 1) {
-      value.set(defaultValue.slice(index * origLen, (index + 1) * origLen));
-    }
-
-    return {
-      origLen,
-      realLen,
-      defaultValue: value
-    };
-  }
-
-  protected _getStorageStruct(
-    hash: string,
-    type: 'number' | 'vec2' | 'vec3' | 'vec4',
-    format: 'f32' | 'u32' | 'i32'
-  ) {
-    if (type === 'number') {
-      return `[[block]] struct ${hash} { value: array<${format}>; };`
-    }
-
-    if (type === 'vec2' || type === 'vec3' || type === 'vec4') {
-      return `[[block]] struct ${hash} { value: array<${type}<${format}>>; };`
-    }
-
-    throw new Error('Not support type!');
-  }
-
-  public createDefaultUniformBlock(): IUniformBlock {
-    const {_uniformDesc, _uniformsInfo, _uniformsBufferDefault} = this;
-    const values: IUniformBlock['values'] = {};
-    const groupEntries: GPUBindGroupEntry[] = []; 
-
-    let cpuBuffer: Uint32Array;
-    let gpuBuffer: GPUBuffer;
-    if (_uniformsBufferDefault) {
-      gpuBuffer = createGPUBuffer(_uniformsBufferDefault, GPUBufferUsage.UNIFORM);
-      cpuBuffer = _uniformsBufferDefault.slice();
-      groupEntries.push({
-        binding: 0,
-        resource: {buffer: gpuBuffer}
-      });
-      _uniformDesc.uniforms.forEach((ud) => {
-        const info = this._uniformsInfo[ud.name];
-        values[ud.name] = {
-          value: new (this._uniformsInfo[ud.name].defaultValue.constructor as typeof Float32Array)(
-            cpuBuffer.buffer, info.offset * 4, info.realLen * info.size
-          ),
-          gpuValue: gpuBuffer
-        };
-      });
-    }
-
-    _uniformDesc.textures.forEach((ud) => {
-      const view = _uniformsInfo[ud.name].defaultGpuValue;
-      values[ud.name] = {value: ud.defaultValue, gpuValue: view};
-      groupEntries.push({
-        binding: _uniformsInfo[ud.name].bindingId,
-        resource: view as GPUTextureView
-      });
-    });
-
-    _uniformDesc.samplers.forEach((ud) => {
-      const sampler = _uniformsInfo[ud.name].defaultGpuValue;
-      values[ud.name] = {value: ud.defaultValue, gpuValue: sampler};
-      groupEntries.push({
-        binding: _uniformsInfo[ud.name].bindingId,
-        resource: sampler as GPUSampler
-      });
-    });
-
-    _uniformDesc.storages && _uniformDesc.storages.forEach((ud) => {
-      const buffer = _uniformsInfo[ud.name].defaultGpuValue as GPUBuffer;
-      values[ud.name] = {value: ud.defaultValue, gpuValue: buffer};
-      groupEntries.push({
-        binding: _uniformsInfo[ud.name].bindingId,
-        resource: {buffer}
-      });
-    });
-
-    return {entries: groupEntries, values, layout: this._uniformLayout, cpuBuffer, gpuBuffer};
+  public createDefaultUniformBlock() {
+    return this._ubTemplate.createUniformBlock();
   }
 
   public getShader(
     marcos: {[key: string]: number | boolean},
-    attributesDef: string
+    attributesDef: string, globalPrefix: string, objectPrefix: string
   ) {
     marcos = Object.assign({}, this._marcos, marcos);
     const {device} = renderEnv;
-    const hash = this._calcHash(attributesDef, marcos);
+    const hash = this._calcHash(attributesDef, globalPrefix, objectPrefix, marcos);
     const shaders = this._shaders[hash];
 
     if (shaders) {
@@ -438,18 +148,24 @@ export default class Effect extends HObject {
       });
     }
 
+    const prefix = globalPrefix + '\n' + objectPrefix + '\n' + this._ubTemplate.shaderPrefix;
     const [vs, fs, cs] = tmp;
     const res = this._shaders[hash] = {
-      vs: vs && device.createShaderModule({code: attributesDef + this._shaderPrefix + vs}),
-      fs: fs && device.createShaderModule({code: this._shaderPrefix + fs}),
-      cs: cs && device.createShaderModule({code: this._shaderPrefix + cs})
+      vs: vs && device.createShaderModule({code: attributesDef + prefix + vs}),
+      fs: fs && device.createShaderModule({code: prefix + fs}),
+      cs: cs && device.createShaderModule({code: prefix + cs})
     };
 
     return res;
   }
 
-  private _calcHash(def: string, marcos: {[key: string]: number | boolean}): number {
+  private _calcHash(
+    def: string, globalPrefix: string, objectPrefix: string,
+    marcos: {[key: string]: number | boolean}
+  ): number {
     let hash: number = hashCode(def);
+    hash = (hash << 5) - hash + hashCode(globalPrefix);
+    hash = (hash << 5) - hash + hashCode(objectPrefix);
 
     for (const key in this._marcos) {
       const value = marcos[key];

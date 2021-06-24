@@ -9,7 +9,7 @@ fn main(attrs: Attrs) -> VertexOutput {
 
   let pos: vec4<f32> = vec4<f32>(attrs.position, 1., 1.);
   output.position = pos;
-  let t: vec4<f32> = uniforms.u_skyVP * pos;
+  let t: vec4<f32> = global.u_skyVP * pos;
   output.cubeUV = normalize(t.xyz / t.w);
 
   return output;

@@ -94,11 +94,11 @@ export default class NodeControl extends HObject {
     } else {
       mat4.getTranslation(tmpV0, this._target.worldMat);
       mat4.getTranslation(tmpV1, this._node.worldMat);
-      tmpV1[0] += dx;
-      tmpV1[1] += dy;
+      tmpV1[0] += dy * 2;
+      tmpV1[1] += dx * 2;
       const forward = vec3.sub(tmpV2, tmpV0, tmpV1);
       vec3.normalize(forward, forward);
-      vec3.scale(forward, forward, this._arcRadius);
+      vec3.scale(forward, forward, -this._arcRadius);
       vec3.add(tmpV1, tmpV0, forward);
       mat4.lookAt(tmpMat, tmpV1, tmpV0, UP);
       this._node.pos.set(tmpV1);
@@ -111,15 +111,16 @@ export default class NodeControl extends HObject {
 
   protected _handleZoom = (event: WheelEvent) => {
     const {worldMat, pos} = this._node;
+    let delta = event.deltaY / 200;
     let forward = worldMat.slice(8, 12);
 
     if (this._mode === 'arc') {
       mat4.getTranslation(tmpV0, this._target.worldMat);
       mat4.getTranslation(tmpV1, this._node.worldMat);
       vec3.sub(forward, tmpV0, tmpV1);
+      delta = -delta;
     }
 
-    const delta = -event.deltaY / 200;
     vec3.normalize(forward, forward);
     vec3.scale(forward, forward, delta);
     vec3.add(pos, pos, forward);

@@ -29,18 +29,12 @@ export default class ImageMesh extends HObject {
     super();
   }
 
-  public render(
-    pass: GPURenderPassEncoder,
-    lights: Light[],
-    camera?: Camera
-  ) {
+  public render(pass: GPURenderPassEncoder) {
     const {_material} = this;
 
     !this._pipeline && this._createPipeline();
-    camera && camera.fillUniforms(_material);
-    lights.forEach((light, index) => light.fillUniforms(index, _material));
 
-    pass.setBindGroup(0, _material.bindingGroup);
+    pass.setBindGroup(1, _material.bindingGroup);
     pass.setPipeline(this._pipeline);
     pass.draw(6, 1, 0, 0);
   }
@@ -48,10 +42,11 @@ export default class ImageMesh extends HObject {
   protected _createPipeline() {
     const {device, swapChainFormat} = renderEnv;
     const {_material} = this;
-    const {vs, fs} = _material.effect.getShader({}, '');
+    const {vs, fs} = _material.effect.getShader({}, '', renderEnv.shaderPrefix, '');
 
     this._pipeline = device.createRenderPipeline({
       layout: device.createPipelineLayout({bindGroupLayouts: [
+        renderEnv.uniformLayout,
         _material.effect.uniformLayout
       ]}),
   

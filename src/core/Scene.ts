@@ -96,7 +96,7 @@ export default class Scene extends HObject {
 
   // }
 
-  public renderImages(meshes: ImageMesh[], camera?: Camera) {
+  public renderImages(meshes: ImageMesh[]) {
     const view = this._renderTarget.colorView;
 
     const renderPassDescriptor: GPURenderPassDescriptor = {
@@ -109,19 +109,19 @@ export default class Scene extends HObject {
 
     const pass = this._command.beginRenderPass(renderPassDescriptor);
 
+    pass.setBindGroup(0, renderEnv.bindingGroup);
     for (const mesh of meshes) {
-      mesh.render(pass, this._lights, camera);
+      mesh.render(pass);
     }
 
     pass.endPass();
   }
 
-  public computeUnits(units: ComputeUnit[], camera?: Camera, lights?: Light[]) {
+  public computeUnits(units: ComputeUnit[]) {
     const pass = this._command.beginComputePass();
 
     for (const unit of units) {
-      camera.fillUniforms(unit);
-      lights?.forEach((light, index) => light.fillUniforms(index, unit));
+      pass.setBindGroup(0, renderEnv.bindingGroup);
       unit.compute(pass);
     }
 
@@ -143,7 +143,7 @@ export default class Scene extends HObject {
     };
 
     const pass = this._command.beginRenderPass(renderPassDescriptor);
-    this._blit.render(pass, []);
+    this._blit.render(pass);
     pass.endPass();
 
     renderEnv.device.queue.submit([this._command.finish()]);

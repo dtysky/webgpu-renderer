@@ -10,9 +10,12 @@ import buildinGeometries, {init as initGeometries} from './geometries';
 export {buildinGeometries};
 import buildinEffects, {init as initEffects} from './effects';
 export {buildinEffects};
+import buildinUBTemplates, {init as initUBTemplates} from './ubTemplates';
+export {buildinUBTemplates};
 
 export async function init() {
   await initTextures();
+  initUBTemplates();
   initGeometries();
   initEffects();
 }

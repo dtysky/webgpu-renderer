@@ -6,9 +6,10 @@
  */
 
 import HObject from "./HObject";
-import Effect, { TUniformValue } from "./Effect";
+import Effect from "./Effect";
 import Material from "./Material";
 import renderEnv from "./renderEnv";
+import { TUniformValue } from "./UBTemplate";
 
 export default class ComputeUnit extends HObject {
   public static CLASS_NAME = 'ComputeUnit';
@@ -46,7 +47,7 @@ export default class ComputeUnit extends HObject {
     }
 
     pass.setPipeline(this._pipeline);
-    pass.setBindGroup(0, _material.bindingGroup);
+    pass.setBindGroup(1, _material.bindingGroup);
     pass.dispatch(_groups.x, _groups.y, _groups.z);
   }
 
@@ -63,10 +64,11 @@ export default class ComputeUnit extends HObject {
     const {_material} = this;
     
     const marcos = Object.assign({}, _material.marcos);
-    const {cs} = _material.effect.getShader(marcos, '');
+    const {cs} = _material.effect.getShader(marcos, '', renderEnv.shaderPrefix, '');
 
     this._pipeline = device.createComputePipeline({
       layout: device.createPipelineLayout({bindGroupLayouts: [
+        renderEnv.uniformLayout,
         _material.effect.uniformLayout
       ]}),
   

@@ -11,7 +11,7 @@ struct VertexOutput {
 fn main(attrs: Attrs) -> VertexOutput {
   var output: VertexOutput;
 
-  output.Position = uniforms.u_vp * uniforms.u_world * vec4<f32>(attrs.position, 1.);
+  output.Position = global.u_vp * mesh.u_world * vec4<f32>(attrs.position, 1.);
 
   #if defined(USE_TEXCOORD_0)
     output.texcoord_0 = attrs.texcoord_0;

@@ -13,7 +13,8 @@ export {default as Node} from './core/Node';
 export {default as Camera} from './core/Camera';
 export {default as Light} from './core/Light';
 export {default as Geometry} from './core/Geometry';
-export {default as Effect, IUniformBlock, IUniformsDescriptor, TEffectOptions, TUniformValue} from './core/Effect';
+export {default as UBTemplate, IUniformBlock, IUniformsDescriptor, TUniformValue} from './core/UBTemplate';
+export {default as Effect, TEffectOptions} from './core/Effect';
 export {default as Material} from './core/Material';
 export {default as Mesh} from './core/Mesh';
 export {default as ImageMesh} from './core/ImageMesh';
@@ -37,6 +38,7 @@ export * from './buildin';
 export async function init(canvas: HTMLCanvasElement) {
   await renderEnv.init(canvas);
   await initBuildin();
+  await renderEnv.createGlobal();
 }
 
 export const math = {

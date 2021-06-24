@@ -4,6 +4,9 @@
  * @Link   : dtysky.moe
  * @Date   : 2021/6/6下午8:59:05
  */
+import UBTemplate, {IUniformBlock, TUniformValue} from "./UBTemplate";
+import {buildinUBTemplates, init as initBuildin} from '../buildin';
+
 class RenderEnv {
   public static  CLASS_NAME: string = 'RenderEnv';
   public isRenderEnv: boolean = true;
@@ -13,6 +16,9 @@ class RenderEnv {
   private _ctx: GPUCanvasContext;
   private _swapChainFormat: GPUTextureFormat = 'bgra8unorm';
   private _swapChain: GPUSwapChain;
+  private _ubTemplate: UBTemplate;
+  private _uniformBlock: IUniformBlock;
+  private _bindingGroup: GPUBindGroup;
 
   get canvas() {
     return this._canvas;
@@ -24,6 +30,19 @@ class RenderEnv {
 
   get device() {
     return this._device;
+  }
+
+  get bindingGroup() {
+    this._bindingGroup = this._ubTemplate.getBindingGroup(this._uniformBlock, this._bindingGroup);
+    return this._bindingGroup;
+  }
+
+  get shaderPrefix() {
+    return this._ubTemplate.shaderPrefix;
+  }
+
+  get uniformLayout() {
+    return this._ubTemplate.uniformLayout;
   }
 
   get width() {
@@ -66,6 +85,19 @@ class RenderEnv {
       device: this._device,
       format: this._swapChainFormat,
     });
+  }
+
+  public async createGlobal() {
+    this._ubTemplate = buildinUBTemplates.global;
+    this._uniformBlock = this._ubTemplate.createUniformBlock();
+  }
+
+  public setUniform(name: string, value: TUniformValue, rtSubNameOrGPUBuffer?: string | GPUBuffer) {
+    this._ubTemplate.setUniform(this._uniformBlock, name, value, rtSubNameOrGPUBuffer);
+  }
+
+  public getUniform(name: string): TUniformValue {
+    return this._ubTemplate.getUniform(this._uniformBlock, name);
   }
 }
 

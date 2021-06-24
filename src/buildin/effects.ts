@@ -44,18 +44,11 @@ export function init() {
     uniformDesc: {
       uniforms: [
         {
-          name: 'u_world',
-          type: 'mat4x4',
-          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
-        },
-        {
-          name: 'u_vp',
-          type: 'mat4x4',
-          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
+          name: 'u_emptyHack',
+          type: 'number',
+          defaultValue: new Float32Array(1)
         }
-      ],
-      textures: [],
-      samplers: []
+      ]
     },
     marcos: commonMarcos
   });
@@ -66,14 +59,9 @@ export function init() {
     uniformDesc: {
       uniforms: [
         {
-          name: 'u_world',
-          type: 'mat4x4',
-          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
-        },
-        {
-          name: 'u_vp',
-          type: 'mat4x4',
-          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
+          name: 'u_baseColorFactor',
+          type: 'vec4',
+          defaultValue: new Float32Array([1, 1, 1, 1])
         }
       ],
       textures: [
@@ -97,16 +85,6 @@ export function init() {
     fs: require('./shaders/basic/unlit.frag.wgsl'),
     uniformDesc: {
       uniforms: [
-        {
-          name: 'u_world',
-          type: 'mat4x4',
-          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
-        },
-        {
-          name: 'u_vp',
-          type: 'mat4x4',
-          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
-        },
         {
           name: 'u_baseColorFactor',
           type: 'vec4',
@@ -158,11 +136,6 @@ export function init() {
     uniformDesc: {
       uniforms: [
         {
-          name: 'u_skyVP',
-          type: 'mat4x4',
-          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
-        },
-        {
           name: 'u_color',
           type: 'vec4',
           defaultValue: mat4.identity(new Float32Array(4)) as Float32Array
@@ -203,16 +176,6 @@ export function init() {
     fs: require('./shaders/ray-tracing/gbuffer.frag.wgsl'),
     uniformDesc: {
       uniforms: [
-        {
-          name: 'u_view',
-          type: 'mat4x4',
-          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
-        },
-        {
-          name: 'u_vp',
-          type: 'mat4x4',
-          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
-        },
         // support materials up to 128
         {
           name: 'u_matId2TexturesId',
@@ -263,31 +226,6 @@ export function init() {
     cs: require('./shaders/ray-tracing/rtss.comp.wgsl'),
     uniformDesc: {
       uniforms: [
-        {
-          name: 'u_randomSeed',
-          type: 'vec4',
-          defaultValue: new Float32Array([0, 0, 0, 0])
-        },
-        {
-          name: 'u_viewInverse',
-          type: 'mat4x4',
-          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
-        },
-        {
-          name: 'u_projInverse',
-          type: 'mat4x4',
-          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
-        },
-        {
-          name: 'u_skyVP',
-          type: 'mat4x4',
-          defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
-        },
-        {
-          name: 'u_envColor',
-          type: 'vec4',
-          defaultValue: new Float32Array(4).fill(1)
-        },
         // support materials up to 128
         {
           name: 'u_matId2TexturesId',
@@ -307,21 +245,6 @@ export function init() {
           type: 'vec3',
           size: 128,
           defaultValue: new Float32Array(128)
-        },
-        {
-          name: 'u_lightPos',
-          type: 'vec3',
-          defaultValue: new Float32Array([0, 0, 0])
-        },
-        {
-          name: 'u_lightDir',
-          type: 'vec3',
-          defaultValue: new Float32Array([1, 1, 1])
-        },
-        {
-          name: 'u_lightColor',
-          type: 'vec3',
-          defaultValue: new Float32Array([1, 1, 1])
         }
       ],
       storages: [
@@ -378,10 +301,6 @@ export function init() {
         {
           name: 'u_gbFaceNormalMatIndex',
           defaultValue: textures.empty
-        },
-        {
-          name: 'u_envTexture',
-          defaultValue: textures.cubeWhite
         },
         {
           name: 'u_baseColorTextures',

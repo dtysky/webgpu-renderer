@@ -123,19 +123,17 @@ export default class Camera extends Node {
       mat4.multiply(mat, this._projMat, mat);
       mat4.invert(mat, mat);
     }
-  }
 
-  public fillUniforms(material: Material | ComputeUnit) {
-    material.setUniform('u_vp', this._vpMat);
-    material.setUniform('u_view', this._viewMat);
-    material.setUniform('u_proj', this._projMat);
-    material.setUniform('u_viewInverse', this._worldMat);
-    material.setUniform('u_projInverse', this._projInverseMat);
+    renderEnv.setUniform('u_vp', this._vpMat);
+    renderEnv.setUniform('u_view', this._viewMat);
+    renderEnv.setUniform('u_proj', this._projMat);
+    renderEnv.setUniform('u_viewInverse', this._worldMat);
+    renderEnv.setUniform('u_projInverse', this._projInverseMat);
 
     if (this._skyboxMat) {
-      material.setUniform('u_skyVP', this._skyVPMat);
-      material.setUniform('u_envTexture', this._skyboxMat.getUniform('u_cubeTexture'));
-      material.setUniform('u_envColor', this._skyboxMat.getUniform('u_color'));
+      renderEnv.setUniform('u_skyVP', this._skyVPMat);
+      renderEnv.setUniform('u_envTexture', this._skyboxMat.getUniform('u_cubeTexture'));
+      renderEnv.setUniform('u_envColor', this._skyboxMat.getUniform('u_color'));
     }
   }
 
@@ -166,6 +164,7 @@ export default class Camera extends Node {
 
     const pass = cmd.beginRenderPass(renderPassDescriptor);
     pass.setViewport(x * width, y * height, w * width, h * height, 0, 1);
+    pass.setBindGroup(0, renderEnv.bindingGroup);
 
     for (const mesh of meshes) {
       mesh.render(pass, this, rt, lights);

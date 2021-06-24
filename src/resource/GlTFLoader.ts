@@ -12,7 +12,7 @@ import Material from "../core/Material";
 import Mesh from "../core/Mesh";
 import Texture from "../core/Texture";
 import Loader from "./Loader";
-import { TUniformValue } from "../core/Effect";
+import {TUniformValue} from "../core/UBTemplate";
 import Light from "../core/Light";
 import CubeTexture from "../core/CubeTexture";
 
@@ -213,18 +213,18 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
 
       if (skybox) {
         if (skybox.type !== 'Cube') {
-          throw new Error('Only support cube texture skybox now!');
+          console.warn('Only support cube texture skybox now!');
+        } else {
+          const skyboxMat = new Material(buildinEffects.rSkybox, {
+            u_factor: new Float32Array([skybox.factor]),
+            u_color: new Float32Array(skybox.color),
+            u_cubeTexture: cubeTextures[skybox.texture.index],
+            u_rotation: new Float32Array([skybox.rotation]),
+            u_exposure: new Float32Array([skybox.exposure])
+          });
+  
+          camera.skyboxMat = skyboxMat;
         }
-
-        const skyboxMat = new Material(buildinEffects.rSkybox, {
-          u_factor: new Float32Array([skybox.factor]),
-          u_color: new Float32Array(skybox.color),
-          u_cubeTexture: cubeTextures[skybox.texture.index],
-          u_rotation: new Float32Array([skybox.rotation]),
-          u_exposure: new Float32Array([skybox.exposure])
-        });
-
-        camera.skyboxMat = skyboxMat;
       }
 
       cameras.push(camera);
@@ -261,7 +261,7 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
       let node: Node;
 
       if (meshId !== undefined) {
-        node = meshes[meshId];
+        node = (meshes[meshId] as Mesh).clone();
       } else if (cameraId !== undefined) {
         node = cameras[cameraId];
       } else if (extensions?.KHR_lights_punctual) {

@@ -56,8 +56,8 @@ fn main(vo: VertexOutput) -> FragmentOutput {
 
   let meshId: u32 = vo.meshMatIndex[0];
   let matId: u32 = vo.meshMatIndex[1];
-  let metallicRoughnessFactorNormalScale: vec3<f32> = uniforms.u_metallicRoughnessFactorNormalScales[matId];
-  let textureIds: vec4<i32> = uniforms.u_matId2TexturesId[matId];
+  let metallicRoughnessFactorNormalScale: vec3<f32> = material.u_metallicRoughnessFactorNormalScales[matId];
+  let textureIds: vec4<i32> = material.u_matId2TexturesId[matId];
 
   fo.positionMetal = vec4<f32>(
     vo.wPosition.xyz,
@@ -65,7 +65,7 @@ fn main(vo: VertexOutput) -> FragmentOutput {
   );
 
   fo.diffuseRough = vec4<f32>(
-    getBaseColor(uniforms.u_baseColorFactors[matId], textureIds[0], vo.texcoord_0).rgb,
+    getBaseColor(material.u_baseColorFactors[matId], textureIds[0], vo.texcoord_0).rgb,
     getRoughness(metallicRoughnessFactorNormalScale[1], textureIds[0], vo.texcoord_0)
   );
 

@@ -69,7 +69,7 @@ require('./common.chuck.wgsl');
 
 fn genWorldRayByGBuffer(uv: vec2<f32>, gBInfo: HitPoint) -> Ray {
   let pixelSSPos: vec4<f32> = vec4<f32>(uv.x * 2. - 1., 1. - uv.y * 2., 0., 1.);
-  let pixelWorldPos: vec4<f32> = uniforms.u_projInverse * uniforms.u_viewInverse * pixelSSPos;
+  let pixelWorldPos: vec4<f32> = global.u_projInverse * global.u_viewInverse * pixelSSPos;
 
   var ray: Ray;
 
@@ -267,11 +267,11 @@ fn fillHitPoint(frag: FragmentInfo) -> HitPoint {
   info.position = frag.p0 * frag.weights[0] + frag.p1 * frag.weights[1] + frag.p2 * frag.weights[2];
   info.faceNormal = getFaceNormal(frag);
   let uv: vec2<f32> = frag.uv0 * frag.weights[0] + frag.uv1 * frag.weights[1] + frag.uv2 * frag.weights[2];
-  let metallicRoughnessFactorNormalScale: vec3<f32> = uniforms.u_metallicRoughnessFactorNormalScales[frag.matIndex];
-  let textureIds: vec4<i32> = uniforms.u_matId2TexturesId[frag.matIndex];  
+  let metallicRoughnessFactorNormalScale: vec3<f32> = material.u_metallicRoughnessFactorNormalScales[frag.matIndex];
+  let textureIds: vec4<i32> = material.u_matId2TexturesId[frag.matIndex];  
   info.normal = getNormal(frag, info.faceNormal, uv, textureIds[1], metallicRoughnessFactorNormalScale[2]);
   info.metal = getMetallic(metallicRoughnessFactorNormalScale[0], textureIds[2], uv);
-  info.diffuse = getBaseColor(uniforms.u_baseColorFactors[frag.matIndex], textureIds[0], uv).rgb;
+  info.diffuse = getBaseColor(material.u_baseColorFactors[frag.matIndex], textureIds[0], uv).rgb;
   info.rough = getRoughness(metallicRoughnessFactorNormalScale[1], textureIds[0], uv);
 
   return info;
@@ -381,10 +381,10 @@ fn main(
   let gBInfo: HitPoint = getGBInfo(baseUV);
 
   if (!gBInfo.hit) {
-    let t: vec4<f32> = uniforms.u_skyVP * vec4<f32>(baseUV.x * 2. - 1., 1. - baseUV.y * 2., 1., 1.);
+    let t: vec4<f32> = material.u_skyVP * vec4<f32>(baseUV.x * 2. - 1., 1. - baseUV.y * 2., 1., 1.);
     let cubeUV: vec3<f32> = normalize(t.xyz / t.w);
     let bgColor: vec4<f32> = textureSampleLevel(u_envTexture, u_sampler, cubeUV, 0.);
-    textureStore(u_output, baseIndex, vec4<f32>(bgColor.rgb * uniforms.u_envColor.rgb, bgColor.a));
+    textureStore(u_output, baseIndex, vec4<f32>(bgColor.rgb * global.u_envColor.rgb, bgColor.a));
     return;
   }
 
