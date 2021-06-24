@@ -77,16 +77,6 @@ export default class BasicTestApp {
       uniformDesc: {
         uniforms: [
           {
-            name: 'u_world',
-            type: 'mat4x4',
-            defaultValue: H.math.mat4.identity(new Float32Array(16)) as Float32Array
-          },
-          {
-            name: 'u_vp',
-            type: 'mat4x4',
-            defaultValue: H.math.mat4.identity(new Float32Array(16)) as Float32Array
-          },
-          {
             name: 'u_color',
             type: 'vec3',
             defaultValue: new Float32Array([1., .1, .1]) as Float32Array

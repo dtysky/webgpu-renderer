@@ -4,8 +4,9 @@
  * @Link   : dtysky.moe
  * @Date   : 2021/6/6下午8:59:05
  */
-import UBTemplate, {IUniformBlock, TUniformValue} from "./UBTemplate";
-import {buildinUBTemplates, init as initBuildin} from '../buildin';
+declare type UBTemplate = import('./UBTemplate').default;
+declare type IUniformBlock = import('./UBTemplate').IUniformBlock;
+declare type TUniformValue = import('./UBTemplate').TUniformValue;
 
 class RenderEnv {
   public static  CLASS_NAME: string = 'RenderEnv';
@@ -87,8 +88,8 @@ class RenderEnv {
     });
   }
 
-  public async createGlobal() {
-    this._ubTemplate = buildinUBTemplates.global;
+  public async createGlobal(ubTemplate: UBTemplate) {
+    this._ubTemplate = ubTemplate;
     this._uniformBlock = this._ubTemplate.createUniformBlock();
   }
 

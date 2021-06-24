@@ -65,9 +65,7 @@ export default class Mesh extends Node {
 
   public render(
     pass: GPURenderPassEncoder,
-    camera: Camera,
-    rt: RenderTexture,
-    lights: Light[],
+    rt: RenderTexture
   ) {
     const {_geometry, _material} = this;
 
@@ -77,7 +75,7 @@ export default class Mesh extends Node {
     }
 
     this.setUniform('u_world', this._worldMat);
-    lights.forEach((light, index) => light.fillUniforms(index, _material));
+    this._bindingGroup = this._ubTemplate.getBindingGroup(this._uniformBlock, this._bindingGroup);
 
     _geometry.vertexes.forEach((vertex, index) => {
       pass.setVertexBuffer(index, vertex);

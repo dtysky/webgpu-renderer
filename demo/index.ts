@@ -5,6 +5,7 @@
  * @Date   : 2021/6/5下午2:44:28
  */
 import * as H from '../src/index';
+import SuperSimpleApp from './SuperSimpleApp';
 import BasicTestApp from './BasicTestApp';
 import RayTracingApp from './RayTracingApp';
 
@@ -15,8 +16,9 @@ fpsDom.style.color = 'red';
 fpsDom.style.fontSize = '24px';
 document.body.append(fpsDom);
 
-const app = new RayTracingApp();
+// const app = new SuperSimpleApp();
 // const app = new BasicTestApp();
+const app = new RayTracingApp();
 
 let preFPS = 0;
 function update(dt: number) {

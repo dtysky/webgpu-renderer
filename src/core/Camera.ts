@@ -140,7 +140,6 @@ export default class Camera extends Node {
   public render(
     cmd: GPUCommandEncoder,
     rt: RenderTexture,
-    lights: Light[],
     meshes: Mesh[]
   ) {
     const [r, g, b, a] = this.clearColor;
@@ -167,11 +166,11 @@ export default class Camera extends Node {
     pass.setBindGroup(0, renderEnv.bindingGroup);
 
     for (const mesh of meshes) {
-      mesh.render(pass, this, rt, lights);
+      mesh.render(pass, rt);
     }
 
     if (this.drawSkybox && this._skyboxMesh) {
-      this._skyboxMesh.render(pass, this, rt, lights);
+      this._skyboxMesh.render(pass, rt);
     }
 
     pass.endPass();

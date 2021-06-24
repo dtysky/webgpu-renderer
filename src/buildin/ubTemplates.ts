@@ -53,6 +53,11 @@ export function init() {
           name: 'u_randomSeed',
           type: 'vec4',
           defaultValue: new Float32Array([0, 0, 0, 0])
+        },
+        {
+          name: 'u_envColor',
+          type: 'vec4',
+          defaultValue: new Float32Array([0, 0, 0, 0])
         }
       ],
       textures: [

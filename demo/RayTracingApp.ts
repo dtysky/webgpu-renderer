@@ -70,7 +70,7 @@ export default class RayTracingApp {
   }
 
   public update(dt: number) {
-    // this._frame();
+    this._frame();
   }
 
   private _frame() {
@@ -83,12 +83,11 @@ export default class RayTracingApp {
       this._rtManager.process(this._scene.cullCamera(this._camera), this._rtOutput);
       this._connectGBufferRenderTexture(this._rtManager.rtUnit);
     }
-    
-    this._rtManager.rtUnit.setUniform('u_randomSeed', new Float32Array([Math.random(), Math.random(), Math.random(), Math.random()]));
-    this._showBVH();
-    // this._renderGBuffer();
+
+    // this._showBVH();
+    this._renderGBuffer();
     // this._showGBufferResult();
-    // this._computeRTSS();
+    this._computeRTSS();
     _scene.endFrame();
   }
 
@@ -112,7 +111,7 @@ export default class RayTracingApp {
     this._scene.setRenderTarget(null);
     this._scene.renderCamera(this._camera, [
       ...this._scene.cullCamera(this._camera),
-      // this._rtManager.bvhDebugMesh
+      this._rtManager.bvhDebugMesh
     ]);
   }
 

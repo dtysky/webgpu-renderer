@@ -6,5 +6,5 @@ struct VertexOutput {
 [[stage(fragment)]]
 fn main(vo: VertexOutput) -> [[location(0)]] vec4<f32> {
   let color: vec4<f32> = textureSample(u_texture, u_sampler, vo.v_texcoord_0.xy);
-  return vec4<f32>(color.rgb * uniforms.u_color, color.a);
+  return vec4<f32>(color.rgb * material.u_color, color.a);
 }

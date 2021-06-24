@@ -87,7 +87,6 @@ export default class Scene extends HObject {
     camera.render(
       this._command,
       this._renderTarget,
-      this._lights,
       meshes
     );
   }
@@ -143,6 +142,7 @@ export default class Scene extends HObject {
     };
 
     const pass = this._command.beginRenderPass(renderPassDescriptor);
+    pass.setBindGroup(0, renderEnv.bindingGroup);
     this._blit.render(pass);
     pass.endPass();
 

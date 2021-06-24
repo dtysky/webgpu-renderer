@@ -30,15 +30,16 @@ export {default as NodeControl} from './extension/NodeControl';
 export {default as resource, Resource} from './resource';
 export {default as TextureLoader, ITextureLoaderOptions} from './resource/TextureLoader';
 export {default as GlTFLoader, IGlTFResource, IGlTFLoaderOptions} from './resource/GlTFLoader';
-// export {default as TextureLoader, ITextureLoaderOptions} from './resource/TextureLoader';
 
-import {init as initBuildin} from './buildin';
+import {buildinUBTemplates, init as initBuildin} from './buildin';
 export * from './buildin';
+
+export {createGPUBuffer} from './core/shared';
 
 export async function init(canvas: HTMLCanvasElement) {
   await renderEnv.init(canvas);
   await initBuildin();
-  await renderEnv.createGlobal();
+  await renderEnv.createGlobal(buildinUBTemplates.global);
 }
 
 export const math = {

@@ -1,4 +1,4 @@
-let MAX_TRACE_COUNT: u32 = 4u;
+let MAX_TRACE_COUNT: u32 = 1u;
 let MAX_RAY_LENGTH: f32 = 9999.;
 let BVH_DEPTH: i32 = ${BVH_DEPTH};
 
@@ -101,10 +101,10 @@ fn getGBInfo(uv: vec2<f32>) -> HitPoint {
   return info;
 };
 
-fn calcLight(ray: Ray, hit: HitPoint, isLast: bool) -> Light {
+fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool) -> Light {
   var light: Light;
 
-  if (isLast) {
+  if (isLastOut) {
     light.color = textureSampleLevel(u_envTexture, u_sampler, ray.dir, 0.).rgb;
     light.energy = 1.;
     return light;
@@ -350,14 +350,14 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint) -> vec3<f32> {
 
   for (var i: u32 = 0u; i < MAX_TRACE_COUNT; i = i + 1u) {
     hit = hitTest(ray);
-    let isLast: bool = !hit.hit || i == MAX_TRACE_COUNT - 1u;
+    let isLastOut: bool = !hit.hit;
 
-    light = calcLight(ray, hit, isLast);
+    light = calcLight(ray, hit, isLastOut);
     energy = energy * light.energy;
     lightColor = lightColor + light.color * energy;
     ray = light.reflection;
 
-    if (energy < 0.01 || isLast) {
+    if (energy < 0.01 || isLastOut) {
       break;
     }
   }
@@ -381,7 +381,7 @@ fn main(
   let gBInfo: HitPoint = getGBInfo(baseUV);
 
   if (!gBInfo.hit) {
-    let t: vec4<f32> = material.u_skyVP * vec4<f32>(baseUV.x * 2. - 1., 1. - baseUV.y * 2., 1., 1.);
+    let t: vec4<f32> = global.u_skyVP * vec4<f32>(baseUV.x * 2. - 1., 1. - baseUV.y * 2., 1., 1.);
     let cubeUV: vec3<f32> = normalize(t.xyz / t.w);
     let bgColor: vec4<f32> = textureSampleLevel(u_envTexture, u_sampler, cubeUV, 0.);
     textureStore(u_output, baseIndex, vec4<f32>(bgColor.rgb * global.u_envColor.rgb, bgColor.a));

@@ -31,7 +31,8 @@ export interface IUniformsDescriptor {
     name: string,
     format?: 'f32',
     defaultValue: Texture | CubeTexture,
-    asOutput?: boolean
+    asOutput?: boolean,
+    outputFormat?: GPUTextureFormat
   }[],
   samplers?: {
     name: string,
@@ -143,7 +144,7 @@ export default class UBTemplate extends HObject {
         index += 1;
       });
       this._uniformsBufferDefault = new Uint32Array(uniforms32Length);
-      this._shaderPrefix += `};\n[[binding(0), group(${_groupId})]] var<uniform> ${ubName}: ${ubStruct};\n`
+      this._shaderPrefix += `};\n[[group(${_groupId}), binding(0)]] var<uniform> ${ubName}: ${ubStruct};\n`
 
       bindingId += 1;
     }
@@ -151,14 +152,20 @@ export default class UBTemplate extends HObject {
     _uniformDesc.textures && _uniformDesc.textures.forEach((ud) => {
       const isCube = CubeTexture.IS(ud.defaultValue);
       const isArray = (ud.defaultValue as Texture).isArray;
+      const viewDimension = isCube ? (isArray ? 'cube-array' : 'cube') : (isArray ? '2d-array' : '2d');
 
       entries.push({
         binding: bindingId,
         visibility,
-        texture: {
+        texture: !ud.asOutput ? {
           sampleType: 'float' as GPUTextureSampleType,
-          viewDimension: isCube ? (isArray ? 'cube-array' : 'cube') : (isArray ? '2d-array' : '2d')
-        }
+          viewDimension
+        } : undefined,
+        storageTexture: ud.asOutput ? {
+          format: ud.outputFormat || 'rgba8unorm',
+          viewDimension,
+          access: 'write-only'
+        } : undefined
       });
       this._uniformsInfo[ud.name] = {
         bindingId, index, type: 'texture',
