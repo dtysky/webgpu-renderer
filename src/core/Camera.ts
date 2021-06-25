@@ -62,6 +62,14 @@ export default class Camera extends Node {
     return this._vpMat;
   }
 
+  get invViewMat() {
+    return this._worldMat;
+  }
+
+  get invProjMat() {
+    return this._projInverseMat;
+  }
+
   constructor(
     viewOptions: {
       viewport?: { x: number, y: number, w: number, h: number },

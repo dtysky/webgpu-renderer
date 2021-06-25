@@ -63,7 +63,7 @@ export function init() {
       textures: [
         {
           name: 'u_envTexture',
-          defaultValue: textures.cubeWhite
+          defaultValue: textures.cubeBlack
         }
       ]
     },

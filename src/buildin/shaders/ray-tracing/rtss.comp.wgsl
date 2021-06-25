@@ -44,7 +44,6 @@ struct BVHNode {
 struct BVHLeaf {
   primitives: i32;
   indexes: vec3<i32>;
-  faceNormal: vec3<f32>;
 };
 
 struct FragmentInfo {
@@ -69,12 +68,13 @@ require('./common.chuck.wgsl');
 
 fn genWorldRayByGBuffer(uv: vec2<f32>, gBInfo: HitPoint) -> Ray {
   let pixelSSPos: vec4<f32> = vec4<f32>(uv.x * 2. - 1., 1. - uv.y * 2., 0., 1.);
-  let pixelWorldPos: vec4<f32> = global.u_projInverse * global.u_viewInverse * pixelSSPos;
+  var pixelWorldPos: vec4<f32> = global.u_viewInverse * global.u_projInverse * pixelSSPos;
+  pixelWorldPos = pixelWorldPos / pixelWorldPos.w;
 
   var ray: Ray;
 
-  ray.origin = pixelWorldPos.xyz;
-  ray.dir = normalize(gBInfo.position - pixelWorldPos.xyz);
+  ray.origin = pixelWorldPos.xyz / pixelWorldPos.w;
+  ray.dir = normalize(gBInfo.position - ray.origin);
   ray.invDir = 1. / ray.dir;
 
   return ray;
@@ -103,9 +103,8 @@ fn getGBInfo(uv: vec2<f32>) -> HitPoint {
 
 fn getBVHNodeInfo(offset: i32) -> BVHNode {
   var node: BVHNode;
-  let realOffset: i32 = offset * 2;
-  let data0: vec4<f32> = u_bvh.value[realOffset];
-  let data1: vec4<f32> = u_bvh.value[realOffset + 1];
+  let data0: vec4<f32> = u_bvh.value[offset];
+  let data1: vec4<f32> = u_bvh.value[offset + 1];
   let child0: u32 = bitcast<u32>(data0[0]);
   let child1: u32 = bitcast<u32>(data1[0]);
   node.isChild0Leaf = (child0 >> 31u) != 0u;
@@ -187,14 +186,14 @@ fn getNormal(
 fn triangleHitTest(ray: Ray, leaf: BVHLeaf) -> FragmentInfo {
   var info: FragmentInfo;
   let indexes: vec3<i32> = leaf.indexes;
-  info.p0 = u_positions.value[indexes.x];
-  info.p1 = u_positions.value[indexes.y];
-  info.p2 = u_positions.value[indexes.z];
+  info.p0 = u_positions.value[indexes[0]];
+  info.p1 = u_positions.value[indexes[1]];
+  info.p2 = u_positions.value[indexes[2]];
 
   let e0: vec3<f32> = info.p1 - info.p0;
   let e1: vec3<f32> = info.p2 - info.p0;
   let p: vec3<f32> = cross(ray.dir, e1);
-  var det: f32 = dot(e1, p);
+  var det: f32 = dot(e0, p);
   var t: vec3<f32> = ray.origin - info.p0;
 
   if (det < 0.) {
@@ -263,14 +262,14 @@ fn leafHitTest(ray: Ray, offset: i32) -> HitPoint {
   var leaf: BVHLeaf = getBVHLeafInfo(offset);
   let primitives: i32 = leaf.primitives;
   
-  for (var i: i32 = 0; i < BVH_DEPTH; i = i + 1) {
+  for (var i: i32 = 0; i < primitives; i = i + 1) {
     info = triangleHitTest(ray, leaf);
 
     if (info.hit) {
       break;
     }
 
-    leaf = getBVHLeafInfo(i + 1);
+    leaf = getBVHLeafInfo(offset + i);
   }
 
   if (info.hit) {
@@ -335,7 +334,7 @@ fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool) -> Light {
 
   light.reflection.origin = hit.position;
   light.reflection.dir = reflect(ray.dir, hit.normal);
-  light.reflection.dir = 1. / light.reflection.dir;
+  light.reflection.invDir = 1. / light.reflection.dir;
 
   return light;
 }
@@ -347,19 +346,24 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint) -> vec3<f32> {
   var hit: HitPoint;
   var ray: Ray = light.reflection;
 
-  for (var i: u32 = 0u; i < MAX_TRACE_COUNT; i = i + 1u) {
-    hit = hitTest(ray);
-    let isLastOut: bool = !hit.hit;
-
-    light = calcLight(ray, hit, isLastOut);
-    energy = energy * light.energy;
-    lightColor = lightColor + light.color * energy;
-    ray = light.reflection;
-
-    if (energy < 0.01 || isLastOut) {
-      break;
-    }
+  hit = hitTest(ray);
+  if (hit.hit) {
+    lightColor = vec3<f32>(0., 1., 0.);
   }
+
+  // for (var i: u32 = 0u; i < MAX_TRACE_COUNT; i = i + 1u) {
+  //   hit = hitTest(ray);
+  //   let isLastOut: bool = !hit.hit;
+
+  //   light = calcLight(ray, hit, isLastOut);
+  //   energy = energy * light.energy;
+  //   lightColor = lightColor + light.color * energy;
+  //   ray = light.reflection;
+
+  //   if (energy < 0.01 || isLastOut) {
+  //     break;
+  //   }
+  // }
 
   return lightColor;
 }

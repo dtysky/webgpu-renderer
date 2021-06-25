@@ -367,7 +367,6 @@ export default class BVH extends HObject {
     this._bvhNodes = [];
     const flatInfo = {maxDepth: 1, nodes: [], leaves: []};
     this._traverseNode(this._rootNode, flatInfo);
-    console.log(this._rootNode)
 
     const {maxDepth, nodes, leaves} = flatInfo;
     const buffer = new ArrayBuffer(4 * (nodes.length + leaves.length));
@@ -379,7 +378,7 @@ export default class BVH extends HObject {
     f32View.set(nodes);
     u32View.set(leaves, nodesLen);
 
-    for (let i = 0; i < nodes.length; i += 8) {
+    for (let i = 0; i < nodesLen; i += 8) {
       for (let ci = 0; ci < 8; ci += 4) {
         const offset = i + ci;
 

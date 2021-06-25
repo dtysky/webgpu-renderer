@@ -19,7 +19,8 @@ const textures: {
   blue: Texture,
   black: Texture,
   array1white: Texture,
-  cubeWhite: CubeTexture
+  cubeWhite: CubeTexture,
+  cubeBlack: CubeTexture
 } = {} as any;
 
 export default textures;
@@ -48,5 +49,9 @@ export async function init() {
   textures.cubeWhite = new CubeTexture(
     1, 1,
     new Array<ArrayBuffer>(6).fill(new Uint8Array([255, 255, 255, 255]).buffer)
+  );
+  textures.cubeBlack = new CubeTexture(
+    1, 1,
+    new Array<ArrayBuffer>(6).fill(new Uint8Array([0, 0, 0, 255]).buffer)
   );
 }

@@ -3,7 +3,7 @@ struct VertexOutput {
   [[location(0)]] uv: vec2<f32>;
 };
 
-let pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+var<private> pos: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
   vec2<f32>(-1.0, -1.0),
   vec2<f32>(1.0, -1.0),
   vec2<f32>(-1.0, 1.0),
@@ -11,7 +11,7 @@ let pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
   vec2<f32>(1.0, -1.0),
   vec2<f32>(1.0, 1.0)
 );
-let uv : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
+var<private> uv: array<vec2<f32>, 6> = array<vec2<f32>, 6>(
   vec2<f32>(0.0, 1.0),
   vec2<f32>(1.0, 1.0),
   vec2<f32>(0.0, 0.0),

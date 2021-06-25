@@ -82,13 +82,13 @@ export default class RayTracingApp {
       this._rtManager = new H.RayTracingManager();
       this._rtManager.process(this._scene.cullCamera(this._camera), this._rtOutput);
       this._connectGBufferRenderTexture(this._rtManager.rtUnit);
-      debugCS(this._camera, this._rtManager.bvh);
+      // debugCS(this._camera, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
     }
 
-    this._showBVH();
-    // this._renderGBuffer();
+    // this._showBVH();
+    this._renderGBuffer();
     // this._showGBufferResult();
-    // this._computeRTSS();
+    this._computeRTSS();
     _scene.endFrame();
   }
 
@@ -124,16 +124,42 @@ export default class RayTracingApp {
   }
 }
 
-function debugCS(camera: H.Camera, bvh: H.BVH) {
-  const ray: Ray = {
-    origin: camera.pos,
-    dir: new Float32Array([1, 1, -1]),
-    invDir: new Float32Array([0, 0, 0])
-  };
-  H.math.vec3.div(ray.invDir, new Float32Array([1, 1, 1]), ray.dir);
+function debugCS(camera: H.Camera, bvh: H.BVH, positions: Float32Array) {
+  for (let i = 0; i < 10; i += 1) {
+    const uv = new Float32Array([Math.random(), Math.random()]);
+    const ssPos = new Float32Array([uv[0] * 2 - 1, 1 - uv[1] * 2, 0, 1]);
+    const worldPos = H.math.vec4.transformMat4(new Float32Array(4), ssPos, camera.invProjMat);
+    H.math.vec4.transformMat4(worldPos, worldPos, camera.invViewMat);
+    console.log(worldPos)
+    H.math.vec4.scale(worldPos, worldPos, 1 / worldPos[3]);
+    const dir = H.math.vec3.sub(new Float32Array(3), worldPos.slice(0, 3) as Float32Array, camera.pos) as Float32Array;
+    H.math.vec3.normalize(dir, dir);
 
-  const hited = hitTest(bvh, ray);
-  console.log(hited);
+    console.log('uv, ssPos, worldPos', uv, ssPos, worldPos);
+  
+    const ray: Ray = {
+      origin: camera.pos,
+      dir,
+      invDir: new Float32Array(3)
+    };
+    H.math.vec3.div(ray.invDir, new Float32Array([1, 1, 1]), ray.dir);
+  
+    const hitedNode = hitTest(bvh, ray);
+    console.log(hitedNode);
+  
+    if (!hitedNode) {
+      continue;
+    }
+  
+    if (hitedNode.isChild0Leaf) {
+      console.log(leafHitTest(bvh, ray, positions, hitedNode.child0Offset));
+      continue;
+    }
+  
+    if (hitedNode.isChild1Leaf) {
+      console.log(leafHitTest(bvh, ray, positions, hitedNode.child1Offset));
+    }
+  }
 }
 
 interface Ray {
@@ -150,6 +176,11 @@ interface BVHNode {
   child1Offset: number;
   max: Float32Array;
   min: Float32Array;
+};
+
+interface BVHLeaf {
+  primitives: number;
+  indexes: Uint32Array;
 };
 
 function boxHitTest(ray: Ray, max: Float32Array, min: Float32Array): number {
@@ -176,7 +207,7 @@ function boxHitTest(ray: Ray, max: Float32Array, min: Float32Array): number {
 }
 
 function getBVHNodeInfo(bvh: H.BVH, index: number): BVHNode {
-  let realOffset= index * 8;
+  let realOffset= index * 4;
   let data0 = bvh.buffer.slice(realOffset, realOffset + 4);
   let data1 = bvh.buffer.slice(realOffset + 4, realOffset + 8);
   let child0 = new Uint32Array(data0.buffer, 0, 1)[0];
@@ -192,24 +223,21 @@ function getBVHNodeInfo(bvh: H.BVH, index: number): BVHNode {
   };
 }
 
-function hitTest(bvh: H.BVH, ray: Ray): boolean {
+function hitTest(bvh: H.BVH, ray: Ray): BVHNode {
   console.log(ray);
-  var node: BVHNode = getBVHNodeInfo(bvh, 0);
+  let node: BVHNode = getBVHNodeInfo(bvh, 0);
   let hited = boxHitTest(ray, node.max, node.min);
-  console.log('start', node, hited);
 
   if (hited <= 0.) {
-    return false;
+    return null;
   }
 
   for (let i = 0; i < bvh.maxDepth; i = i + 1) {
     if (node.isChild0Leaf) {
-      console.log(node.child0Offset);
       break;
     }
 
     if (node.isChild1Leaf) {
-      console.log(node.child1Offset);
       break;
     }
 
@@ -218,7 +246,6 @@ function hitTest(bvh: H.BVH, ray: Ray): boolean {
 
     node = getBVHNodeInfo(bvh, child0Offset);
     hited = boxHitTest(ray, node.max, node.min);
-    console.log('child0', node, hited);
 
     if (hited > 0.) {
       continue;
@@ -226,12 +253,83 @@ function hitTest(bvh: H.BVH, ray: Ray): boolean {
 
     node = getBVHNodeInfo(bvh, child1Offset);
     hited = boxHitTest(ray, node.max, node.min);
-    console.log('child1', node, hited);
 
     if (hited <= 0.) {
-      return false;
+      return null;
     }
   }
 
+  return node;
+}
+
+function getBVHLeafInfo(bvh: H.BVH, offset: number): BVHLeaf {
+  let realOffset = offset * 4;
+  let data = new Uint32Array(bvh.buffer.buffer, realOffset * 4, 4);
+
+  return {
+    primitives: data[0],
+    indexes: data.slice(1)
+  };
+}
+
+function triangleHitTest(ray: Ray, leaf: BVHLeaf, positions: Float32Array): boolean {
+  let indexes = leaf.indexes;
+  let p0 = positions.slice(indexes[0] * 3, indexes[0] * 3 + 3);
+  let p1 = positions.slice(indexes[1] * 3, indexes[1] * 3 + 3);
+  let p2 = positions.slice(indexes[2] * 3, indexes[2] * 3 + 3);
+
+  let e0 = H.math.vec3.sub(new Float32Array(3), p1, p0);
+  let e1 = H.math.vec3.sub(new Float32Array(3), p2, p0);
+  let p = H.math.vec3.cross(new Float32Array(3), ray.dir, e1);
+  let det = H.math.vec3.dot(e0, p);
+  let t = H.math.vec3.sub(new Float32Array(3), ray.origin, p0);
+
+  if (det < 0.) {
+    H.math.vec3.scale(t, t, -1);
+    det = -det;
+  }
+
+  if (det < 0.0001) {
+    return false;
+  }
+
+  let u = H.math.vec3.dot(t, p);
+
+  if (u < 0. || u > det) {
+    return false;
+  }
+
+  let q = H.math.vec3.cross(new Float32Array(3), t, e0);
+  let v = H.math.vec3.dot(ray.dir, q);
+
+  if (v < 0. || v + u > det) {
+    return false;
+  }
+
+  let lt = H.math.vec3.dot(e1, q);
+  let invDet = 1. / det;
+  let hitPoint = H.math.vec3.add(
+    new Float32Array(3), ray.origin,
+    H.math.vec3.scale(new Float32Array(3), ray.dir, lt * invDet)
+  );
+  let weights = H.math.vec3.scale(new Float32Array(3), new Float32Array([0., u, v]), invDet);
+  weights[0] = 1. - weights[1] - weights[2];
+
+  console.log('xxxx', hitPoint, weights);
+
   return true;
+}
+
+function leafHitTest(bvh: H.BVH, ray: Ray, positions: Float32Array, offset: number): BVHLeaf {
+  var leaf: BVHLeaf = getBVHLeafInfo(bvh, offset);
+  
+  for (var i: number = 0; i < leaf.primitives; i = i + 1) {
+    if (triangleHitTest(ray, leaf, positions)) {
+      return leaf;
+    }
+
+    leaf = getBVHLeafInfo(bvh, offset + i);
+  }
+
+  return null;
 }
