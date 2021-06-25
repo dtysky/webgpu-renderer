@@ -108,9 +108,9 @@ fn getBVHNodeInfo(offset: i32) -> BVHNode {
   let data1: vec4<f32> = u_bvh.value[realOffset + 1];
   let child0: u32 = bitcast<u32>(data0[0]);
   let child1: u32 = bitcast<u32>(data1[0]);
-  node.isChild0Leaf = (child0 >> 31u) == 1u;
+  node.isChild0Leaf = (child0 >> 31u) != 0u;
   node.child0Offset = i32((child0 << 1u) >> 1u);
-  node.isChild1Leaf = (child1 >> 31u) == 1u;
+  node.isChild1Leaf = (child1 >> 31u) != 0u;
   node.child1Offset = i32((child1 << 1u) >> 1u);
   node.min = data0.yzw;
   node.max = data1.yzw;

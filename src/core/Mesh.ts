@@ -118,7 +118,13 @@ export default class Mesh extends Node {
   
       fragment: {
         module: fs,
-        targets: rt.colorFormats.map(format => ({format})),
+        targets: rt.colorFormats.map(format => ({
+          format,
+          blend: _material.blendColor ? {
+            color: _material.blendColor,
+            alpha: _material.blendAlpha
+          } : undefined
+        })),
         entryPoint: "main"
       },
   

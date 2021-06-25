@@ -9,5 +9,11 @@ struct VertexOutput {
 
 [[stage(fragment)]]
 fn main(vo: VertexOutput) -> [[location(0)]] vec4<f32> {
-  return vec4<f32>(0., 1., 0., 1.);
+  var color: vec4<f32> = material.u_color;
+
+  #if defined(USE_COLOR_0)
+    color = color * vec4<f32>(vo.color_0, 1.);
+  #endif
+
+  return color;
 }

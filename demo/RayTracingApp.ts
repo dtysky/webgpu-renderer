@@ -70,7 +70,7 @@ export default class RayTracingApp {
   }
 
   public update(dt: number) {
-    // this._frame();
+    this._frame();
   }
 
   private _frame() {
@@ -85,10 +85,10 @@ export default class RayTracingApp {
       debugCS(this._camera, this._rtManager.bvh);
     }
 
-    // this._showBVH();
-    this._renderGBuffer();
+    this._showBVH();
+    // this._renderGBuffer();
     // this._showGBufferResult();
-    this._computeRTSS();
+    // this._computeRTSS();
     _scene.endFrame();
   }
 
@@ -127,9 +127,10 @@ export default class RayTracingApp {
 function debugCS(camera: H.Camera, bvh: H.BVH) {
   const ray: Ray = {
     origin: camera.pos,
-    dir: new Float32Array([0, 0, 1]),
-    invDir: new Float32Array([0, 0, 1])
+    dir: new Float32Array([1, 1, -1]),
+    invDir: new Float32Array([0, 0, 0])
   };
+  H.math.vec3.div(ray.invDir, new Float32Array([1, 1, 1]), ray.dir);
 
   const hited = hitTest(bvh, ray);
   console.log(hited);
@@ -161,6 +162,8 @@ function boxHitTest(ray: Ray, max: Float32Array, min: Float32Array): number {
   let tmin = Math.max(tvmin[0], Math.max(tvmin[1], tvmin[2]));
   let tmax = Math.min(tvmax[0], Math.min(tvmax[1], tvmax[2]));
 
+  // console.log('hit test', max, min, t1, t2, tvmax, tvmin, tmax, tmin);
+
   if (tmin > tmax || tmin > 9999) {
     return -1.;
   }
@@ -180,8 +183,8 @@ function getBVHNodeInfo(bvh: H.BVH, index: number): BVHNode {
   let child1 = new Uint32Array(data1.buffer, 0, 1)[0];
 
   return {
-    isChild0Leaf: (child0 >> 31) == 1,
-    isChild1Leaf: (child1 >> 31) == 1,
+    isChild0Leaf: (child0 >> 31) !== 0,
+    isChild1Leaf: (child1 >> 31) !== 0,
     child0Offset: (child0 << 1) >> 1,
     child1Offset: (child1 << 1) >> 1,
     min: data0.slice(1),
@@ -190,6 +193,7 @@ function getBVHNodeInfo(bvh: H.BVH, index: number): BVHNode {
 }
 
 function hitTest(bvh: H.BVH, ray: Ray): boolean {
+  console.log(ray);
   var node: BVHNode = getBVHNodeInfo(bvh, 0);
   let hited = boxHitTest(ray, node.max, node.min);
   console.log('start', node, hited);

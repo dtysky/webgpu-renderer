@@ -6,8 +6,6 @@
  */
 import {mat4, vec3} from 'gl-matrix';
 import {buildinGeometries} from '../buildin';
-import ComputeUnit from './ComputeUnit';
-import Light from './Light';
 import Material from './Material';
 import Mesh from './Mesh';
 import Node from './Node';

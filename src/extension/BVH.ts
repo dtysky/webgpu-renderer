@@ -4,14 +4,12 @@
  * @Link   : dtysky.moe
  * @Date   : 6/15/2021, 11:14:51 PM
  */
-import { vec3 } from 'gl-matrix';
 import { buildinEffects } from '../buildin';
 import Geometry from '../core/Geometry';
 import HObject from '../core/HObject';
 import Material from '../core/Material';
 import Mesh from '../core/Mesh';
 import { callWithProfile, copyTypedArray, nthElement, partition } from '../core/shared';
-import Texture from '../core/Texture';
 
 enum EAxis {
   X,
@@ -118,8 +116,7 @@ class Bounds {
     return offset;
   }
 
-  // indexes is line-list format
-  public buildBox(): {positions: number[], indexes: number[]} {
+  public buildBox(mode: 'lines' | 'triangles'): {positions: number[], indexes: number[]} {
     const {max, min} = this;
     const positions = [];
     
@@ -129,11 +126,23 @@ class Bounds {
       }
     });
     
-    const indexes = [
-      0, 1, 1, 2, 2, 3, 3, 0,
-      4, 5, 5, 6, 6, 7, 7, 4,
-      0, 4, 1, 5, 2, 6, 3, 7
-    ];
+    let indexes: number[];
+    if (mode === 'lines') {
+      indexes = [
+        0, 1, 1, 2, 2, 3, 3, 0,
+        4, 5, 5, 6, 6, 7, 7, 4,
+        0, 4, 1, 5, 2, 6, 3, 7
+      ];
+    } else {
+      indexes = [
+        0, 1, 2, 2, 3, 0,
+        4, 5, 6, 6, 7, 4,
+        0, 4, 5, 5, 1, 0,
+        1, 5, 6, 6, 2, 1,
+        3, 2, 6, 6, 7, 3,
+        0, 3, 7, 7, 4, 0
+      ];
+    }
 
     return {positions, indexes};
   }
@@ -142,7 +151,7 @@ class Bounds {
     if (this._isDirty) {
       this._center = this.max.map((m, i) => (m + this.min[i]) / 2);
       this._size = this.max.map((m, i) => m - this.min[i]);
-      this._isDirty = true;
+      this._isDirty = false;
     }
   }
 }
@@ -152,6 +161,7 @@ export interface IBVHNode {
   bounds: Bounds;
   child0: IBVHNode | IBVHLeaf;
   child1: IBVHNode | IBVHLeaf;
+  depth: number;
 }
 
 export interface IBVHLeaf {
@@ -246,10 +256,10 @@ export default class BVH extends HObject {
   }
 
   protected _buildTree = () => {
-    this._rootNode = this._buildRecursive(0, this._boundsInfos.length) as IBVHNode;
+    this._rootNode = this._buildRecursive(0, this._boundsInfos.length, 0) as IBVHNode;
   }
 
-  protected _buildRecursive(start: number, end: number): IBVHNode | IBVHLeaf {
+  protected _buildRecursive(start: number, end: number, depth: number): IBVHNode | IBVHLeaf {
     const {_boundsInfos} = this;
 
     const bounds = new Bounds().initEmpty();
@@ -339,14 +349,15 @@ export default class BVH extends HObject {
         }, start, end);
       }
 
-      const child0 = this._buildRecursive(start, mid);
-      const child1 = this._buildRecursive(mid, end);
+      const child0 = this._buildRecursive(start, mid, depth + 1);
+      const child1 = this._buildRecursive(mid, end, depth + 1);
 
       return {
         axis: dim,
         bounds: new Bounds().initEmpty().mergeBounds(child0.bounds).mergeBounds(child1.bounds),
         child0,
-        child1
+        child1,
+        depth
       };
     }
   }
@@ -356,11 +367,12 @@ export default class BVH extends HObject {
     this._bvhNodes = [];
     const flatInfo = {maxDepth: 1, nodes: [], leaves: []};
     this._traverseNode(this._rootNode, flatInfo);
+    console.log(this._rootNode)
 
     const {maxDepth, nodes, leaves} = flatInfo;
     const buffer = new ArrayBuffer(4 * (nodes.length + leaves.length));
     const f32View = new Float32Array(buffer);
-    const u32View = new Int32Array(buffer);
+    const u32View = new Uint32Array(buffer);
     const nodesLen = nodes.length;
 
     this._bvhMaxDepth = maxDepth;
@@ -368,10 +380,10 @@ export default class BVH extends HObject {
     u32View.set(leaves, nodesLen);
 
     for (let i = 0; i < nodes.length; i += 8) {
-      for (let ci = 0; ci < 2; ci += 1) {
+      for (let ci = 0; ci < 8; ci += 4) {
         const offset = i + ci;
 
-        if (nodes[offset] & 0x8000000) {
+        if (nodes[offset] & 0x80000000) {
           // leaf
           u32View[offset] = nodes[offset] + nodesLen / 4;
         } else {
@@ -402,7 +414,7 @@ export default class BVH extends HObject {
     if (isBVHLeaf(node)) {
       _bvhLeaves.push(node);
       if (parentOffset >= 0) {
-        nodes[parentOffset * 8 + childIndex] = (1 << 31) & (leaves.length / 4);
+        nodes[parentOffset * 8 + childIndex] = (1 << 31) | (leaves.length / 4);
       }
 
       const count = node.infoEnd - node.infoStart;
@@ -431,43 +443,119 @@ export default class BVH extends HObject {
   }
 
   protected _buildDebugMesh() {
-    const {_bvhNodes} = this;
+    const {_bvhNodes, _bvhMaxDepth} = this;
+    const mode = 'lines' as 'lines' | 'triangles';
 
     const nodesLen = _bvhNodes.length;
     // per box has 8 vertex
     const positions = new Float32Array(nodesLen * 8 * 3);
-    // line-list
-    const indexes = new Uint32Array(nodesLen * 24);
+    const colors = new Float32Array(nodesLen * 8 * 3);
+    let indexes: Uint32Array;
+    if (mode === 'lines') {
+      indexes = new Uint32Array(nodesLen * 24);
+    } else {
+      indexes = new Uint32Array(nodesLen * 36);
+    }
+
+    const toteLDepthCount: number[] = new Array(_bvhMaxDepth).fill(0);
+    const depthCount: number[] = new Array(_bvhMaxDepth).fill(0);
+    _bvhNodes.forEach(node => {
+      toteLDepthCount[node.depth] += 1;
+    });
 
     let index = 0;
     _bvhNodes.forEach(node => {
-      const box = node.bounds.buildBox();
+      const box = node.bounds.buildBox(mode);
       const offset = index * 8;
       const pOffset = index * 8 * 3;
-      const iOffset = index * 24;
+      const cOffset = index * 8 * 3;
+      const iOffset = index * box.indexes.length;
 
-      positions.set(box.positions, pOffset);
+      const color = hslToRgb(
+        node.depth / _bvhMaxDepth,
+        (depthCount[node.depth] / toteLDepthCount[node.depth]) * 0.7 + 0.3,
+        0.5
+      );
+      for (let ci = 0; ci < 24; ci += 3) {
+        colors.set(color, cOffset + ci);
+      }
+      
       indexes.set(box.indexes.map(v => v + offset), iOffset);
-
+      positions.set(box.positions, pOffset);
+      
       index += 1;
+      depthCount[node.depth] += 1;
     });
 
     this._debugMesh = new Mesh(
-      new Geometry([{
-        layout: {
-          attributes: [{
-            name: 'position',
-            shaderLocation: 0,
-            format: 'float32x3',
-            offset: 0
-          }],
-          arrayStride: 12
+      new Geometry([
+        {
+          layout: {
+            attributes: [{
+              name: 'position',
+              shaderLocation: 0,
+              format: 'float32x3',
+              offset: 0
+            }],
+            arrayStride: 12
+          },
+          data: positions
         },
-        data: positions
-      }], indexes, indexes.length),
-      new Material(buildinEffects.rGreen, undefined, undefined, {
-        primitiveType: 'line-list', cullMode: 'none'
-      })
+        {
+          layout: {
+            attributes: [{
+              name: 'color_0',
+              shaderLocation: 1,
+              format: 'float32x3',
+              offset: 0
+            }],
+            arrayStride: 12
+          },
+          data: colors
+        }
+      ], indexes, indexes.length),
+      new Material(
+        buildinEffects.rColor,
+        {u_color: new Float32Array([1, 1, 1, .4])},
+        undefined,
+        {
+          primitiveType: mode === 'lines' ? 'line-list' : 'triangle-list',
+          cullMode: 'none',
+          blendColor: {
+            srcFactor: 'src-alpha',
+            dstFactor: 'one-minus-src-alpha'
+          },
+          blendAlpha: {
+            srcFactor: 'zero',
+            dstFactor: 'one'
+          }
+        }
+      )
     );
   }
+}
+
+function hue2rgb(p: number, q: number, t: number) {
+  if(t < 0) t += 1;
+  if(t > 1) t -= 1;
+  if(t < 1/6) return p + (q - p) * 6 * t;
+  if(t < 1/2) return q;
+  if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+  return p;
+}
+
+function hslToRgb(h: number, s: number, l: number){
+  let r: number, g: number, b: number;
+
+  if(s == 0){
+    r = g = b = l; // achromatic
+  } else {
+    var q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    var p = 2 * l - q;
+    r = hue2rgb(p, q, h + 1/3);
+    g = hue2rgb(p, q, h);
+    b = hue2rgb(p, q, h - 1/3);
+  }
+
+  return [r, g, b];
 }

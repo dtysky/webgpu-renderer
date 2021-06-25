@@ -45,6 +45,14 @@ export default class Material extends HObject {
     return this._renderStates.cullMode || this._effect.renderStates.cullMode;
   }
 
+  get blendColor() {
+    return this._renderStates.blendColor || this._effect.renderStates.blendColor;
+  }
+
+  get blendAlpha() {
+    return this._renderStates.blendAlpha || this._effect.renderStates.blendAlpha;
+  }
+
   constructor(
     protected _effect: Effect,
     values?: {[name: string]: TUniformValue},

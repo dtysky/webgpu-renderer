@@ -12,6 +12,8 @@ import UBTemplate, {EUBGroup, IUniformsDescriptor} from "./UBTemplate";
 export interface IRenderStates {
   cullMode?: GPUCullMode;
   primitiveType?: GPUPrimitiveTopology;
+  blendColor?: GPUBlendComponent;
+  blendAlpha?: GPUBlendComponent;
 }
 
 export const DEFAULT_RENDER_STATES: IRenderStates = {
@@ -95,18 +97,9 @@ export default class Effect extends HObject {
 
     if (isComputeOptions(options)) {
       this._cs = options.cs
-      // const csShader = this.getShader({}, '').cs;
-      // const csPipeline = device.createComputePipeline({
-      //   compute: {
-      //     module: csShader,
-      //     entryPoint: 'main'
-      //   }
-      // });
-      // this._uniformLayout = csPipeline.getBindGroupLayout(0);
     } else {
       this._vs = options.vs;
       this._fs = options.fs;
-      // this._uniformLayout = device.createBindGroupLayout(this._uniformLayoutDesc);
     }
   }
 

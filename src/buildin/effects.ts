@@ -6,12 +6,11 @@
  */
 import {mat4} from 'gl-matrix';
 import Effect from '../core/Effect';
-import renderEnv from '../core/renderEnv';
 import {createGPUBuffer} from '../core/shared';
 import textures from './textures';
 
 const effects: {
-  rGreen: Effect,
+  rColor: Effect,
   rUnlit: Effect,
   rPBR: Effect,
   rSkybox: Effect,
@@ -38,15 +37,15 @@ export function init() {
     gpuValue: createGPUBuffer(new Float32Array(4), GPUBufferUsage.STORAGE)
   };
 
-  effects.rGreen = new Effect('rGreen', {
+  effects.rColor = new Effect('rColor', {
     vs: require('./shaders/basic/model.vert.wgsl'),
-    fs: require('./shaders/basic/green.frag.wgsl'),
+    fs: require('./shaders/basic/color.frag.wgsl'),
     uniformDesc: {
       uniforms: [
         {
-          name: 'u_emptyHack',
-          type: 'number',
-          defaultValue: new Float32Array(1)
+          name: 'u_color',
+          type: 'vec4',
+          defaultValue: new Float32Array([1, 0, 0, 1])
         }
       ]
     },
