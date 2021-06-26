@@ -82,7 +82,7 @@ export default class RayTracingApp {
       this._rtManager = new H.RayTracingManager();
       this._rtManager.process(this._scene.cullCamera(this._camera), this._rtOutput);
       this._connectGBufferRenderTexture(this._rtManager.rtUnit);
-      // debugCS(this._camera, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
+      debugCS(this._camera, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
     }
 
     // this._showBVH();
@@ -125,8 +125,9 @@ export default class RayTracingApp {
 }
 
 function debugCS(camera: H.Camera, bvh: H.BVH, positions: Float32Array) {
-  for (let i = 0; i < 10; i += 1) {
-    const uv = new Float32Array([Math.random(), Math.random()]);
+  for (let i = 0; i < 1; i += 1) {
+    // const uv = new Float32Array([Math.random() / 2, Math.random() / 2]);
+    const uv = new Float32Array([0, 0]);
     const ssPos = new Float32Array([uv[0] * 2 - 1, 1 - uv[1] * 2, 0, 1]);
     const worldPos = H.math.vec4.transformMat4(new Float32Array(4), ssPos, camera.invProjMat);
     H.math.vec4.transformMat4(worldPos, worldPos, camera.invViewMat);

@@ -347,9 +347,10 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint) -> vec3<f32> {
   var ray: Ray = light.reflection;
 
   hit = hitTest(ray);
-  if (hit.hit) {
-    lightColor = vec3<f32>(0., 1., 0.);
-  }
+  lightColor = hit.diffuse;
+  // lightColor = abs(light.reflection.origin);
+  lightColor = abs(light.reflection.dir);
+  // lightColor.z = -light.reflection.dir.z;
 
   // for (var i: u32 = 0u; i < MAX_TRACE_COUNT; i = i + 1u) {
   //   hit = hitTest(ray);
