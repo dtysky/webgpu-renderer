@@ -42,7 +42,7 @@ export interface IUniformsDescriptor {
     name: string,
     type: 'number' | 'vec2' | 'vec3' | 'vec4',
     format?: 'f32' | 'u32' | 'i32',
-    customStruct?: string,
+    customStruct?: {name: string, code: string},
     writable?: boolean,
     defaultValue: TUniformTypedArray,
     gpuValue?: GPUBuffer
@@ -215,13 +215,17 @@ export default class UBTemplate extends HObject {
           buffer: {type: ud.writable ? 'storage' : 'read-only-storage' as GPUBufferBindingType}
         });
 
-        const hash = `Storage${ud.type}${ud.format || 'f32'}`;
+        let hash = `Storage${ud.type}${ud.format || 'f32'}`;
         if (!ud.customStruct && !structCache[hash]) {
           this._shaderPrefix += (structCache[hash] = structCache[hash] || this._getStorageStruct(hash, ud.type, ud.format || 'f32')) + '\n';
         }
+        if (ud.customStruct) {
+          hash = ud.customStruct.name;
+          this._shaderPrefix += ud.customStruct.code;
+        }
         const gpuValue = ud.gpuValue ? ud.gpuValue : createGPUBuffer(ud.defaultValue, GPUBufferUsage.STORAGE);
         this._uniformsInfo[ud.name] = {bindingId, index, type: 'storage', defaultValue: ud.defaultValue, defaultGpuValue: gpuValue};
-        this._shaderPrefix += `[[group(${_groupId}), binding(${bindingId})]] var<storage, ${ud.writable ? 'read_write' : 'read'}> ${ud.name}: ${ud.customStruct ? ud.customStruct : hash};\n`
+        this._shaderPrefix += `[[group(${_groupId}), binding(${bindingId})]] var<storage, ${ud.writable ? 'read_write' : 'read'}> ${ud.name}: ${hash};\n`
 
         index += 1;
         bindingId += 1;

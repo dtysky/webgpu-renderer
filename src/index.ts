@@ -34,7 +34,7 @@ export {default as GlTFLoader, IGlTFResource, IGlTFLoaderOptions} from './resour
 import {buildinUBTemplates, init as initBuildin} from './buildin';
 export * from './buildin';
 
-export {createGPUBuffer} from './core/shared';
+export {createGPUBuffer, createGPUBufferBySize} from './core/shared';
 
 export async function init(canvas: HTMLCanvasElement) {
   await renderEnv.init(canvas);

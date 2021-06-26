@@ -1,6 +1,7 @@
 let MAX_TRACE_COUNT: u32 = 1u;
 let MAX_RAY_LENGTH: f32 = 9999.;
 let BVH_DEPTH: i32 = ${BVH_DEPTH};
+let BOX_HIT_TEST_MIN = -0.005;
 
 struct VertexOutput {
   [[builtin(position)]] position: vec4<f32>;
@@ -285,6 +286,7 @@ fn hitTest(ray: Ray) -> HitPoint {
   var hited: f32 = boxHitTest(ray, node.max, node.min);
 
   if (hited <= 0.) {
+    hit.rough = hited;
     return hit;
   }
 
@@ -305,14 +307,15 @@ fn hitTest(ray: Ray) -> HitPoint {
     node = getBVHNodeInfo(child0Offset);
     hited = boxHitTest(ray, node.max, node.min);
 
-    if (hited > 0.) {
+    if (hited > BOX_HIT_TEST_MIN) {
       continue;
     }
 
     node = getBVHNodeInfo(child1Offset);
     hited = boxHitTest(ray, node.max, node.min);
 
-    if (hited <= 0.) {
+    if (hited <= BOX_HIT_TEST_MIN) {
+      hit.rough = hited;
       break;
     }
   }
@@ -339,7 +342,7 @@ fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool) -> Light {
   return light;
 }
 
-fn traceLight(startRay: Ray, gBInfo: HitPoint) -> vec3<f32> {
+fn traceLight(startRay: Ray, gBInfo: HitPoint, debugIndex: i32) -> vec3<f32> {
   var light: Light = calcLight(startRay, gBInfo, false);
   var energy: f32 = light.energy;
   var lightColor: vec3<f32> = light.color * energy;
@@ -347,9 +350,19 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint) -> vec3<f32> {
   var ray: Ray = light.reflection;
 
   hit = hitTest(ray);
-  lightColor = hit.diffuse;
+  if (hit.hit) {
+    lightColor = hit.diffuse;
+  }
+  // lightColor = hit.diffuse;
   // lightColor = abs(light.reflection.origin);
-  lightColor = abs(light.reflection.dir);
+  // lightColor = abs(light.reflection.dir);
+
+  u_debugInfo.rays[debugIndex].origin = vec4<f32>(ray.origin, hit.rough);
+  u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, 0.);
+  u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 0.);
+  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(startRay.origin, 0.);
+  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(startRay.dir, 0.);
+
   // lightColor.z = -light.reflection.dir.z;
 
   // for (var i: u32 = 0u; i < MAX_TRACE_COUNT; i = i + 1u) {
@@ -393,7 +406,7 @@ fn main(
   }
 
   let worldRay: Ray = genWorldRayByGBuffer(baseUV, gBInfo);
-  let light: vec3<f32> = traceLight(worldRay, gBInfo);
+  let light: vec3<f32> = traceLight(worldRay, gBInfo, baseIndex.x + baseIndex.y * screenSize.x);
   let shadow: f32 = traceShadow(worldRay);
 
   textureStore(u_output, baseIndex, vec4<f32>(light * shadow, 1.));

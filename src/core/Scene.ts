@@ -127,8 +127,8 @@ export default class Scene extends HObject {
     pass.endPass();
   }
 
-  public drawSkybox() {
-
+  public copyBuffer(src: GPUBuffer, dst: GPUBuffer, size: number) {
+    this._command.copyBufferToBuffer(src, 0, dst, 0, size);
   }
 
   public endFrame() {

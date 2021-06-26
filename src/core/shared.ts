@@ -59,6 +59,8 @@ export function createGPUBufferBySize(size: number, usage: GPUBufferUsageFlags) 
     mappedAtCreation: true
   });
 
+  buffer.unmap();
+
   return buffer;
 }
 
