@@ -125,7 +125,7 @@ export function debugCamera(camera: H.Camera, bvh: H.BVH, positions: Float32Arra
   }
 }
 
-const BOX_HIT_TEST_MIN = -0.005;
+const FLOAT_ZERO = -0.005;
 
 interface Ray {
   origin: Float32Array;
@@ -158,19 +158,17 @@ function boxHitTest(ray: Ray, max: Float32Array, min: Float32Array): number {
   let tmin = Math.max(tvmin[0], Math.max(tvmin[1], tvmin[2]));
   let tmax = Math.min(tvmax[0], Math.min(tvmax[1], tvmax[2]));
 
-  console.log('hit test', max, min, t1, t2, tvmax, tvmin, tmax, tmin);
+  console.log('box hit test', max, min, t1, t2, tvmax, tvmin, tmax, tmin);
 
-  const diff = tmax - tmin;
-
-  if (diff < 0 || tmin > 9999) {
+  if (tmax - tmin < FLOAT_ZERO || tmin > 9999) {
     return -1.;
   }
 
-  if (tmin > 0.) {
-    return tmin;
+  if (tmin > FLOAT_ZERO) {
+    return tmin - FLOAT_ZERO;
   }
 
-  return tmax;
+  return tmax - FLOAT_ZERO;
 }
 
 function getBVHNodeInfo(bvh: H.BVH, index: number): BVHNode {
@@ -216,7 +214,7 @@ function hitTest(bvh: H.BVH, ray: Ray): BVHNode {
 
     console.log('child0', node, hited);
 
-    if (hited > BOX_HIT_TEST_MIN) {
+    if (hited > 0) {
       continue;
     }
 
@@ -225,7 +223,7 @@ function hitTest(bvh: H.BVH, ray: Ray): BVHNode {
 
     console.log('child1', node, hited);
 
-    if (hited < BOX_HIT_TEST_MIN) {
+    if (hited < 0) {
       return null;
     }
   }
@@ -254,6 +252,8 @@ function triangleHitTest(ray: Ray, leaf: BVHLeaf, positions: Float32Array): bool
   let p = H.math.vec3.cross(new Float32Array(3), ray.dir, e1);
   let det = H.math.vec3.dot(e0, p);
   let t = H.math.vec3.sub(new Float32Array(3), ray.origin, p0);
+
+  console.log('triangle hit test', p0, p1, p2, e0, e1, p, det, t);
 
   if (det < 0.) {
     H.math.vec3.scale(t, t, -1);

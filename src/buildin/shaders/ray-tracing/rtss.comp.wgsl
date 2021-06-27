@@ -1,7 +1,7 @@
 let MAX_TRACE_COUNT: u32 = 1u;
 let MAX_RAY_LENGTH: f32 = 9999.;
 let BVH_DEPTH: i32 = ${BVH_DEPTH};
-let BOX_HIT_TEST_MIN = -0.005;
+let FLOAT_ZERO = -0.005;
 
 struct VertexOutput {
   [[builtin(position)]] position: vec4<f32>;
@@ -136,15 +136,15 @@ fn boxHitTest(ray: Ray, max: vec3<f32>, min: vec3<f32>) -> f32 {
   let tmin: f32 = max(tvmin.x, max(tvmin.y, tvmin.z));
   let tmax: f32 = min(tvmax.x, min(tvmax.y, tvmax.z));
 
-  if (tmin > tmax || tmin > MAX_RAY_LENGTH) {
+  if (tmax - tmin < FLOAT_ZERO || tmin > MAX_RAY_LENGTH) {
     return -1.;
   }
   
-  if (tmin > 0.) {
-    return tmin;
+  if (tmin > FLOAT_ZERO) {
+    return tmin - FLOAT_ZERO;
   }
 
-  return tmax;
+  return tmax - FLOAT_ZERO;
 }
 
 fn getFaceNormal(frag: FragmentInfo) -> vec3<f32> {
@@ -307,14 +307,14 @@ fn hitTest(ray: Ray) -> HitPoint {
     node = getBVHNodeInfo(child0Offset);
     hited = boxHitTest(ray, node.max, node.min);
 
-    if (hited > BOX_HIT_TEST_MIN) {
+    if (hited > 0.) {
       continue;
     }
 
     node = getBVHNodeInfo(child1Offset);
     hited = boxHitTest(ray, node.max, node.min);
 
-    if (hited <= BOX_HIT_TEST_MIN) {
+    if (hited <= 0.) {
       hit.rough = hited;
       break;
     }
