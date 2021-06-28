@@ -6,53 +6,151 @@
  */
 import * as H from '../src';
 
+const BOX_HIT_TEST_MIN = -0.005;
+
+interface IDebugPixel {
+  preOrigin: Float32Array;
+  preDir: Float32Array;
+  origin: Float32Array;
+  dir: Float32Array;
+  nextOrigin: Float32Array;
+  nextDir: Float32Array;
+  normal: Float32Array;
+}
+
 export class DebugInfo {
   protected _cpu: Float32Array;
   protected _gpu: GPUBuffer;
   protected _view: GPUBuffer;
   protected _size: number;
+  protected _rtManager: H.RayTracingManager
 
   constructor() {
     const {renderEnv} = H;
-    const size = this._size = 4 * 5;
+    const size = this._size = 4 * 7;
 
     this._cpu = new Float32Array(size * renderEnv.width * renderEnv.height);
     this._gpu = H.createGPUBuffer(this._cpu, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
     this._view = H.createGPUBufferBySize(size * renderEnv.width * renderEnv.height * 4, GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
   }
 
-  public setup(rtUnit: H.ComputeUnit) {
-    rtUnit.setUniform('u_debugInfo', this._cpu, this._gpu)
+  public setup(rtManager: H.RayTracingManager) {
+    this._rtManager = rtManager;
+    this._rtManager.rtUnit.setUniform('u_debugInfo', this._cpu, this._gpu)
   }
 
   public run(scene: H.Scene) {
     scene.copyBuffer(this._gpu, this._view, this._cpu.byteLength);
   }
 
-  public async showDebugInfo(start: number, end: number): Promise<{origin: Float32Array, dir: Float32Array}[]> {
+  public async showDebugInfo(
+    point1: [number, number],
+    point2: [number, number]
+  ): Promise<{
+    rays: IDebugPixel[],
+    mesh: H.Mesh
+  }> {
     await this._view.mapAsync(GPUMapMode.READ);
     const data = new Float32Array(this._view.getMappedRange());
-    const rays = this._decodeDebugInfo(data, start, end);
-    console.log(rays);
+    const rays = this._decodeDebugInfo(data, point1, point2);
 
-    return rays;
+    const positions = new Float32Array(rays.length * 6 * 3);
+    const colors = new Float32Array(rays.length * 6 * 3);
+    const indexes = new Uint32Array(rays.length * 6);
+
+    rays.forEach(({preOrigin, preDir, origin, dir, nextOrigin, nextDir}, index) => {
+      const po = index * 3 * 6;
+      const io = index * 6;
+
+      positions.set(preOrigin, po);
+      positions.set(H.math.vec3.add(new Float32Array(3), preOrigin, H.math.vec3.scale(new Float32Array(3), preDir, 20)), po + 3);
+      colors.set([1, 0, 0], po);
+      colors.set([1, 0, 0], po + 3);
+      positions.set(origin, po + 6);
+      positions.set(H.math.vec3.add(new Float32Array(3), origin, H.math.vec3.scale(new Float32Array(3), dir, 20)), po + 9);
+      colors.set([0, 1, 0], po + 6);
+      colors.set([0, 1, 0], po + 9);
+      positions.set(nextOrigin, po + 12);
+      positions.set(H.math.vec3.add(new Float32Array(3), nextOrigin, H.math.vec3.scale(new Float32Array(3), nextDir, 20)), po + 15);
+      colors.set([0, 0, 1], po + 12);
+      colors.set([0, 0, 1], po + 15);
+      indexes.set([index * 3, index * 3 + 1, index * 3 + 2, index * 3 + 3, index * 3 + 4, index * 3 + 5], io);
+    });
+
+    const geometry = new H.Geometry(
+      [
+        {
+          layout: {
+            arrayStride: 3 * 4,
+            attributes: [{
+              name: 'position',
+              shaderLocation: 0,
+              offset: 0,
+              format: 'float32x3'
+            }],
+          },
+          data: positions
+        },
+        {
+          layout: {
+            arrayStride: 3 * 4,
+            attributes: [{
+              name: 'color_0',
+              shaderLocation: 1,
+              offset: 0,
+              format: 'float32x3'
+            }],
+          },
+          data: colors
+        }
+      ],
+      indexes,
+      rays.length * 6
+    );
+    const material = new H.Material(
+      H.buildinEffects.rColor,
+      {u_color: new Float32Array([1, 1, 1])},
+      undefined,
+      {cullMode: 'none', primitiveType: 'line-list', depthCompare: 'always'}
+    );
+    const mesh = new H.Mesh(geometry, material);
+
+    this._view.unmap();
+
+    return {rays, mesh};
   }
 
-  protected _decodeDebugInfo(view: Float32Array, start: number, end: number) {
-    const res: {origin: Float32Array, dir: Float32Array}[] = [];
+  protected _decodeDebugInfo(
+    view: Float32Array,
+    point1: [number, number],
+    point2: [number, number]
+  ) {
+    const res: IDebugPixel[] = [];
 
-    for (let index = start; index < end; index += 1) {
-      const offset = index * this._size;
-      res.push({
-        origin: view.slice(offset, offset + 3),
-        dir: view.slice(offset + 4, offset + 7),
-        normal: view.slice(offset + 8, offset + 11),
-        preOrigin: view.slice(offset + 12, offset + 15),
-        preDir: view.slice(offset + 16, offset + 19)
-      } as any);
-
-      if (view[offset + 3] !== 0) {
-        console.log('not hited', index, view[offset + 3]);
+    for (let y = point1[1]; y < point2[1]; y += 1) {
+      for (let x = point1[0]; x < point2[0]; x += 1) {
+        const index = y * H.renderEnv.width + x;
+        const offset = index * this._size;
+        res.push({
+          preOrigin: view.slice(offset, offset + 4),
+          preDir: view.slice(offset + 4, offset + 8),
+          origin: view.slice(offset + 8, offset + 12),
+          dir: view.slice(offset + 12, offset + 16),
+          nextOrigin: view.slice(offset + 16, offset + 20),
+          nextDir: view.slice(offset + 20, offset + 24),
+          normal: view.slice(offset + 24, offset + 28)
+        } as IDebugPixel);
+  
+        if (view[offset + 3]) {
+          // console.log('hited', [x, y], view[offset + 7], this._rtManager.meshes[view[offset + 11]].name, view[offset + 15], view.slice(offset + 20, offset + 23));
+          console.log(
+            'hited', [x, y], [view[offset + 19], view[offset + 23]],
+            view[offset + 11], view[offset + 15],
+            view.slice(offset + 20, offset + 23)
+          );
+        } else {
+          console.log('not hited', [x, y], [view[offset + 19], view[offset + 23]], view[offset + 7]);
+        }
       }
     }
 
@@ -68,6 +166,7 @@ export function debugRay(rayInfo: {origin: Float32Array, dir: Float32Array}, bvh
   };
   H.math.vec3.div(ray.invDir, new Float32Array([1, 1, 1]), ray.dir);
 
+  console.log('ray info', rayInfo);
   console.log('ray', ray);
 
   const hitedNode = hitTest(bvh, ray);
@@ -124,8 +223,6 @@ export function debugCamera(camera: H.Camera, bvh: H.BVH, positions: Float32Arra
     }
   }
 }
-
-const BOX_HIT_TEST_MIN = -0.005;
 
 interface Ray {
   origin: Float32Array;
@@ -195,7 +292,7 @@ function hitTest(bvh: H.BVH, ray: Ray): BVHNode {
   let hited = boxHitTest(ray, node.max, node.min);
   console.log('start', node, hited);
 
-  if (hited <= 0.) {
+  if (hited <= BOX_HIT_TEST_MIN) {
     return null;
   }
 
@@ -255,6 +352,8 @@ function triangleHitTest(ray: Ray, leaf: BVHLeaf, positions: Float32Array): bool
   let det = H.math.vec3.dot(e0, p);
   let t = H.math.vec3.sub(new Float32Array(3), ray.origin, p0);
 
+  console.log(p0, p1, p2);
+
   if (det < 0.) {
     H.math.vec3.scale(t, t, -1);
     det = -det;
@@ -294,7 +393,8 @@ function triangleHitTest(ray: Ray, leaf: BVHLeaf, positions: Float32Array): bool
 function leafHitTest(bvh: H.BVH, ray: Ray, positions: Float32Array, offset: number): BVHLeaf {
   var leaf: BVHLeaf = getBVHLeafInfo(bvh, offset);
 
-  for (var i: number = 0; i < leaf.primitives; i = i + 1) {
+  for (let i: number = 0; i < leaf.primitives; i = i + 1) {
+    console.log(offset, i, leaf)
     if (triangleHitTest(ray, leaf, positions)) {
       return leaf;
     }

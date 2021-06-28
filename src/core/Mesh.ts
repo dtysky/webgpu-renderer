@@ -136,7 +136,7 @@ export default class Mesh extends Node {
       depthStencil: rt.depthStencilFormat && {
         format: rt.depthStencilFormat,
         depthWriteEnabled: true,
-        depthCompare: 'less-equal'
+        depthCompare: _material.depthCompare
       }
     });
   }

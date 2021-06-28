@@ -21,6 +21,7 @@ export default class RayTracingApp {
   protected _rtOutput: H.RenderTexture;
   protected _rtBlit: H.ImageMesh;
   protected _rtDebugInfo: DebugInfo;
+  protected _rtDebugMesh: H.Mesh;
 
   public async init() {
     const {renderEnv} = H;
@@ -70,17 +71,19 @@ export default class RayTracingApp {
     this._camControl.control(this._camera, new H.Node());
     console.log(model)
 
-    this._frame();
-    // debugCamera(this._camera, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
-    const rays = await this._rtDebugInfo.showDebugInfo(640 , 641);
+    await this._frame();
+    const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([400, 400], [401, 401]);
+    this._rtDebugMesh = mesh;
     rays.forEach(ray => debugRay(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
+    // debugCamera(this._camera, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
+    await this._frame();
   }
 
-  public update(dt: number) {
-    // this._frame();
+  public async update(dt: number) {
+    // await this._frame();
   }
 
-  private _frame() {
+  private async _frame() {
     const {_scene} = this;
 
     _scene.startFrame();
@@ -90,7 +93,7 @@ export default class RayTracingApp {
       this._rtManager = new H.RayTracingManager();
       this._rtManager.process(this._scene.cullCamera(this._camera), this._rtOutput);
       this._connectGBufferRenderTexture(this._rtManager.rtUnit);
-      this._rtDebugInfo.setup(this._rtManager.rtUnit);
+      this._rtDebugInfo.setup(this._rtManager);
     }
 
     // this._showBVH();
@@ -100,6 +103,13 @@ export default class RayTracingApp {
 
     if (first) {
       this._rtDebugInfo.run(_scene);
+    }
+
+    // const {mesh} = await this._rtDebugInfo.showDebugInfo([2000, 400], [2001, 401]);
+    // this._rtDebugMesh = mesh;
+
+    if (this._rtDebugMesh) {
+      _scene.renderCamera(this._camera, [this._rtDebugMesh], false);
     }
 
     _scene.endFrame();

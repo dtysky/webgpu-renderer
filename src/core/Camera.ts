@@ -146,7 +146,8 @@ export default class Camera extends Node {
   public render(
     cmd: GPUCommandEncoder,
     rt: RenderTexture,
-    meshes: Mesh[]
+    meshes: Mesh[],
+    clear: boolean = false
   ) {
     const [r, g, b, a] = this.clearColor;
     const { x, y, w, h } = this.viewport;
@@ -155,7 +156,7 @@ export default class Camera extends Node {
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: colorViews.map(view => ({
         view,
-        loadValue: { r, g, b, a },
+        loadValue: clear ? { r, g, b, a } : 'load' as GPULoadOp,
         storeOp: this.colorOp
       })),
       depthStencilAttachment: depthStencilView && {

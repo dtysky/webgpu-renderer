@@ -29,6 +29,7 @@ import BVH from './BVH';
    public static RESIZE_CTX: CanvasRenderingContext2D;
    public isRayTracingManager: boolean = true;
  
+   public meshes: Mesh[];
    protected _attributesInfo: {
      position: IBVHAttributeValue,
      texcoord_0: IBVHAttributeValue,
@@ -75,6 +76,7 @@ import BVH from './BVH';
  
    // batch all meshes and build bvh
    public process(meshes: Mesh[], output: RenderTexture) {
+    this.meshes = meshes;
     callWithProfile('build AttributeBuffers', this._buildAttributeBuffers, [meshes]);
     callWithProfile('build CommonUniforms', this._buildCommonUniforms, [this._materials]);
     callWithProfile('build GBufferMesh', this._buildGBufferMesh, []);
@@ -100,8 +102,9 @@ import BVH from './BVH';
  
      const {position, texcoord_0, normal, meshMatIndex} = this._attributesInfo = {
        position: {
-         value: new Float32Array(vertexCount * 3),
-         length: 3,
+         // alignment of vec3 is 16bytes!
+         value: new Float32Array(vertexCount * 4),
+         length: 4,
          format: 'float32x3'
        },
        texcoord_0: {
@@ -110,8 +113,9 @@ import BVH from './BVH';
          format: 'float32x2'
        },
        normal: {
-         value: new Float32Array(vertexCount * 3),
-         length: 3,
+         // alignment of vec3 is 16bytes!
+         value: new Float32Array(vertexCount * 4),
+         length: 4,
          format: 'float32x3'
        },
        meshMatIndex: {

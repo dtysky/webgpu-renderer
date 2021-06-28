@@ -45,6 +45,10 @@ export default class Material extends HObject {
     return this._renderStates.cullMode || this._effect.renderStates.cullMode;
   }
 
+  get depthCompare() {
+    return this._renderStates.depthCompare || this._effect.renderStates.depthCompare;
+  }
+
   get blendColor() {
     return this._renderStates.blendColor || this._effect.renderStates.blendColor;
   }

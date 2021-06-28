@@ -14,11 +14,13 @@ export interface IRenderStates {
   primitiveType?: GPUPrimitiveTopology;
   blendColor?: GPUBlendComponent;
   blendAlpha?: GPUBlendComponent;
+  depthCompare?: GPUCompareFunction;
 }
 
 export const DEFAULT_RENDER_STATES: IRenderStates = {
   cullMode: 'back',
-  primitiveType: 'triangle-list'
+  primitiveType: 'triangle-list',
+  depthCompare: 'less-equal'
 };
 
 export interface IEffectOptionsRender {
