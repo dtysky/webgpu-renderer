@@ -83,11 +83,12 @@ export default class Scene extends HObject {
     this._command = renderEnv.device.createCommandEncoder();
   }
 
-  public renderCamera(camera: Camera, meshes: Mesh[]) {
+  public renderCamera(camera: Camera, meshes: Mesh[], clear: boolean = true) {
     camera.render(
       this._command,
       this._renderTarget,
-      meshes
+      meshes,
+      clear
     );
   }
 
@@ -95,13 +96,13 @@ export default class Scene extends HObject {
 
   // }
 
-  public renderImages(meshes: ImageMesh[]) {
+  public renderImages(meshes: ImageMesh[], clear: boolean = true) {
     const view = this._renderTarget.colorView;
 
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: [{
         view,
-        loadValue: {r: 0, g: 0, b: 0, a: 1},
+        loadValue: clear ? {r: 0, g: 0, b: 0, a: 1} : 'load' as GPULoadOp,
         storeOp: 'store' as GPUStoreOp
       }]
     };

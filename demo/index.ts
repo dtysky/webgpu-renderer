@@ -21,8 +21,8 @@ document.body.append(fpsDom);
 const app = new RayTracingApp();
 
 let preFPS = 0;
-function update(dt: number) {
-  app.update(dt);
+async function update(dt: number) {
+  await app.update(dt);
 
   const fps = 1000 / dt;
 
@@ -38,13 +38,13 @@ async function main() {
   await app.init();
   
   let t = 0;
-  function _loop(ct: number) {
-    update(ct - t);
+  async function _loop(ct: number) {
+    await update(ct - t);
     t = ct;
     requestAnimationFrame(_loop);
   }
 
-  _loop(performance.now());
+  await _loop(performance.now());
 }
 
 main();

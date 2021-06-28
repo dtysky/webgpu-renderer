@@ -42,7 +42,7 @@ export default class ImageMesh extends HObject {
   protected _createPipeline() {
     const {device, swapChainFormat} = renderEnv;
     const {_material} = this;
-    const {vs, fs} = _material.effect.getShader({}, '', renderEnv.shaderPrefix, '');
+    const {vs, fs} = _material.effect.getShader(_material.marcos, '', renderEnv.shaderPrefix, '');
 
     this._pipeline = device.createRenderPipeline({
       layout: device.createPipelineLayout({bindGroupLayouts: [

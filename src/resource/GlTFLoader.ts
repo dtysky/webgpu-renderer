@@ -197,16 +197,25 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
       return;
     }
 
-    for (const {perspective, type, name, extensions} of camerasSrc) {
-      if (type !== 'perspective') {
-        throw new Error('Only support perspective camera now!');
+    for (const {perspective, orthographic, type, name, extensions} of camerasSrc) {
+      let camera: Camera;
+
+      if (type === 'perspective') {
+        camera = new Camera({}, {
+          near: perspective.znear,
+          far: perspective.zfar,
+          fov: 1 / perspective.yfov
+        });
+      } else {
+        camera = new Camera({}, {
+          isOrth: true,
+          near: orthographic.znear,
+          far: orthographic.zfar,
+          sizeX: orthographic.xmag,
+          sizeY: orthographic.ymag
+        })
       }
 
-      const camera = new Camera({}, {
-        near: perspective.znear,
-        far: perspective.zfar,
-        fov: 1 / perspective.yfov
-      });
       camera.name = name;
 
       const skybox = extensions && extensions.Sein_skybox;

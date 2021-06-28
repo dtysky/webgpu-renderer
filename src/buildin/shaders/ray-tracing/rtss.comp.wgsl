@@ -24,6 +24,7 @@ struct HitPoint {
   faceNormal: vec3<f32>;
   matIndex: u32;
   hit: bool;
+  hited: f32;
 };
 
 struct Light {
@@ -74,7 +75,7 @@ fn genWorldRayByGBuffer(uv: vec2<f32>, gBInfo: HitPoint) -> Ray {
 
   var ray: Ray;
 
-  ray.origin = pixelWorldPos.xyz / pixelWorldPos.w;
+  ray.origin = pixelWorldPos.xyz;
   ray.dir = normalize(gBInfo.position - ray.origin);
   ray.invDir = 1. / ray.dir;
 
@@ -197,7 +198,7 @@ fn triangleHitTest(ray: Ray, leaf: BVHLeaf) -> FragmentInfo {
   var det: f32 = dot(e0, p);
   var t: vec3<f32> = ray.origin - info.p0;
 
-  if (det < 0.) {
+  if (det < FLOAT_ZERO) {
     t = -t;
     det = -det;
   }
@@ -208,14 +209,14 @@ fn triangleHitTest(ray: Ray, leaf: BVHLeaf) -> FragmentInfo {
 
   let u: f32 = dot(t, p);
 
-  if (u < 0. || u > det) {
+  if (u < FLOAT_ZERO || u > det) {
     return info;
   }
 
   let q: vec3<f32> = cross(t, e0);
   let v: f32 = dot(ray.dir, q);
 
-  if (v < 0. || v + u > det) {
+  if (v < FLOAT_ZERO || v + u > det) {
     return info;
   }
 
@@ -284,9 +285,9 @@ fn hitTest(ray: Ray) -> HitPoint {
   var hit: HitPoint;
   var node: BVHNode = getBVHNodeInfo(0);
   var hited: f32 = boxHitTest(ray, node.max, node.min);
+  hit.hited = hited;
 
-  if (hited <= 0.) {
-    hit.rough = hited;
+  if (hited < 0.) {
     return hit;
   }
 
@@ -306,6 +307,7 @@ fn hitTest(ray: Ray) -> HitPoint {
 
     node = getBVHNodeInfo(child0Offset);
     hited = boxHitTest(ray, node.max, node.min);
+    hit.hited = hited;
 
     if (hited > 0.) {
       continue;
@@ -313,9 +315,9 @@ fn hitTest(ray: Ray) -> HitPoint {
 
     node = getBVHNodeInfo(child1Offset);
     hited = boxHitTest(ray, node.max, node.min);
+    hit.hited = hited;
 
-    if (hited <= 0.) {
-      hit.rough = hited;
+    if (hited < 0.) {
       break;
     }
   }
@@ -333,10 +335,10 @@ fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool) -> Light {
   }
 
   light.color = hit.diffuse;
-  light.energy = .8;
+  light.energy = .6;
 
-  light.reflection.origin = hit.position;
   light.reflection.dir = reflect(ray.dir, hit.normal);
+  light.reflection.origin = hit.position + light.reflection.dir * .2;
   light.reflection.invDir = 1. / light.reflection.dir;
 
   return light;
@@ -350,18 +352,24 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, debugIndex: i32) -> vec3<f32> {
   var ray: Ray = light.reflection;
 
   hit = hitTest(ray);
+  var nextLight: Light;
   if (hit.hit) {
-    lightColor = hit.diffuse;
+    // lightColor = hit.diffuse;
+    nextLight = calcLight(ray, hit, false);
   }
-  // lightColor = hit.diffuse;
-  // lightColor = abs(light.reflection.origin);
-  // lightColor = abs(light.reflection.dir);
+  lightColor = lightColor + nextLight.color * nextLight.energy;
 
-  u_debugInfo.rays[debugIndex].origin = vec4<f32>(ray.origin, hit.rough);
-  u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, 0.);
-  u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 0.);
-  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(startRay.origin, 0.);
-  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(startRay.dir, 0.);
+  var hited: f32 = 0.;
+  if (hit.hit) {
+    hited = 1.;
+  }
+  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(startRay.origin, hited);
+  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(startRay.dir, hit.hited);
+  u_debugInfo.rays[debugIndex].origin = vec4<f32>(ray.origin, f32(gBInfo.matIndex));
+  u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, f32(gBInfo.meshIndex));
+  u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(hit.position, f32(hit.matIndex));
+  u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(nextLight.reflection.dir, f32(hit.meshIndex));
+  u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
 
   // lightColor.z = -light.reflection.dir.z;
 
@@ -405,8 +413,9 @@ fn main(
     return;
   }
 
+  let debugIndex: i32 = baseIndex.x + baseIndex.y * screenSize.x;
   let worldRay: Ray = genWorldRayByGBuffer(baseUV, gBInfo);
-  let light: vec3<f32> = traceLight(worldRay, gBInfo, baseIndex.x + baseIndex.y * screenSize.x);
+  let light: vec3<f32> = traceLight(worldRay, gBInfo, debugIndex);
   let shadow: f32 = traceShadow(worldRay);
 
   textureStore(u_output, baseIndex, vec4<f32>(light * shadow, 1.));

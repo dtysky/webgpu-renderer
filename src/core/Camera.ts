@@ -38,11 +38,18 @@ export default class Camera extends Node {
   protected _far: number;
   protected _fov: number;
   protected _aspect: number;
+  protected _sizeX: number;
+  protected _sizeY: number;
+  protected _isOrth: boolean;
   protected _viewMat: Float32Array;
   protected _projMat: Float32Array;
   protected _projInverseMat: Float32Array;
   protected _vpMat: Float32Array;
   protected _skyVPMat: Float32Array;
+
+  get isOrth() {
+    return this._isOrth;
+  }
 
   get skyboxMat() {
     return this._skyboxMat;
@@ -85,6 +92,9 @@ export default class Camera extends Node {
       far?: number,
       fov?: number,
       aspect?: number,
+      isOrth?: boolean,
+      sizeX?: number,
+      sizeY?: number
     },
     protected _justAsView: boolean = false
   ) {
@@ -93,8 +103,24 @@ export default class Camera extends Node {
     cameraOptions = cameraOptions || {};
     this._near = cameraOptions.near || 0;
     this._far = cameraOptions.far || 1000;
-    this._fov = cameraOptions.fov || (Math.PI / 3);
     this._aspect = cameraOptions.aspect || (renderEnv.width / renderEnv.height);
+
+    if (cameraOptions.isOrth) {
+      let {sizeX, sizeY} = cameraOptions;
+
+      if (cameraOptions.sizeX > cameraOptions.sizeY) {
+        sizeX = sizeY * this._aspect;
+      } else {
+        sizeY = sizeX / this._aspect;
+      }
+
+      this._sizeX = sizeX;
+      this._sizeY = sizeY;
+      this._isOrth = true;
+    } else {
+      this._fov = cameraOptions.fov || (Math.PI / 3);
+    }
+
     this.clearColor = viewOptions.clearColor || [0, 0, 0, 1];
     this.clearDepth = viewOptions.clearDepth !== undefined ? viewOptions.clearDepth : 1;
     this.clearStencil = viewOptions.clearStencil || 0;
@@ -146,7 +172,8 @@ export default class Camera extends Node {
   public render(
     cmd: GPUCommandEncoder,
     rt: RenderTexture,
-    meshes: Mesh[]
+    meshes: Mesh[],
+    clear: boolean = false
   ) {
     const [r, g, b, a] = this.clearColor;
     const { x, y, w, h } = this.viewport;
@@ -155,7 +182,7 @@ export default class Camera extends Node {
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: colorViews.map(view => ({
         view,
-        loadValue: { r, g, b, a },
+        loadValue: clear ? { r, g, b, a } : 'load' as GPULoadOp,
         storeOp: this.colorOp
       })),
       depthStencilAttachment: depthStencilView && {
@@ -213,7 +240,27 @@ export default class Camera extends Node {
   }
 
   protected _updateProjMat() {
-    mat4.perspective(this._projMat, this._fov, this._aspect, this._near, this._far);
+    if (this._isOrth) {
+      // webgpu has half z
+      this._orthHalfZ(this._projMat, -this._sizeX, this._sizeX, -this._sizeY, this._sizeY, this._near, this._far);
+    } else {
+      mat4.perspective(this._projMat, this._fov, this._aspect, this._near, this._far);
+    }
     mat4.invert(this._projInverseMat, this._projMat);
+  }
+
+  protected _orthHalfZ(out: Float32Array, left: number, right: number, top: number, bottom: number, near: number, far: number) {
+    const w = 1.0 / (right - left);
+    const h = 1.0 / (top - bottom);
+    const p = 1.0 / (far - near);
+  
+    const x = (right + left) * w;
+    const y = (top + bottom) * h;
+    const z = near * p;
+  
+    out[0] = 2 * w;	out[4] = 0;	out[8] = 0;	out[12] = -x;
+    out[1] = 0;	out[5] = 2 * h;	out[9] = 0;	out[13] = -y;
+    out[2] = 0;	out[6] = 0;	out[10] = -1 * p;	out[14] = -z;
+    out[3] = 0;	out[7] = 0;	out[11] = 0;	out[15] = 1;
   }
 }

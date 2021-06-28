@@ -245,9 +245,9 @@ export default class BVH extends HObject {
     for (let i = 0; i < indexes.length; i += 3) {
       const idxes = indexes.slice(i, i + 3);
 
-      copyTypedArray(3, tmpV1, 0, worldPositions, idxes[0] * 3);
-      copyTypedArray(3, tmpV2, 0, worldPositions, idxes[1] * 3);
-      copyTypedArray(3, tmpV3, 0, worldPositions, idxes[2] * 3);
+      copyTypedArray(3, tmpV1, 0, worldPositions, idxes[0] * 4);
+      copyTypedArray(3, tmpV2, 0, worldPositions, idxes[1] * 4);
+      copyTypedArray(3, tmpV3, 0, worldPositions, idxes[2] * 4);
 
       const bounds = new Bounds().fromVertexes(tmpV1, tmpV2, tmpV3);
 

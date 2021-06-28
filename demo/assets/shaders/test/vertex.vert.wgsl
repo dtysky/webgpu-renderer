@@ -1,6 +1,7 @@
 struct VertexOutput {
   [[builtin(position)]] Position: vec4<f32>;
   [[location(0)]] v_texcoord_0: vec2<f32>;
+  [[location(1)]] testOrth: vec4<f32>;
 };
 
 [[stage(vertex)]]

@@ -21,10 +21,12 @@ export default class BasicTestApp {
 
     this._camera = new H.Camera(
       {clearColor: [0, 1, 0, 1]},
-      {near: 0.01, far: 100, fov: Math.PI / 3}
+      // {near: 0.01, far: 100, fov: Math.PI / 3}
+      {near: 0.01, far: 100, isOrth: true, sizeX: 4, sizeY: 4}
     );
     rootNode.addChild(this._camera);
     this._camera.pos.set([0, 0, 6]);
+    console.log(this._camera)
 
     const geometry = new H.Geometry(
       [
@@ -112,6 +114,7 @@ export default class BasicTestApp {
       height: H.renderEnv.height,
       colors: [{}]
     });
+
     // this._csRT = new H.RenderTexture(H.renderEnv.width, H.renderEnv.height, true);
     // this._blurUnit = new H.ComputeUnit(
     //   H.buildinEffects.cCreateSimpleBlur(2),
@@ -143,7 +146,7 @@ export default class BasicTestApp {
     _scene.endFrame();
   }
   
-  public update(dt: number) {
+  public async update(dt: number) {
     const {_scene} = this;
 
     // H.math.quat.rotateZ(this._mesh.quat, this._mesh.quat, 0.01);
