@@ -5,7 +5,7 @@
  * @Date    : 6/11/2021, 5:56:30 PM
 */
 import * as H from '../src/index';
-import {debugCamera, DebugInfo, debugRay} from './debugCs';
+import {DebugInfo, debugRay} from './debugCs';
 
 const MODEL_SRC = '/assets/models/walls/scene.gltf';
 
@@ -76,9 +76,9 @@ export default class RayTracingApp {
     console.log(model)
 
     await this._frame();
-    const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([1400, 500], [1401, 501]);
+    const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([540, 230], [640, 231]);
     this._rtDebugMesh = mesh;
-    rays.forEach(ray => debugRay(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
+    // rays.forEach(ray => debugRay(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
     // debugCamera(this._camera, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
     await this._frame();
   }

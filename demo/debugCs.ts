@@ -60,10 +60,10 @@ export class DebugInfo {
       const po = index * 3 * 6;
       const io = index * 6;
 
-      positions.set(preOrigin, po);
-      positions.set(H.math.vec3.add(new Float32Array(3), preOrigin, H.math.vec3.scale(new Float32Array(3), preDir, 20)), po + 3);
-      colors.set([1, 0, 0], po);
-      colors.set([1, 0, 0], po + 3);
+      // positions.set(preOrigin, po);
+      // positions.set(H.math.vec3.add(new Float32Array(3), preOrigin, H.math.vec3.scale(new Float32Array(3), preDir, 20)), po + 3);
+      // colors.set([1, 0, 0], po);
+      // colors.set([1, 0, 0], po + 3);
       positions.set(origin, po + 6);
       positions.set(H.math.vec3.add(new Float32Array(3), origin, H.math.vec3.scale(new Float32Array(3), dir, 20)), po + 9);
       colors.set([1, 1, 0], po + 6);
@@ -165,60 +165,47 @@ export function debugRay(rayInfo: {origin: Float32Array, dir: Float32Array}, bvh
   console.log('ray info', rayInfo);
   console.log('ray', ray);
 
-  const hitedNode = hitTest(bvh, ray);
-  console.log(hitedNode);
-
-  if (!hitedNode) {
-    return;
-  }
-
-  if (hitedNode.isChild0Leaf) {
-    console.log(leafHitTest(bvh, ray, positions, hitedNode.child0Offset));
-    return;
-  }
-
-  if (hitedNode.isChild1Leaf) {
-    console.log(leafHitTest(bvh, ray, positions, hitedNode.child1Offset));
-  }
+  const fragInfo = hitTest(bvh, ray, positions);
+  console.log(fragInfo);
 }
 
-export function debugCamera(camera: H.Camera, bvh: H.BVH, positions: Float32Array) {
-  for (let i = 0; i < 10; i += 1) {
-    const uv = new Float32Array([Math.random() / 2, Math.random() / 2]);
-    const ssPos = new Float32Array([uv[0] * 2 - 1, 1 - uv[1] * 2, 0, 1]);
-    const worldPos = H.math.vec4.transformMat4(new Float32Array(4), ssPos, camera.invProjMat);
-    H.math.vec4.transformMat4(worldPos, worldPos, camera.invViewMat);
-    console.log(worldPos)
-    H.math.vec4.scale(worldPos, worldPos, 1 / worldPos[3]);
-    const dir = H.math.vec3.sub(new Float32Array(3), worldPos.slice(0, 3) as Float32Array, camera.pos) as Float32Array;
-    H.math.vec3.normalize(dir, dir);
+// export function debugCamera(camera: H.Camera, bvh: H.BVH, positions: Float32Array) {
+//   for (let i = 0; i < 10; i += 1) {
+//     const uv = new Float32Array([Math.random() / 2, Math.random() / 2]);
+//     const ssPos = new Float32Array([uv[0] * 2 - 1, 1 - uv[1] * 2, 0, 1]);
+//     const worldPos = H.math.vec4.transformMat4(new Float32Array(4), ssPos, camera.invProjMat);
+//     H.math.vec4.transformMat4(worldPos, worldPos, camera.invViewMat);
+//     console.log(worldPos)
+//     H.math.vec4.scale(worldPos, worldPos, 1 / worldPos[3]);
+//     const dir = H.math.vec3.sub(new Float32Array(3), worldPos.slice(0, 3) as Float32Array, camera.pos) as Float32Array;
+//     H.math.vec3.normalize(dir, dir);
 
-    console.log('uv, ssPos, worldPos', uv, ssPos, worldPos);
+//     console.log('uv, ssPos, worldPos', uv, ssPos, worldPos);
 
-    const ray: Ray = {
-      origin: camera.pos,
-      dir,
-      invDir: new Float32Array(3)
-    };
-    H.math.vec3.div(ray.invDir, new Float32Array([1, 1, 1]), ray.dir);
+//     const ray: Ray = {
+//       origin: camera.pos,
+//       dir,
+//       invDir: new Float32Array(3)
+//     };
+//     H.math.vec3.div(ray.invDir, new Float32Array([1, 1, 1]), ray.dir);
 
-    const hitedNode = hitTest(bvh, ray);
-    console.log(hitedNode);
+//     const hitedNode = hitTest(bvh, ray);
+//     console.log(hitedNode);
 
-    if (!hitedNode) {
-      continue;
-    }
+//     if (!hitedNode) {
+//       continue;
+//     }
 
-    if (hitedNode.isChild0Leaf) {
-      console.log(leafHitTest(bvh, ray, positions, hitedNode.child0Offset));
-      continue;
-    }
+//     if (hitedNode.isChild0Leaf) {
+//       console.log(leafHitTest(bvh, ray, positions, hitedNode.child0Offset));
+//       continue;
+//     }
 
-    if (hitedNode.isChild1Leaf) {
-      console.log(leafHitTest(bvh, ray, positions, hitedNode.child1Offset));
-    }
-  }
-}
+//     if (hitedNode.isChild1Leaf) {
+//       console.log(leafHitTest(bvh, ray, positions, hitedNode.child1Offset));
+//     }
+//   }
+// }
 
 const FLOAT_ZERO = -0.005;
 
@@ -230,10 +217,8 @@ interface Ray {
 
 
 interface BVHNode {
-  isChild0Leaf: boolean;
-  isChild1Leaf: boolean;
-  child0Offset: number;
-  child1Offset: number;
+  child0Index: number;
+  child1Index: number;
   max: Float32Array;
   min: Float32Array;
 };
@@ -263,7 +248,7 @@ function boxHitTest(ray: Ray, max: Float32Array, min: Float32Array): number {
 
   // console.log('box hit test', max, min, t1, t2, tvmax, tvmin, tmax, tmin);
 
-  if (tmax - tmin < FLOAT_ZERO || tmin > 9999) {
+  if (tmax - tmin < FLOAT_ZERO) {
     return -1.;
   }
 
@@ -274,6 +259,13 @@ function boxHitTest(ray: Ray, max: Float32Array, min: Float32Array): number {
   return tmax - FLOAT_ZERO;
 }
 
+function decodeChild(index: number): {isLeaf: boolean, offset: number} {
+  return {
+    isLeaf: (index >> 31) !== 0,
+    offset: (index << 1) >> 1,
+  };
+}
+
 function getBVHNodeInfo(bvh: H.BVH, index: number): BVHNode {
   let realOffset = index * 4;
   let data0 = bvh.buffer.slice(realOffset, realOffset + 4);
@@ -282,61 +274,56 @@ function getBVHNodeInfo(bvh: H.BVH, index: number): BVHNode {
   let child1 = new Uint32Array(data1.buffer, 0, 1)[0];
 
   return {
-    isChild0Leaf: (child0 >> 31) !== 0,
-    isChild1Leaf: (child1 >> 31) !== 0,
-    child0Offset: (child0 << 1) >> 1,
-    child1Offset: (child1 << 1) >> 1,
+    child0Index: child0,
+    child1Index: child1,
     min: data0.slice(1),
     max: data1.slice(1)
   };
 }
 
-function hitTest(bvh: H.BVH, ray: Ray): BVHNode {
-  let node: BVHNode;
-  // let hitedTriangle: FragmentInfo = {
-  //   hit: false,
-  //   t: -Infinity,
-  //   hitPoint: null,
-  //   weights: null
-  // };
-  // let nodeStack: number[] = Array(bvh.maxDepth);
-  // let stackPointer: number = 0;
-  // nodeStack[0] = 0;
-  // while (stackPointer >= 0) {
-  //   node = getBVHNodeInfo(bvh, stackPointer);
-  // }
-  // for (let i = 0; i < bvh.maxDepth; i = i + 1) {
-  //   if (node.isChild0Leaf) {
-  //     break;
-  //   }
+function hitTest(bvh: H.BVH, ray: Ray, positions: Float32Array): FragmentInfo {
+  let fragInfo: FragmentInfo = {
+    hit: false,
+    t: Infinity,
+    hitPoint: null,
+    weights: null
+  };
+  let nodeStack: number[] = Array(bvh.maxDepth);
+  nodeStack[0] = 0;
+  let stackDepth: number = 0;
 
-  //   if (node.isChild1Leaf) {
-  //     break;
-  //   }
+  while (stackDepth >= 0) {
+    const {isLeaf, offset} = decodeChild(nodeStack[stackDepth]);
+    stackDepth -= 1;
 
-  //   let child0Offset = node.child0Offset;
-  //   let child1Offset = node.child1Offset;
+    if (isLeaf) {
+      const info = leafHitTest(bvh, ray, positions, offset);
+      console.log('leaf hit', info.hit && info.t < fragInfo.t);
 
-  //   node = getBVHNodeInfo(bvh, child0Offset);
-  //   hited = boxHitTest(ray, node.max, node.min);
+      if (info.hit && info.t < fragInfo.t) {
+        fragInfo = info;
+      }
 
-  //   console.log('child0', node, hited);
+      continue;
+    }
 
-  //   if (hited > 0) {
-  //     continue;
-  //   }
+    const node = getBVHNodeInfo(bvh, offset);
+    const hited = boxHitTest(ray, node.max, node.min);
+    console.log('box hit', node, hited, !(hited < 0 || hited > fragInfo.t));
 
-  //   node = getBVHNodeInfo(bvh, child1Offset);
-  //   hited = boxHitTest(ray, node.max, node.min);
+    if (hited < 0 || hited > fragInfo.t) {
+      continue;
+    }
 
-  //   console.log('child1', node, hited);
+    fragInfo.t = hited;
 
-  //   if (hited < 0) {
-  //     return null;
-  //   }
-  // }
+    stackDepth += 1;
+    nodeStack[stackDepth] = node.child0Index;
+    stackDepth += 1;
+    nodeStack[stackDepth] = node.child1Index;
+  }
 
-  return node;
+  return fragInfo;
 }
 
 function getBVHLeafInfo(bvh: H.BVH, offset: number): BVHLeaf {
@@ -349,7 +336,13 @@ function getBVHLeafInfo(bvh: H.BVH, offset: number): BVHLeaf {
   };
 }
 
-function triangleHitTest(ray: Ray, leaf: BVHLeaf, positions: Float32Array): boolean {
+function triangleHitTest(ray: Ray, leaf: BVHLeaf, positions: Float32Array): FragmentInfo {
+  const info: FragmentInfo = {
+    hit: false,
+    t: Infinity,
+    hitPoint: null,
+    weights: null
+  };
   let indexes = leaf.indexes;
   let p0 = positions.slice(indexes[0] * 4, indexes[0] * 4 + 4);
   let p1 = positions.slice(indexes[1] * 4, indexes[1] * 4 + 4);
@@ -361,58 +354,70 @@ function triangleHitTest(ray: Ray, leaf: BVHLeaf, positions: Float32Array): bool
   let det = H.math.vec3.dot(e0, p);
   let t = H.math.vec3.sub(new Float32Array(3), ray.origin, p0);
 
-  console.log(p0, p1, p2);
-
   if (det < FLOAT_ZERO) {
     H.math.vec3.scale(t, t, -1);
     det = -det;
   }
 
   if (det < 0.0001) {
-    console.log('det', det);
-    return false;
+    return info;
   }
 
   let u = H.math.vec3.dot(t, p);
 
   if (u < FLOAT_ZERO || u > det) {
-    console.log('det u', det, u);
-    return false;
+    return info;
   }
 
   let q = H.math.vec3.cross(new Float32Array(3), t, e0);
   let v = H.math.vec3.dot(ray.dir, q);
 
   if (v < FLOAT_ZERO || v + u > det) {
-    console.log('det u v', det, u, v);
-    return false;
+    return info;
   }
 
   let lt = H.math.vec3.dot(e1, q);
+
+  if (lt < 0) {
+    return info;
+  }
+
   let invDet = 1. / det;
   let hitPoint = H.math.vec3.add(
     new Float32Array(3), ray.origin,
     H.math.vec3.scale(new Float32Array(3), ray.dir, lt * invDet)
-  );
-  let weights = H.math.vec3.scale(new Float32Array(3), new Float32Array([0., u, v]), invDet);
+  ) as Float32Array;
+  let weights = H.math.vec3.scale(new Float32Array(3), new Float32Array([0., u, v]), invDet) as Float32Array;
   weights[0] = 1. - weights[1] - weights[2];
+  
+  info.hit = true;
+  info.weights = weights;
+  info.hitPoint = hitPoint;
+  info.t = lt * invDet;
 
-  console.log('hitPoint, weights', hitPoint, weights);
-
-  return true;
+  return info;
 }
 
-function leafHitTest(bvh: H.BVH, ray: Ray, positions: Float32Array, offset: number): BVHLeaf {
-  var leaf: BVHLeaf = getBVHLeafInfo(bvh, offset);
-
+function leafHitTest(bvh: H.BVH, ray: Ray, positions: Float32Array, offset: number): FragmentInfo {
+  let leaf: BVHLeaf = getBVHLeafInfo(bvh, offset);
+  let info: FragmentInfo = {
+    hit: false,
+    t: Infinity,
+    hitPoint: null,
+    weights: null
+  };
+  
   for (let i: number = 0; i < leaf.primitives; i = i + 1) {
-    console.log(offset, i, leaf)
-    if (triangleHitTest(ray, leaf, positions)) {
-      return leaf;
+    console.log(leaf);
+    let cInfo = triangleHitTest(ray, leaf, positions);
+    console.log('triangle hit', cInfo, cInfo.hit && cInfo.t < info.t);
+
+    if (cInfo.hit && cInfo.t < info.t) {
+      info = cInfo;
     }
 
     leaf = getBVHLeafInfo(bvh, offset + i);
   }
 
-  return null;
+  return info;
 }

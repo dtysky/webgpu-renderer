@@ -2,8 +2,7 @@ let MAX_TRACE_COUNT: u32 = 1u;
 let MAX_RAY_LENGTH: f32 = 9999.;
 let BVH_DEPTH: i32 = ${BVH_DEPTH};
 let FLOAT_ZERO: f32 = -0.005;
-let RAY_DIR_OFFSET: f32 = .05;
-let RAY_NORMAL_OFFSET: f32 = 0.005;
+let RAY_DIR_OFFSET: f32 = .005;
 
 struct VertexOutput {
   [[builtin(position)]] position: vec4<f32>;
@@ -37,17 +36,15 @@ struct Light {
 };
 
 struct BVHNode {
-  isChild0Leaf: bool;
-  isChild1Leaf: bool;
-  child0Offset: i32;
-  child1Offset: i32;
+  child0Index: u32;
+  child1Index: u32;
   max: vec3<f32>;
   min: vec3<f32>;
 };
 
 struct BVHLeaf {
-  primitives: i32;
-  indexes: vec3<i32>;
+  primitives: u32;
+  indexes: vec3<u32>;
 };
 
 struct FragmentInfo {
@@ -67,6 +64,11 @@ struct FragmentInfo {
   n2: vec3<f32>;
   meshIndex: u32;
   matIndex: u32;
+};
+
+struct Child {
+  isLeaf: bool;
+  offset: u32;
 };
 
 require('./common.chuck.wgsl');
@@ -106,49 +108,29 @@ fn getGBInfo(uv: vec2<f32>) -> HitPoint {
   return info;
 };
 
-fn getBVHNodeInfo(offset: i32) -> BVHNode {
+fn decodeChild(index: u32) -> Child {
+  return Child((index >> 31u) != 0u, (index << 1u) >> 1u);
+}
+
+fn getBVHNodeInfo(offset: u32) -> BVHNode {
   var node: BVHNode;
   let data0: vec4<f32> = u_bvh.value[offset];
-  let data1: vec4<f32> = u_bvh.value[offset + 1];
-  let child0: u32 = bitcast<u32>(data0[0]);
-  let child1: u32 = bitcast<u32>(data1[0]);
-  node.isChild0Leaf = (child0 >> 31u) != 0u;
-  node.child0Offset = i32((child0 << 1u) >> 1u);
-  node.isChild1Leaf = (child1 >> 31u) != 0u;
-  node.child1Offset = i32((child1 << 1u) >> 1u);
+  let data1: vec4<f32> = u_bvh.value[offset + 1u];
+  node.child0Index = bitcast<u32>(data0[0]);
+  node.child1Index = bitcast<u32>(data1[0]);
   node.min = data0.yzw;
   node.max = data1.yzw;
 
   return node;
 }
 
-fn getBVHLeafInfo(offset: i32) -> BVHLeaf {
+fn getBVHLeafInfo(offset: u32) -> BVHLeaf {
   var leaf: BVHLeaf;
   let data1: vec4<f32> = u_bvh.value[offset];
-  leaf.primitives = bitcast<i32>(data1.x);
-  leaf.indexes = bitcast<vec3<i32>>(data1.yzw);
+  leaf.primitives = bitcast<u32>(data1.x);
+  leaf.indexes = bitcast<vec3<u32>>(data1.yzw);
 
   return leaf;
-}
-
-// https://tavianator.com/2011/ray_box.html
-fn boxHitTest(ray: Ray, max: vec3<f32>, min: vec3<f32>) -> f32 {
-  let t1: vec3<f32> = (min - ray.origin) * ray.invDir;
-  let t2: vec3<f32> = (max - ray.origin) * ray.invDir;
-  let tvmin: vec3<f32> = min(t1, t2);
-  let tvmax: vec3<f32> = max(t1, t2);
-  let tmin: f32 = max(tvmin.x, max(tvmin.y, tvmin.z));
-  let tmax: f32 = min(tvmax.x, min(tvmax.y, tvmax.z));
-
-  if (tmax - tmin < FLOAT_ZERO || tmin > MAX_RAY_LENGTH) {
-    return -1.;
-  }
-  
-  if (tmin > FLOAT_ZERO) {
-    return tmin - FLOAT_ZERO;
-  }
-
-  return tmax - FLOAT_ZERO;
 }
 
 fn getFaceNormal(frag: FragmentInfo) -> vec3<f32> {
@@ -187,10 +169,29 @@ fn getNormal(
   return normalize(tbn * tNormal);
 }
 
+// https://tavianator.com/2011/ray_box.html
+fn boxHitTest(ray: Ray, max: vec3<f32>, min: vec3<f32>) -> f32 {
+  let t1: vec3<f32> = (min - ray.origin) * ray.invDir;
+  let t2: vec3<f32> = (max - ray.origin) * ray.invDir;
+  let tvmin: vec3<f32> = min(t1, t2);
+  let tvmax: vec3<f32> = max(t1, t2);
+  let tmin: f32 = max(tvmin.x, max(tvmin.y, tvmin.z));
+  let tmax: f32 = min(tvmax.x, min(tvmax.y, tvmax.z));
+
+  if (tmax - tmin < FLOAT_ZERO) {
+    return -1.;
+  }
+  
+  if (tmin > FLOAT_ZERO) {
+    return tmin - FLOAT_ZERO;
+  }
+
+  return tmax - FLOAT_ZERO;
+}
 
 fn triangleHitTest(ray: Ray, leaf: BVHLeaf) -> FragmentInfo {
   var info: FragmentInfo;
-  let indexes: vec3<i32> = leaf.indexes;
+  let indexes: vec3<u32> = leaf.indexes;
   info.p0 = u_positions.value[indexes[0]];
   info.p1 = u_positions.value[indexes[1]];
   info.p2 = u_positions.value[indexes[2]];
@@ -224,10 +225,16 @@ fn triangleHitTest(ray: Ray, leaf: BVHLeaf) -> FragmentInfo {
   }
 
   let lt: f32 = dot(e1, q);
+
+  if (lt < 0.) {
+    return info;
+  }
+
   let invDet: f32 = 1. / det;
 
   info.hit = true;
-  info.hitPoint = ray.origin + ray.dir * lt * invDet;
+  info.t = lt * invDet;
+  info.hitPoint = ray.origin + ray.dir * info.t;
   info.weights = vec3<f32>(0., u, v) * invDet;
   info.weights.x = 1. - info.weights.y - info.weights.z;
   info.uv0 = u_uvs.value[indexes.x];
@@ -238,6 +245,25 @@ fn triangleHitTest(ray: Ray, leaf: BVHLeaf) -> FragmentInfo {
   info.n2 = u_normals.value[indexes.z];
   info.meshIndex = u_meshMatIndexes.value[indexes.x].x;
   info.matIndex = u_meshMatIndexes.value[indexes.x].y;
+
+  return info;
+}
+
+fn leafHitTest(ray: Ray, offset: u32) -> FragmentInfo {
+  var info: FragmentInfo;
+  info.t = MAX_RAY_LENGTH;
+  var leaf: BVHLeaf = getBVHLeafInfo(offset);
+  let primitives: u32 = leaf.primitives;
+  
+  for (var i: u32 = 0u; i < primitives; i = i + 1u) {
+    let cInfo: FragmentInfo = triangleHitTest(ray, leaf);
+
+    if (cInfo.hit && cInfo.t < info.t) {
+      info = cInfo;
+    }
+
+    leaf = getBVHLeafInfo(offset + i);
+  }
 
   return info;
 }
@@ -261,68 +287,50 @@ fn fillHitPoint(frag: FragmentInfo) -> HitPoint {
   return info;
 }
 
-fn leafHitTest(ray: Ray, offset: i32) -> HitPoint {
-  var hit: HitPoint;
-  var info: FragmentInfo;
-  var leaf: BVHLeaf = getBVHLeafInfo(offset);
-  let primitives: i32 = leaf.primitives;
-  
-  for (var i: i32 = 0; i < primitives; i = i + 1) {
-    info = triangleHitTest(ray, leaf);
-
-    if (info.hit) {
-      break;
-    }
-
-    leaf = getBVHLeafInfo(offset + i);
-  }
-
-  if (info.hit) {
-    hit = fillHitPoint(info);
-  }
-
-  return hit;
-}
-
 fn hitTest(ray: Ray) -> HitPoint {
   var hit: HitPoint;
-  var node: BVHNode = getBVHNodeInfo(0);
-  var hited: f32 = boxHitTest(ray, node.max, node.min);
-  hit.hited = hited;
+  var fragInfo: FragmentInfo;
+  fragInfo.t = MAX_RAY_LENGTH;
+  var node: BVHNode;
+  var nodeStack: array<u32, ${BVH_DEPTH}>;
+  nodeStack[0] = 0u;
+  var stackDepth: i32 = 0;
+  
+  loop {
+     if (stackDepth < 0) {
+       break;
+     }
 
-  if (hited < 0.) {
-    return hit;
-  }
+    let child = decodeChild(nodeStack[stackDepth]);
+    stackDepth = stackDepth - 1;
 
-  for (var i: i32 = 0; i < BVH_DEPTH; i = i + 1) {
-    if (node.isChild0Leaf) {
-      hit = leafHitTest(ray, node.child0Offset);
-      break;
-    }
+    if (child.isLeaf) {
+      let info: FragmentInfo = leafHitTest(ray, child.offset);
 
-    if (node.isChild1Leaf) {
-      hit = leafHitTest(ray, node.child1Offset);
-      break;
-    }
+      if (info.hit && info.t < fragInfo.t) {
+        fragInfo = info;
+      }
 
-    let child0Offset: i32 = node.child0Offset;
-    let child1Offset: i32 = node.child1Offset;
-
-    node = getBVHNodeInfo(child0Offset);
-    hited = boxHitTest(ray, node.max, node.min);
-    hit.hited = hited;
-
-    if (hited > 0.) {
       continue;
     }
 
-    node = getBVHNodeInfo(child1Offset);
-    hited = boxHitTest(ray, node.max, node.min);
-    hit.hited = hited;
+    node = getBVHNodeInfo(child.offset);
+    let hited: f32 = boxHitTest(ray, node.max, node.min);
 
-    if (hited < 0.) {
-      break;
+    if (hited < 0. || hited > fragInfo.t) {
+      continue;
     }
+
+    fragInfo.t = hited;
+
+    stackDepth = stackDepth + 1;
+    nodeStack[stackDepth] = node.child0Index;
+    stackDepth = stackDepth + 1;
+    nodeStack[stackDepth] = node.child1Index;
+  }
+
+  if (fragInfo.hit) {
+    hit = fillHitPoint(fragInfo);
   }
 
   return hit;
@@ -358,10 +366,10 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, debugIndex: i32) -> vec3<f32> {
   hit = hitTest(ray);
   var nextLight: Light;
   if (hit.hit) {
-    // lightColor = hit.diffuse;
+    lightColor = hit.diffuse;
     nextLight = calcLight(ray, hit, false);
   }
-  lightColor = lightColor + nextLight.color * nextLight.energy;
+  // lightColor = lightColor + nextLight.color * nextLight.energy;
 
   var hited: f32 = 0.;
   if (hit.hit) {
