@@ -1,7 +1,9 @@
 let MAX_TRACE_COUNT: u32 = 1u;
 let MAX_RAY_LENGTH: f32 = 9999.;
 let BVH_DEPTH: i32 = ${BVH_DEPTH};
-let FLOAT_ZERO = -0.005;
+let FLOAT_ZERO: f32 = -0.005;
+let RAY_DIR_OFFSET: f32 = .05;
+let RAY_NORMAL_OFFSET: f32 = 0.005;
 
 struct VertexOutput {
   [[builtin(position)]] position: vec4<f32>;
@@ -51,6 +53,7 @@ struct BVHLeaf {
 struct FragmentInfo {
   hit: bool;
   hitPoint: vec3<f32>;
+  t: f32;
   // areal coordinates
   weights: vec3<f32>;
   p0: vec3<f32>;
@@ -335,10 +338,11 @@ fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool) -> Light {
   }
 
   light.color = hit.diffuse;
-  light.energy = .6;
+  light.energy = .5;
 
   light.reflection.dir = reflect(ray.dir, hit.normal);
-  light.reflection.origin = hit.position + light.reflection.dir * .2;
+  // avoid self intersection
+  light.reflection.origin = hit.position + light.reflection.dir * RAY_DIR_OFFSET;
   light.reflection.invDir = 1. / light.reflection.dir;
 
   return light;

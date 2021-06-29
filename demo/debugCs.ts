@@ -243,6 +243,14 @@ interface BVHLeaf {
   indexes: Uint32Array;
 };
 
+interface FragmentInfo {
+  hit: boolean;
+  t: number;
+  hitPoint: Float32Array;
+  // areal coordinates
+  weights: Float32Array;
+};
+
 function boxHitTest(ray: Ray, max: Float32Array, min: Float32Array): number {
   let t1 = H.math.vec3.sub(new Float32Array(3), min, ray.origin);
   H.math.vec3.mul(t1, t1, ray.invDir);
@@ -284,44 +292,49 @@ function getBVHNodeInfo(bvh: H.BVH, index: number): BVHNode {
 }
 
 function hitTest(bvh: H.BVH, ray: Ray): BVHNode {
-  let node: BVHNode = getBVHNodeInfo(bvh, 0);
-  let hited = boxHitTest(ray, node.max, node.min);
-  console.log('start', node, hited);
+  let node: BVHNode;
+  // let hitedTriangle: FragmentInfo = {
+  //   hit: false,
+  //   t: -Infinity,
+  //   hitPoint: null,
+  //   weights: null
+  // };
+  // let nodeStack: number[] = Array(bvh.maxDepth);
+  // let stackPointer: number = 0;
+  // nodeStack[0] = 0;
+  // while (stackPointer >= 0) {
+  //   node = getBVHNodeInfo(bvh, stackPointer);
+  // }
+  // for (let i = 0; i < bvh.maxDepth; i = i + 1) {
+  //   if (node.isChild0Leaf) {
+  //     break;
+  //   }
 
-  if (hited < 0) {
-    return null;
-  }
+  //   if (node.isChild1Leaf) {
+  //     break;
+  //   }
 
-  for (let i = 0; i < bvh.maxDepth; i = i + 1) {
-    if (node.isChild0Leaf) {
-      break;
-    }
+  //   let child0Offset = node.child0Offset;
+  //   let child1Offset = node.child1Offset;
 
-    if (node.isChild1Leaf) {
-      break;
-    }
+  //   node = getBVHNodeInfo(bvh, child0Offset);
+  //   hited = boxHitTest(ray, node.max, node.min);
 
-    let child0Offset = node.child0Offset;
-    let child1Offset = node.child1Offset;
+  //   console.log('child0', node, hited);
 
-    node = getBVHNodeInfo(bvh, child0Offset);
-    hited = boxHitTest(ray, node.max, node.min);
+  //   if (hited > 0) {
+  //     continue;
+  //   }
 
-    console.log('child0', node, hited);
+  //   node = getBVHNodeInfo(bvh, child1Offset);
+  //   hited = boxHitTest(ray, node.max, node.min);
 
-    if (hited > 0) {
-      continue;
-    }
+  //   console.log('child1', node, hited);
 
-    node = getBVHNodeInfo(bvh, child1Offset);
-    hited = boxHitTest(ray, node.max, node.min);
-
-    console.log('child1', node, hited);
-
-    if (hited < 0) {
-      return null;
-    }
-  }
+  //   if (hited < 0) {
+  //     return null;
+  //   }
+  // }
 
   return node;
 }

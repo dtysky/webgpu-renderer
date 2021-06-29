@@ -76,9 +76,9 @@ export default class RayTracingApp {
     console.log(model)
 
     await this._frame();
-    // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([1400, 1160], [1410, 1170]);
-    // this._rtDebugMesh = mesh;
-    // rays.forEach(ray => debugRay(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
+    const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([1400, 500], [1401, 501]);
+    this._rtDebugMesh = mesh;
+    rays.forEach(ray => debugRay(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
     // debugCamera(this._camera, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
     await this._frame();
   }
@@ -94,7 +94,7 @@ export default class RayTracingApp {
     
     const first = !this._rtManager;
     if (first) {
-      this._rtManager = new H.RayTracingManager();
+      this._rtManager = new H.RayTracingManager(4);
       this._rtManager.process(this._scene.cullCamera(this._camera), this._rtOutput);
       this._connectGBufferRenderTexture(this._rtManager.rtUnit);
       this._rtDebugInfo.setup(this._rtManager);
