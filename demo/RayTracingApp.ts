@@ -41,9 +41,9 @@ export default class RayTracingApp {
       height: renderEnv.height,
       colors: [
         {name: 'positionMetal', format: 'rgba16float'},
-        {name: 'diffuseRough', format: 'rgba16float'},
+        {name: 'diffuseRoughOrGloss', format: 'rgba16float'},
         {name: 'normalMeshIndex', format: 'rgba16float'},
-        {name: 'faceNormalMatIndex', format: 'rgba16float'}
+        {name: 'specMatIndexMatType', format: 'rgba16float'}
       ],
       depthStencil: {needStencil: false}
     });
@@ -76,8 +76,8 @@ export default class RayTracingApp {
     console.log(model)
 
     await this._frame();
-    const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([540, 230], [640, 231]);
-    this._rtDebugMesh = mesh;
+    // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([270, 210], [271, 211]);
+    // this._rtDebugMesh = mesh;
     // rays.forEach(ray => debugRay(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
     // debugCamera(this._camera, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
     await this._frame();
@@ -145,8 +145,8 @@ export default class RayTracingApp {
 
   private _connectGBufferRenderTexture(material: H.Material | H.ComputeUnit) {
     material.setUniform('u_gbPositionMetal', this._gBufferRT, 'positionMetal');
-    material.setUniform('u_gbDiffuseRough', this._gBufferRT, 'diffuseRough');
+    material.setUniform('u_gbDiffuseRoughOrGloss', this._gBufferRT, 'diffuseRoughOrGloss');
     material.setUniform('u_gbNormalMeshIndex', this._gBufferRT, 'normalMeshIndex');
-    material.setUniform('u_gbFaceNormalMatIndex', this._gBufferRT, 'faceNormalMatIndex');
+    material.setUniform('u_gbSpecMatIndexMatType', this._gBufferRT, 'specMatIndexMatType');
   }
 }

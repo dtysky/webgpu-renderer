@@ -47,7 +47,7 @@ export default class Effect extends HObject {
 
   protected _marcos?: {[key: string]: number | boolean};
   protected _renderStates: IRenderStates;
-  protected _marcosRegex: {[key: string]: RegExp};
+  protected _marcosRegex: {[key: string]: RegExp | {hasElse: RegExp, noElse: RegExp}};
   protected _vs: string;
   protected _fs: string;
   protected _cs: string;
@@ -93,7 +93,10 @@ export default class Effect extends HObject {
       if (typeof value === 'number') {
         this._marcosRegex[key] = new RegExp(`\\\$\\{${key}\\\}`, 'g');
       } else {
-        this._marcosRegex[key] = new RegExp(`#if defined\\(${key}\\)([\\s\\S]+?)#endif`, 'g');
+        this._marcosRegex[key] = {
+          hasElse: new RegExp(`#if defined\\(${key}\\)([\\s\\S]+?)#else([\\s\\S]+?)#endif`, 'g'),
+          noElse: new RegExp(`#if defined\\(${key}\\)([\\s\\S]+?)#endif`, 'g'),
+        };
       }
     }
 
@@ -134,11 +137,21 @@ export default class Effect extends HObject {
         }
 
         if (typeof value === 'number') {
-          tmp[i] = s.replace(regex, `${value}`);
-        } else if (!value) {
-          tmp[i] = s.replace(regex, '');
+          tmp[i] = s.replace(regex as RegExp, `${value}`);
         } else {
-          tmp[i] = s.replace(regex, '$1');
+          const {hasElse, noElse} = regex as {hasElse: RegExp, noElse: RegExp};
+          let res = hasElse.exec(s);
+
+          if (res) {
+            tmp[i] = value ? res[1] : res[2];
+            return;
+          }
+
+          res = noElse.exec(s);
+
+          if (res) {
+            tmp[i] = value ? res[1] : '';
+          }
         }
       });
     }

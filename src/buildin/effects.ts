@@ -90,6 +90,11 @@ export function init() {
           defaultValue: new Float32Array([1, 1, 1, 1])
         },
         {
+          name: 'u_normalTextureScale',
+          type: 'number',
+          defaultValue: new Float32Array([1])
+        },
+        {
           name: 'u_metallicFactor',
           type: 'number',
           defaultValue: new Float32Array([1])
@@ -100,10 +105,15 @@ export function init() {
           defaultValue: new Float32Array([1])
         },
         {
-          name: 'u_normalTextureScale',
+          name: 'u_specularFactor',
+          type: 'vec3',
+          defaultValue: new Float32Array([3])
+        },
+        {
+          name: 'u_glossinessFactor',
           type: 'number',
           defaultValue: new Float32Array([1])
-        }
+        },
       ],
       textures: [
         {
@@ -117,6 +127,10 @@ export function init() {
         {
           name: 'u_metallicRoughnessTexture',
           defaultValue: textures.empty
+        },
+        {
+          name: 'u_specularGlossinessTexture',
+          defaultValue: textures.empty
         }
       ],
       samplers: [
@@ -126,7 +140,7 @@ export function init() {
         }
       ]
     },
-    marcos: commonMarcos
+    marcos: Object.assign({}, commonMarcos, {USE_SPEC_GLOSS: false, USE_GLASS: false})
   });
 
   effects.rSkybox = new Effect('rSkybox', {
@@ -190,8 +204,14 @@ export function init() {
           defaultValue: new Float32Array(4 * 128)
         },
         {
-          name: 'u_metallicRoughnessFactorNormalScales',
-          type: 'vec3',
+          name: 'u_metallicRoughnessFactorNormalScaleMaterialTypes',
+          type: 'vec4',
+          size: 128,
+          defaultValue: new Float32Array(128)
+        },
+        {
+          name: 'u_specularGlossinessFactors',
+          type: 'vec4',
           size: 128,
           defaultValue: new Float32Array(128)
         }
@@ -206,7 +226,7 @@ export function init() {
           defaultValue: textures.array1white
         },
         {
-          name: 'u_metallicRoughnessTextures',
+          name: 'u_metalRoughOrSpecGlossTextures',
           defaultValue: textures.array1white
         }
       ],
@@ -240,8 +260,14 @@ export function init() {
           defaultValue: new Float32Array(4 * 128)
         },
         {
-          name: 'u_metallicRoughnessFactorNormalScales',
-          type: 'vec3',
+          name: 'u_metallicRoughnessFactorNormalScaleMaterialTypes',
+          type: 'vec4',
+          size: 128,
+          defaultValue: new Float32Array(128)
+        },
+        {
+          name: 'u_specularGlossinessFactors',
+          type: 'vec4',
           size: 128,
           defaultValue: new Float32Array(128)
         }
@@ -312,7 +338,7 @@ struct DebugRay {
           defaultValue: textures.empty
         },
         {
-          name: 'u_gbDiffuseRough',
+          name: 'u_gbDiffuseRoughOrGloss',
           defaultValue: textures.empty
         },
         {
@@ -320,7 +346,7 @@ struct DebugRay {
           defaultValue: textures.empty
         },
         {
-          name: 'u_gbFaceNormalMatIndex',
+          name: 'u_gbSpecMatIndex',
           defaultValue: textures.empty
         },
         {
@@ -332,7 +358,7 @@ struct DebugRay {
           defaultValue: textures.array1white
         },
         {
-          name: 'u_metallicRoughnessTextures',
+          name: 'u_metalRoughOrSpecGlossTextures',
           defaultValue: textures.array1white
         }
       ],
@@ -361,7 +387,7 @@ struct DebugRay {
           defaultValue: textures.white
         },
         {
-          name: 'u_gbDiffuseRough',
+          name: 'u_gbDiffuseRoughOrGloss',
           defaultValue: textures.white
         },
         {
@@ -369,7 +395,7 @@ struct DebugRay {
           defaultValue: textures.white
         },
         {
-          name: 'u_gbFaceNormalMatIndex',
+          name: 'u_gbSpecMatIndexMatType',
           defaultValue: textures.white
         }
       ],

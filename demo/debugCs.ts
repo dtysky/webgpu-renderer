@@ -60,10 +60,10 @@ export class DebugInfo {
       const po = index * 3 * 6;
       const io = index * 6;
 
-      // positions.set(preOrigin, po);
-      // positions.set(H.math.vec3.add(new Float32Array(3), preOrigin, H.math.vec3.scale(new Float32Array(3), preDir, 20)), po + 3);
-      // colors.set([1, 0, 0], po);
-      // colors.set([1, 0, 0], po + 3);
+      positions.set(preOrigin, po);
+      positions.set(H.math.vec3.add(new Float32Array(3), preOrigin, H.math.vec3.scale(new Float32Array(3), preDir, 20)), po + 3);
+      colors.set([1, 0, 0], po);
+      colors.set([1, 0, 0], po + 3);
       positions.set(origin, po + 6);
       positions.set(H.math.vec3.add(new Float32Array(3), origin, H.math.vec3.scale(new Float32Array(3), dir, 20)), po + 9);
       colors.set([1, 1, 0], po + 6);
@@ -309,13 +309,11 @@ function hitTest(bvh: H.BVH, ray: Ray, positions: Float32Array): FragmentInfo {
 
     const node = getBVHNodeInfo(bvh, offset);
     const hited = boxHitTest(ray, node.max, node.min);
-    console.log('box hit', node, hited, !(hited < 0 || hited > fragInfo.t));
+    console.log('box hit', offset, node, hited, !(hited < 0 || hited > fragInfo.t));
 
     if (hited < 0 || hited > fragInfo.t) {
       continue;
     }
-
-    fragInfo.t = hited;
 
     stackDepth += 1;
     nodeStack[stackDepth] = node.child0Index;
@@ -410,7 +408,7 @@ function leafHitTest(bvh: H.BVH, ray: Ray, positions: Float32Array, offset: numb
   for (let i: number = 0; i < leaf.primitives; i = i + 1) {
     console.log(leaf);
     let cInfo = triangleHitTest(ray, leaf, positions);
-    console.log('triangle hit', cInfo, cInfo.hit && cInfo.t < info.t);
+    console.log('triangle hit', new Uint32Array([(offset + i) | 0x80000000])[0], cInfo, cInfo.hit && cInfo.t < info.t);
 
     if (cInfo.hit && cInfo.t < info.t) {
       info = cInfo;

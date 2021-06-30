@@ -135,9 +135,10 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     const {materials: materialsSrc} = this._json;
     const {materials, textures} = this._res;
 
-    for (const {name, pbrMetallicRoughness, normalTexture} of materialsSrc) {
+    for (const {name, pbrMetallicRoughness, normalTexture, alphaMode, extensions} of materialsSrc) {
       const effect = buildinEffects.rPBR;
       const uniforms: {[key: string]: TUniformValue} = {};
+      const marcos: {[key: string]: boolean} = {};
 
       if (normalTexture) {
         uniforms['u_normalTexture'] = textures[normalTexture.index]
@@ -161,7 +162,29 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
         uniforms['u_roughnessFactor'] = roughnessFactor;
       }
 
-      const material = new Material(effect, uniforms);
+      if (extensions?.KHR_materials_pbrSpecularGlossiness) {
+        const {
+          diffuseFactor, diffuseTexture, specularFactor, glossinessFactor, specularGlossinessTexture
+        } = extensions?.KHR_materials_pbrSpecularGlossiness;
+        marcos['USE_SPEC_GLOSS'] = true;
+
+        if (diffuseTexture) {
+          uniforms['u_baseColorTexture'] = textures[diffuseTexture.index]
+        }
+        if (specularGlossinessTexture) {
+          uniforms['u_specularGlossinessTexture'] = textures[specularGlossinessTexture.index]
+        }
+
+        uniforms['u_baseColorFactor'] = diffuseFactor;
+        uniforms['u_specularFactor'] = specularFactor;
+        uniforms['u_glossinessFactor'] = glossinessFactor;
+      }
+
+      if (alphaMode === 'BLEND') {
+        marcos['USE_GLASS'] = true;
+      }
+
+      const material = new Material(effect, uniforms, marcos);
       material.name = name;
       materials.push(material);
     }

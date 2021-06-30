@@ -17,13 +17,15 @@ struct Ray {
 
 struct HitPoint {
   position: vec3<f32>;
-  metal: f32;
   diffuse: vec3<f32>;
+  metal: f32;
   rough: f32;
+  spec: vec3<f32>;
+  gloss: f32;
   normal: vec3<f32>;
   meshIndex: u32;
-  faceNormal: vec3<f32>;
   matIndex: u32;
+  matType: u32;
   hit: bool;
   hited: f32;
 };
@@ -91,9 +93,9 @@ fn getGBInfo(uv: vec2<f32>) -> HitPoint {
   var info: HitPoint;
 
   let wPMtl: vec4<f32> = textureSampleLevel(u_gbPositionMetal, u_samplerGB, uv, 0.);
-  let dfRgh: vec4<f32> = textureSampleLevel(u_gbDiffuseRough, u_samplerGB, uv, 0.);
+  let dfRghGls: vec4<f32> = textureSampleLevel(u_gbDiffuseRoughOrGloss, u_samplerGB, uv, 0.);
   let nomMesh: vec4<f32> = textureSampleLevel(u_gbNormalMeshIndex, u_samplerGB, uv, 0.);
-  let fnomMat: vec4<f32> = textureSampleLevel(u_gbFaceNormalMatIndex, u_samplerGB, uv, 0.);
+  let specMatIdMatType: vec4<f32> = textureSampleLevel(u_gbSpecMatIndexMatType, u_samplerGB, uv, 0.);
 
   info.hit = u32(nomMesh.w) != 1u;
   info.position = wPMtl.xyz;
@@ -103,7 +105,9 @@ fn getGBInfo(uv: vec2<f32>) -> HitPoint {
   info.normal = nomMesh.xyz;
   info.meshIndex = u32(nomMesh.w) - 2u;
   info.faceNormal = fnomMat.xyz;
-  info.matIndex = u32(fnomMat.w);
+  let matIndexMatType: u32 = u32(fnomMat.w);
+  info.matIndex = matIndexMatType >> 14u;
+  info.matType = matIndexMatType - (info.matIndex << 14u);
 
   return info;
 };
@@ -321,8 +325,6 @@ fn hitTest(ray: Ray) -> HitPoint {
       continue;
     }
 
-    fragInfo.t = hited;
-
     stackDepth = stackDepth + 1;
     nodeStack[stackDepth] = node.child0Index;
     stackDepth = stackDepth + 1;
@@ -346,7 +348,7 @@ fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool) -> Light {
   }
 
   light.color = hit.diffuse;
-  light.energy = .5;
+  light.energy = .6;
 
   light.reflection.dir = reflect(ray.dir, hit.normal);
   // avoid self intersection
@@ -366,10 +368,10 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, debugIndex: i32) -> vec3<f32> {
   hit = hitTest(ray);
   var nextLight: Light;
   if (hit.hit) {
-    lightColor = hit.diffuse;
+    // lightColor = hit.diffuse;
     nextLight = calcLight(ray, hit, false);
   }
-  // lightColor = lightColor + nextLight.color * nextLight.energy;
+  lightColor = lightColor + nextLight.color * energy * nextLight.energy;
 
   var hited: f32 = 0.;
   if (hit.hit) {

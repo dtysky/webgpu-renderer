@@ -8,9 +8,9 @@ struct VertexOutput {
 
 struct FragmentOutput {
   [[location(0)]] positionMetal: vec4<f32>;
-  [[location(1)]] diffuseRough: vec4<f32>;
+  [[location(1)]] diffuseRoughOrGloss: vec4<f32>;
   [[location(2)]] normalMeshIndex: vec4<f32>;
-  [[location(3)]] faceNormalMatIndex: vec4<f32>;
+  [[location(3)]] specMatIndexMatType: vec4<f32>;
 };
 
 require('./common.chuck.wgsl');
@@ -56,7 +56,8 @@ fn main(vo: VertexOutput) -> FragmentOutput {
 
   let meshId: u32 = vo.meshMatIndex[0];
   let matId: u32 = vo.meshMatIndex[1];
-  let metallicRoughnessFactorNormalScale: vec3<f32> = material.u_metallicRoughnessFactorNormalScales[matId];
+  let metallicRoughnessFactorNormalScaleMaterialType: vec4<f32> = material.u_metallicRoughnessFactorNormalScaleMaterialTypes[matId];
+  let specularGlossinessFactor: vec4<f32> = material.u_specularGlossinessFactors[matId];
   let textureIds: vec4<i32> = material.u_matId2TexturesId[matId];
 
   fo.positionMetal = vec4<f32>(
@@ -64,14 +65,26 @@ fn main(vo: VertexOutput) -> FragmentOutput {
     getMetallic(metallicRoughnessFactorNormalScale[0], textureIds[2], vo.texcoord_0)
   );
 
-  fo.diffuseRough = vec4<f32>(
+  fo.diffuseRoughOrGloss = vec4<f32>(
     getBaseColor(material.u_baseColorFactors[matId], textureIds[0], vo.texcoord_0).rgb,
-    getRoughness(metallicRoughnessFactorNormalScale[1], textureIds[0], vo.texcoord_0)
+    #if defined(USE_GLOSS)
+    getGlossiness(specularGlossinessFactor[3], textureIds[2], vo.texcoord_0)
+    #else
+    getRoughness(metallicRoughnessFactorNormalScaleMaterialType[1], textureIds[2], vo.texcoord_0)
+    #endif
+  );
+
+  let matIdMatType: u32 = (bitcast<u32>(metallicRoughnessFactorNormalScaleMaterialType[3]) << 14u) + matId;
+  fo.specMatIndexMatType = vec4<f32>(
+    #if defined(USE_GLOSS)
+    getSpecular(specularGlossinessFactor.xyz, textureIds[2], vo.texcoord_0),
+    #else
+    vec3<f32>(0., 0., 0.)
+    #endif
+    f32(matIdMatType)
   );
 
   let faceNormal: vec3<f32> = getFaceNormal(vo.wPosition.xyz);
-  fo.faceNormalMatIndex = vec4<f32>(faceNormal, f32(matId));
-
   fo.normalMeshIndex = vec4<f32>(
     getNormal(vo.normal, vo.wPosition.xyz, faceNormal, textureIds[1], vo.texcoord_0, metallicRoughnessFactorNormalScale[2]),
     f32(meshId)
