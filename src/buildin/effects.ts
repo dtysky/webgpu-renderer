@@ -405,7 +405,8 @@ struct DebugRay {
           defaultValue: {magFilter: 'linear', minFilter: 'linear'}
         }
       ]
-    }
+    },
+    marcos: {FLIP: false}
   });
 
   effects.iBlit = new Effect('iBlit', {

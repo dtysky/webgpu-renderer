@@ -360,7 +360,7 @@ fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool) -> Light {
   let isMatGlass: bool = isMatGlass(hit.matType);
 
   light.color = hit.diffuse;
-  light.energy = .6;
+  light.energy = .7;
 
   light.reflection.dir = reflect(ray.dir, hit.normal);
   // avoid self intersection
@@ -378,25 +378,25 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, debugIndex: i32) -> vec3<f32> {
   var ray: Ray = light.reflection;
 
   hit = hitTest(ray);
-  var nextLight: Light;
-  if (hit.hit) {
-    nextLight = calcLight(ray, hit, false);
-  }
-  lightColor = lightColor + nextLight.color * energy * nextLight.energy;
-
-  // for (var i: u32 = 0u; i < MAX_TRACE_COUNT; i = i + 1u) {
-  //   hit = hitTest(ray);
-  //   let isLastOut: bool = !hit.hit;
-
-  //   light = calcLight(ray, hit, isLastOut);
-  //   energy = energy * light.energy;
-  //   lightColor = lightColor + light.color * energy;
-  //   ray = light.reflection;
-
-  //   if (energy < 0.01 || isLastOut) {
-  //     break;
-  //   }
+  // var nextLight: Light;
+  // if (hit.hit) {
+  //   nextLight = calcLight(ray, hit, false);
   // }
+  // lightColor = lightColor + nextLight.color * energy * nextLight.energy;
+
+  for (var i: u32 = 0u; i < MAX_TRACE_COUNT; i = i + 1u) {
+    hit = hitTest(ray);
+    let isLastOut: bool = !hit.hit;
+
+    light = calcLight(ray, hit, isLastOut);
+    energy = energy * light.energy;
+    lightColor = lightColor + light.color * energy;
+    ray = light.reflection;
+
+    if (energy < 0.01 || isLastOut) {
+      break;
+    }
+  }
 
   // var hited: f32 = 0.;
   // if (hit.hit) {
