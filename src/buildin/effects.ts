@@ -346,7 +346,7 @@ struct DebugRay {
           defaultValue: textures.empty
         },
         {
-          name: 'u_gbSpecMatIndex',
+          name: 'u_gbSpecMatIndexMatType',
           defaultValue: textures.empty
         },
         {

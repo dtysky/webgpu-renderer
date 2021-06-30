@@ -140,18 +140,11 @@ export default class Effect extends HObject {
           tmp[i] = s.replace(regex as RegExp, `${value}`);
         } else {
           const {hasElse, noElse} = regex as {hasElse: RegExp, noElse: RegExp};
-          let res = hasElse.exec(s);
+          hasElse.lastIndex = 0;
+          noElse.lastIndex = 0;
 
-          if (res) {
-            tmp[i] = value ? res[1] : res[2];
-            return;
-          }
-
-          res = noElse.exec(s);
-
-          if (res) {
-            tmp[i] = value ? res[1] : '';
-          }
+          tmp[i] = s.replace(hasElse, value ? '$1' : '$2');
+          tmp[i] = tmp[i].replace(noElse, value ? '$1' : '');
         }
       });
     }

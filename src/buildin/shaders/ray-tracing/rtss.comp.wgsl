@@ -1,8 +1,8 @@
 let MAX_TRACE_COUNT: u32 = 1u;
 let MAX_RAY_LENGTH: f32 = 9999.;
 let BVH_DEPTH: i32 = ${BVH_DEPTH};
-let FLOAT_ZERO: f32 = -0.005;
-let RAY_DIR_OFFSET: f32 = .005;
+let FLOAT_ZERO: f32 = 0.;
+let RAY_DIR_OFFSET: f32 = .01;
 
 struct VertexOutput {
   [[builtin(position)]] position: vec4<f32>;
@@ -100,12 +100,13 @@ fn getGBInfo(uv: vec2<f32>) -> HitPoint {
   info.hit = u32(nomMesh.w) != 1u;
   info.position = wPMtl.xyz;
   info.metal = wPMtl.w;
-  info.diffuse = dfRgh.xyz;
-  info.rough = dfRgh.w;
+  info.diffuse = dfRghGls.xyz;
+  info.rough = dfRghGls.w;
+  info.spec = specMatIdMatType.xyz;
+  info.gloss = dfRghGls.w;
   info.normal = nomMesh.xyz;
   info.meshIndex = u32(nomMesh.w) - 2u;
-  info.faceNormal = fnomMat.xyz;
-  let matIndexMatType: u32 = u32(fnomMat.w);
+  let matIndexMatType: u32 = u32(specMatIdMatType.w);
   info.matIndex = matIndexMatType >> 14u;
   info.matType = matIndexMatType - (info.matIndex << 14u);
 
@@ -278,15 +279,23 @@ fn fillHitPoint(frag: FragmentInfo) -> HitPoint {
   info.hit = true;
   info.meshIndex = frag.meshIndex;
   info.matIndex = frag.matIndex;
+  let metallicRoughnessFactorNormalScaleMaterialType: vec4<f32> = material.u_metallicRoughnessFactorNormalScaleMaterialTypes[frag.matIndex];
+  info.matType = bitcast<u32>(metallicRoughnessFactorNormalScaleMaterialType[3]);
   info.position = frag.p0 * frag.weights[0] + frag.p1 * frag.weights[1] + frag.p2 * frag.weights[2];
-  info.faceNormal = getFaceNormal(frag);
   let uv: vec2<f32> = frag.uv0 * frag.weights[0] + frag.uv1 * frag.weights[1] + frag.uv2 * frag.weights[2];
-  let metallicRoughnessFactorNormalScale: vec3<f32> = material.u_metallicRoughnessFactorNormalScales[frag.matIndex];
   let textureIds: vec4<i32> = material.u_matId2TexturesId[frag.matIndex];  
-  info.normal = getNormal(frag, info.faceNormal, uv, textureIds[1], metallicRoughnessFactorNormalScale[2]);
-  info.metal = getMetallic(metallicRoughnessFactorNormalScale[0], textureIds[2], uv);
+  let faceNormal: vec3<f32> = getFaceNormal(frag);
+  info.normal = getNormal(frag, faceNormal, uv, textureIds[1], metallicRoughnessFactorNormalScaleMaterialType[2]);
   info.diffuse = getBaseColor(material.u_baseColorFactors[frag.matIndex], textureIds[0], uv).rgb;
-  info.rough = getRoughness(metallicRoughnessFactorNormalScale[1], textureIds[0], uv);
+
+  if (isMatSpecGloss(info.matType)) {
+    let specularGlossinessFactors: vec4<f32> = material.u_specularGlossinessFactors[frag.matIndex];
+    info.spec = getSpecular(specularGlossinessFactors.xyz, textureIds[2], uv).rgb;
+    info.gloss = getGlossiness(specularGlossinessFactors[3], textureIds[2], uv);
+  } else {
+    info.metal = getMetallic(metallicRoughnessFactorNormalScaleMaterialType[0], textureIds[2], uv);
+    info.rough = getRoughness(metallicRoughnessFactorNormalScaleMaterialType[1], textureIds[2], uv);
+  }
 
   return info;
 }
@@ -347,6 +356,9 @@ fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool) -> Light {
     return light;
   }
 
+  let isMatSpecGloss: bool = isMatSpecGloss(hit.matType);
+  let isMatGlass: bool = isMatGlass(hit.matType);
+
   light.color = hit.diffuse;
   light.energy = .6;
 
@@ -368,24 +380,9 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, debugIndex: i32) -> vec3<f32> {
   hit = hitTest(ray);
   var nextLight: Light;
   if (hit.hit) {
-    // lightColor = hit.diffuse;
     nextLight = calcLight(ray, hit, false);
   }
   lightColor = lightColor + nextLight.color * energy * nextLight.energy;
-
-  var hited: f32 = 0.;
-  if (hit.hit) {
-    hited = 1.;
-  }
-  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(startRay.origin, hited);
-  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(startRay.dir, hit.hited);
-  u_debugInfo.rays[debugIndex].origin = vec4<f32>(ray.origin, f32(gBInfo.matIndex));
-  u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, f32(gBInfo.meshIndex));
-  u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(hit.position, f32(hit.matIndex));
-  u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(nextLight.reflection.dir, f32(hit.meshIndex));
-  u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
-
-  // lightColor.z = -light.reflection.dir.z;
 
   // for (var i: u32 = 0u; i < MAX_TRACE_COUNT; i = i + 1u) {
   //   hit = hitTest(ray);
@@ -400,6 +397,18 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, debugIndex: i32) -> vec3<f32> {
   //     break;
   //   }
   // }
+
+  // var hited: f32 = 0.;
+  // if (hit.hit) {
+  //   hited = 1.;
+  // }
+  // u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(startRay.origin, hited);
+  // u_debugInfo.rays[debugIndex].preDir = vec4<f32>(startRay.dir, hit.hited);
+  // u_debugInfo.rays[debugIndex].origin = vec4<f32>(ray.origin, f32(gBInfo.matIndex));
+  // u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, f32(gBInfo.meshIndex));
+  // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(hit.position, f32(hit.matIndex));
+  // u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(nextLight.reflection.dir, f32(hit.meshIndex));
+  // u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
 
   return lightColor;
 }
