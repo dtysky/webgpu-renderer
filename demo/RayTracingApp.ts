@@ -84,7 +84,7 @@ export default class RayTracingApp {
   }
 
   public async update(dt: number) {
-    await this._frame();
+    // await this._frame();
   }
 
   private async _frame() {

@@ -74,6 +74,7 @@ struct Child {
 };
 
 require('./common.chuck.wgsl');
+require('../pbr/common.chuck.wgsl');
 
 fn genWorldRayByGBuffer(uv: vec2<f32>, gBInfo: HitPoint) -> Ray {
   let pixelSSPos: vec4<f32> = vec4<f32>(uv.x * 2. - 1., 1. - uv.y * 2., 0., 1.);
