@@ -151,7 +151,7 @@ export default class RayTracingManager extends HObject {
         materialIndex = _materials.length - 1;
       }
 
-      indexData.forEach((value, index) => {
+      indexData.forEach((value: number, index: number) => {
         indexes[index + indexOffset] = value + attrOffset;
       });
 

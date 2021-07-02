@@ -9,6 +9,9 @@ struct VertexOutput {
   [[location(0)]] uv: vec2<f32>;
 };
 
+require('./common.chuck.wgsl');
+require('../pbr/common.chuck.wgsl');
+
 struct Ray {
   origin: vec3<f32>;
   dir: vec3<f32>;
@@ -16,25 +19,27 @@ struct Ray {
 };
 
 struct HitPoint {
+  hit: bool;
+  hited: f32;
   position: vec3<f32>;
-  diffuse: vec3<f32>;
+  baseColor: vec3<f32>;
   metal: f32;
   rough: f32;
   spec: vec3<f32>;
   gloss: f32;
+  glass: f32;
   normal: vec3<f32>;
   meshIndex: u32;
   matIndex: u32;
-  matType: u32;
-  hit: bool;
-  hited: f32;
+  isSpecGloss: bool;
+  isGlass: bool;
+  pbrData: PBRData;
 };
 
 struct Light {
   color: vec3<f32>;
-  energy: f32;
-  reflection: Ray;
-  refraction: Ray;
+  brdf: vec3<f32>;
+  next: Ray;
 };
 
 struct BVHNode {
@@ -73,9 +78,6 @@ struct Child {
   offset: u32;
 };
 
-require('./common.chuck.wgsl');
-require('../pbr/common.chuck.wgsl');
-
 fn genWorldRayByGBuffer(uv: vec2<f32>, gBInfo: HitPoint) -> Ray {
   let pixelSSPos: vec4<f32> = vec4<f32>(uv.x * 2. - 1., 1. - uv.y * 2., 0., 1.);
   var pixelWorldPos: vec4<f32> = global.u_viewInverse * global.u_projInverse * pixelSSPos;
@@ -94,22 +96,28 @@ fn getGBInfo(uv: vec2<f32>) -> HitPoint {
   var info: HitPoint;
 
   let wPMtl: vec4<f32> = textureSampleLevel(u_gbPositionMetal, u_samplerGB, uv, 0.);
-  let dfRghGls: vec4<f32> = textureSampleLevel(u_gbDiffuseRoughOrGloss, u_samplerGB, uv, 0.);
-  let nomMesh: vec4<f32> = textureSampleLevel(u_gbNormalMeshIndex, u_samplerGB, uv, 0.);
+  let dfRghGls: vec4<f32> = textureSampleLevel(u_gbBaseColorRoughOrGloss, u_samplerGB, uv, 0.);
+  let nomMeshIdGlass: vec4<f32> = textureSampleLevel(u_gbNormalMeshIndexGlass, u_samplerGB, uv, 0.);
   let specMatIdMatType: vec4<f32> = textureSampleLevel(u_gbSpecMatIndexMatType, u_samplerGB, uv, 0.);
 
-  info.hit = u32(nomMesh.w) != 1u;
+  let meshIndexGlass: u32 = u32(nomMeshIdGlass.w);
+  let meshIndex: u32 = meshIndexGlass >> 8u;
+  info.hit = meshIndex != 1u;
   info.position = wPMtl.xyz;
   info.metal = wPMtl.w;
-  info.diffuse = dfRghGls.xyz;
+  info.baseColor = dfRghGls.xyz;
   info.rough = dfRghGls.w;
   info.spec = specMatIdMatType.xyz;
   info.gloss = dfRghGls.w;
-  info.normal = nomMesh.xyz;
-  info.meshIndex = u32(nomMesh.w) - 2u;
+  info.normal = nomMeshIdGlass.xyz;
+  info.meshIndex = meshIndex - 2u;
+  info.glass = f32((meshIndexGlass - meshIndex) >> 8u) / 255.;
   let matIndexMatType: u32 = u32(specMatIdMatType.w);
-  info.matIndex = matIndexMatType >> 14u;
-  info.matType = matIndexMatType - (info.matIndex << 14u);
+  let matType: u32 = matIndexMatType >> 12u;
+  info.matIndex = matIndexMatType - (matIndexMatType << 12u);
+  info.isSpecGloss = isMatSpecGloss(matType);
+  info.isGlass = isMatGlass(matType);
+  info.pbrData = pbrPrepareData(info.isSpecGloss, info.baseColor, info.metal, info.rough, info.spec, info.gloss);
 
   return info;
 };
@@ -281,15 +289,19 @@ fn fillHitPoint(frag: FragmentInfo) -> HitPoint {
   info.meshIndex = frag.meshIndex;
   info.matIndex = frag.matIndex;
   let metallicRoughnessFactorNormalScaleMaterialType: vec4<f32> = material.u_metallicRoughnessFactorNormalScaleMaterialTypes[frag.matIndex];
-  info.matType = bitcast<u32>(metallicRoughnessFactorNormalScaleMaterialType[3]);
+  let matType: u32 = bitcast<u32>(metallicRoughnessFactorNormalScaleMaterialType[3]);
   info.position = frag.p0 * frag.weights[0] + frag.p1 * frag.weights[1] + frag.p2 * frag.weights[2];
   let uv: vec2<f32> = frag.uv0 * frag.weights[0] + frag.uv1 * frag.weights[1] + frag.uv2 * frag.weights[2];
   let textureIds: vec4<i32> = material.u_matId2TexturesId[frag.matIndex];  
   let faceNormal: vec3<f32> = getFaceNormal(frag);
   info.normal = getNormal(frag, faceNormal, uv, textureIds[1], metallicRoughnessFactorNormalScaleMaterialType[2]);
-  info.diffuse = getBaseColor(material.u_baseColorFactors[frag.matIndex], textureIds[0], uv).rgb;
+  let baseColor: vec4<f32> = getBaseColor(material.u_baseColorFactors[frag.matIndex], textureIds[0], uv);
+  info.baseColor = baseColor.rgb;
+  info.glass = baseColor.a;
+  info.isSpecGloss = isMatSpecGloss(matType);
+  info.isGlass = isMatGlass(matType);
 
-  if (isMatSpecGloss(info.matType)) {
+  if (info.isSpecGloss) {
     let specularGlossinessFactors: vec4<f32> = material.u_specularGlossinessFactors[frag.matIndex];
     info.spec = getSpecular(specularGlossinessFactors.xyz, textureIds[2], uv).rgb;
     info.gloss = getGlossiness(specularGlossinessFactors[3], textureIds[2], uv);
@@ -297,6 +309,8 @@ fn fillHitPoint(frag: FragmentInfo) -> HitPoint {
     info.metal = getMetallic(metallicRoughnessFactorNormalScaleMaterialType[0], textureIds[2], uv);
     info.rough = getRoughness(metallicRoughnessFactorNormalScaleMaterialType[1], textureIds[2], uv);
   }
+
+  info.pbrData = pbrPrepareData(info.isSpecGloss, info.baseColor, info.metal, info.rough, info.spec, info.gloss);
 
   return info;
 }
@@ -348,53 +362,63 @@ fn hitTest(ray: Ray) -> HitPoint {
   return hit;
 }
 
+fn calcIndirectLight(ray: Ray, hit: HitPoint) -> vec3<f32> {
+  return hit.baseColor;
+}
+
+fn calcBrdfDir(ray: Ray, hit: HitPoint) -> vec3<f32> {
+  return reflect(ray.dir, hit.normal);
+}
+
+fn calcBsdfDir(ray: Ray, hit: HitPoint) -> vec3<f32> {
+  // reflection or refraction
+  return reflect(ray.dir, hit.normal);
+}
+
 fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool) -> Light {
   var light: Light;
 
   if (isLastOut) {
     light.color = textureSampleLevel(u_envTexture, u_sampler, ray.dir, 0.).rgb;
-    light.energy = 1.;
     return light;
   }
 
-  let isMatSpecGloss: bool = isMatSpecGloss(hit.matType);
-  let isMatGlass: bool = isMatGlass(hit.matType);
+  if (hit.isGlass) {
+    // bsdf
+    light.next.dir = calcBsdfDir(ray, hit);
+    light.brdf = hit.baseColor;
+  } else {
+    // brdf
+    light.color = calcIndirectLight(ray, hit);
+    light.next.dir = calcBrdfDir(ray, hit);
+    // light.brdf = pbrCalculateLo(hit.pbrData, -ray.dir, light.next.dir, hit.normal);
+    light.brdf = vec3<f32>(.5);
+  }
 
-  light.color = hit.diffuse;
-  light.energy = .7;
-
-  light.reflection.dir = reflect(ray.dir, hit.normal);
   // avoid self intersection
-  light.reflection.origin = hit.position + light.reflection.dir * RAY_DIR_OFFSET;
-  light.reflection.invDir = 1. / light.reflection.dir;
+  light.next.origin = hit.position + light.next.dir * RAY_DIR_OFFSET;
+  light.next.invDir = 1. / light.next.dir;
 
   return light;
 }
 
 fn traceLight(startRay: Ray, gBInfo: HitPoint, debugIndex: i32) -> vec3<f32> {
   var light: Light = calcLight(startRay, gBInfo, false);
-  var energy: f32 = light.energy;
-  var lightColor: vec3<f32> = light.color * energy;
+  var brdf: vec3<f32> = light.brdf;
+  var lightColor: vec3<f32> = light.color;
   var hit: HitPoint;
-  var ray: Ray = light.reflection;
-
-  hit = hitTest(ray);
-  // var nextLight: Light;
-  // if (hit.hit) {
-  //   nextLight = calcLight(ray, hit, false);
-  // }
-  // lightColor = lightColor + nextLight.color * energy * nextLight.energy;
+  var ray: Ray = light.next;
 
   for (var i: u32 = 0u; i < MAX_TRACE_COUNT; i = i + 1u) {
     hit = hitTest(ray);
     let isLastOut: bool = !hit.hit;
 
     light = calcLight(ray, hit, isLastOut);
-    energy = energy * light.energy;
-    lightColor = lightColor + light.color * energy;
-    ray = light.reflection;
+    lightColor = lightColor + light.color * brdf;
+    brdf = brdf * light.brdf;
+    ray = light.next;
 
-    if (energy < 0.01 || isLastOut) {
+    if (max(brdf.x, max(brdf.y, brdf.z)) < 0.01 || isLastOut) {
       break;
     }
   }

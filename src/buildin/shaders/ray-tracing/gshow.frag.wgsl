@@ -12,11 +12,11 @@ fn main(vo: VertexOutput) -> [[location(0)]] vec4<f32> {
   }
   
   if (uv.x < .5) {
-    return vec4<f32>(textureSample(u_gbDiffuseRoughOrGloss, u_sampler, uv).rgb, 1.);
+    return vec4<f32>(textureSample(u_gbBaseColorRoughOrGloss, u_sampler, uv).rgb, 1.);
   }
   
   if (uv.x < .75) {
-    return vec4<f32>(textureSample(u_gbNormalMeshIndex, u_sampler, uv).rgb, 1.);
+    return vec4<f32>(textureSample(u_gbNormalMeshIndexGlass, u_sampler, uv).rgb, 1.);
   }
 
   return vec4<f32>(textureSample(u_gbSpecMatIndexMatType, u_sampler, uv).rgb, 1.);

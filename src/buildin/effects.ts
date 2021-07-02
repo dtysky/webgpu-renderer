@@ -338,11 +338,11 @@ struct DebugRay {
           defaultValue: textures.empty
         },
         {
-          name: 'u_gbDiffuseRoughOrGloss',
+          name: 'u_gbBaseColorRoughOrGloss',
           defaultValue: textures.empty
         },
         {
-          name: 'u_gbNormalMeshIndex',
+          name: 'u_gbNormalMeshIndexGlass',
           defaultValue: textures.empty
         },
         {
@@ -387,11 +387,11 @@ struct DebugRay {
           defaultValue: textures.white
         },
         {
-          name: 'u_gbDiffuseRoughOrGloss',
+          name: 'u_gbBaseColorRoughOrGloss',
           defaultValue: textures.white
         },
         {
-          name: 'u_gbNormalMeshIndex',
+          name: 'u_gbNormalMeshIndexGlass',
           defaultValue: textures.white
         },
         {

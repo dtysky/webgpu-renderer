@@ -1,7 +1,4 @@
 struct PBRData {
-  N: vec3<f32>;
-  V: vec3<f32>;
-  L: vec3<f32>;
   reflectance0: vec3<f32>;
   reflectance90: vec3<f32>;
   alphaRoughness: f32;
@@ -9,7 +6,6 @@ struct PBRData {
   specularColor: vec3<f32>;
   ao: vec3<f32>;
   roughness: f32;
-  NdotV: f32;
 };
 
 fn pbrDiffuse(diffuseColor: vec3<f32>)-> vec3<f32> {
@@ -34,17 +30,14 @@ fn pbrMicrofacetDistribution(alphaRoughness: f32, NdotH: f32)-> f32 {
   return roughnessSq * 0.3183098861837907 / (f * f);
 }
 
-fn preparePBR(
-  isSpecGloss: bool, baseColor: vec4<f32>,
-  view: vec3<f32>, normal: vec3<f32>,
+fn pbrPrepareData(
+  isSpecGloss: bool,
+  baseColor: vec3<f32>,
   metal: f32, rough: f32,
   spec: vec3<f32>, gloss: f32
 ) -> PBRData {
   var pbr: PBRData;
 
-  pbr.N = normal;
-  pbr.V = view;
-  
   var specularColor: vec3<f32>;
   var diffuseColor: vec3<f32>;
   var roughness: f32;
@@ -55,15 +48,15 @@ fn preparePBR(
     let metallic: f32 = clamp(metal, 0.0, 1.0);
     let f0: vec3<f32> = vec3<f32>(0.04, 0.04, 0.04);
 
-    diffuseColor = (1.0 - metallic) * (baseColor.rgb * (vec3<f32>(1.0, 1.0, 1.0) - f0));
-    specularColor = mix(f0, baseColor.rgb, vec3<f32>(metallic));
+    diffuseColor = (1.0 - metallic) * (baseColor * (vec3<f32>(1.0, 1.0, 1.0) - f0));
+    specularColor = mix(f0, baseColor, vec3<f32>(metallic));
   }
   else {
   // specular glossiness
     let specular: vec3<f32> = spec.rgb;
 
     roughness = 1.0 - gloss;
-    diffuseColor = baseColor.rgb * (1.0 - max(max(specular.r, specular.g), specular.b));
+    diffuseColor = baseColor * (1.0 - max(max(specular.r, specular.g), specular.b));
     specularColor = specular;
   }
   
@@ -74,25 +67,24 @@ fn preparePBR(
   let reflectance90: f32 = clamp(reflectance * 25.0, 0.0, 1.0);
   pbr.reflectance0 = specularColor.rgb;
   pbr.reflectance90 = vec3<f32>(1.0, 1.0, 1.0) * reflectance90;
-
-  pbr.NdotV = clamp(abs(dot(pbr.N, pbr.V)), 0.001, 1.0);
   pbr.alphaRoughness = roughness * roughness;
 
   return pbr;
 }
 
-fn pbrCalculateLo(pbr: PBRData, lightDir: vec3<f32>, radiance: vec3<f32>)-> vec3<f32> {
-  let H: vec3<f32> = normalize(lightDir + pbr.V);
-  let NdotL: f32 = clamp(dot(pbr.N, lightDir), 0.001, 1.0);
-  let NdotH: f32 = clamp(dot(pbr.N, H), 0.0, 1.0);
+fn pbrCalculateLo(pbr: PBRData, viewDir: vec3<f32>, lightDir: vec3<f32>, normal: vec3<f32>)-> vec3<f32> {
+  let H: vec3<f32> = normalize(lightDir + viewDir);
+  let NdotV: f32 = clamp(abs(dot(normal, viewDir)), 0.001, 1.0);
+  let NdotL: f32 = clamp(dot(normal, lightDir), 0.001, 1.0);
+  let NdotH: f32 = clamp(dot(normal, H), 0.0, 1.0);
   let LdotH: f32 = clamp(dot(lightDir, H), 0.0, 1.0);
-  let VdotH: f32 = clamp(dot(pbr.V, H), 0.0, 1.0);
+  let VdotH: f32 = clamp(dot(viewDir, H), 0.0, 1.0);
   // Calculate the shading terms for the microfacet specular shading model
   let F: vec3<f32> = pbrSpecularReflection(pbr.reflectance0, pbr.reflectance90, VdotH);
-  let G: f32 = pbrGeometricOcclusion(NdotL, pbr.NdotV, pbr.alphaRoughness);
+  let G: f32 = pbrGeometricOcclusion(NdotL, NdotV, pbr.alphaRoughness);
   let D: f32 = pbrMicrofacetDistribution(pbr.alphaRoughness, NdotH);
 
-  let specContrib: vec3<f32> = F * G * D / (4.0 * NdotL * pbr.NdotV);
+  let specContrib: vec3<f32> = F * G * D / (4.0 * NdotL * NdotV);
   // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
-  return radiance * NdotL * specContrib;
+  return NdotL * specContrib;
 }

@@ -8,8 +8,8 @@ struct VertexOutput {
 
 struct FragmentOutput {
   [[location(0)]] positionMetal: vec4<f32>;
-  [[location(1)]] diffuseRoughOrGloss: vec4<f32>;
-  [[location(2)]] normalMeshIndex: vec4<f32>;
+  [[location(1)]] baseColorRoughOrGloss: vec4<f32>;
+  [[location(2)]] normalMeshIndexGlass: vec4<f32>;
   [[location(3)]] specMatIndexMatType: vec4<f32>;
 };
 
@@ -67,18 +67,15 @@ fn main(vo: VertexOutput) -> FragmentOutput {
     getMetallic(metallicRoughnessFactorNormalScaleMaterialType[0], textureIds[2], vo.texcoord_0)
   );
 
-  fo.diffuseRoughOrGloss = vec4<f32>(
-    getBaseColor(material.u_baseColorFactors[matId], textureIds[0], vo.texcoord_0).rgb,
-    0.
-  );
-
+  let baseColor: vec4<f32> = getBaseColor(material.u_baseColorFactors[matId], textureIds[0], vo.texcoord_0);
+  fo.baseColorRoughOrGloss = vec4<f32>(baseColor.rgb, 0.);
   if (isMatSpecGloss) {
-    fo.diffuseRoughOrGloss.w = getGlossiness(specularGlossinessFactor[3], textureIds[2], vo.texcoord_0);
+    fo.baseColorRoughOrGloss.w = getGlossiness(specularGlossinessFactor[3], textureIds[2], vo.texcoord_0);
   } else {
-    fo.diffuseRoughOrGloss.w = getRoughness(metallicRoughnessFactorNormalScaleMaterialType[1], textureIds[2], vo.texcoord_0);
+    fo.baseColorRoughOrGloss.w = getRoughness(metallicRoughnessFactorNormalScaleMaterialType[1], textureIds[2], vo.texcoord_0);
   }
 
-  let matIdMatType: u32 = (matType << 14u) + matId;
+  let matIdMatType: u32 = (matType << 12u) + matId;
   if (isMatSpecGloss) {
     fo.specMatIndexMatType = vec4<f32>(
       getSpecular(specularGlossinessFactor.xyz, textureIds[2], vo.texcoord_0),
@@ -89,9 +86,9 @@ fn main(vo: VertexOutput) -> FragmentOutput {
   }
 
   let faceNormal: vec3<f32> = getFaceNormal(vo.wPosition.xyz);
-  fo.normalMeshIndex = vec4<f32>(
+  fo.normalMeshIndexGlass = vec4<f32>(
     getNormal(vo.normal, vo.wPosition.xyz, faceNormal, textureIds[1], vo.texcoord_0, metallicRoughnessFactorNormalScaleMaterialType[2]),
-    f32(meshId)
+    f32(meshId + u32(baseColor.a * 255.) << 8u)
   );
 
   return fo;

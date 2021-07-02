@@ -41,8 +41,8 @@ export default class RayTracingApp {
       height: renderEnv.height,
       colors: [
         {name: 'positionMetal', format: 'rgba16float'},
-        {name: 'diffuseRoughOrGloss', format: 'rgba16float'},
-        {name: 'normalMeshIndex', format: 'rgba16float'},
+        {name: 'baseColorRoughOrGloss', format: 'rgba16float'},
+        {name: 'normalMeshIndexGlass', format: 'rgba16float'},
         {name: 'specMatIndexMatType', format: 'rgba16float'}
       ],
       depthStencil: {needStencil: false}
@@ -84,7 +84,7 @@ export default class RayTracingApp {
   }
 
   public async update(dt: number) {
-    // await this._frame();
+    await this._frame();
   }
 
   private async _frame() {
@@ -145,8 +145,8 @@ export default class RayTracingApp {
 
   private _connectGBufferRenderTexture(material: H.Material | H.ComputeUnit) {
     material.setUniform('u_gbPositionMetal', this._gBufferRT, 'positionMetal');
-    material.setUniform('u_gbDiffuseRoughOrGloss', this._gBufferRT, 'diffuseRoughOrGloss');
-    material.setUniform('u_gbNormalMeshIndex', this._gBufferRT, 'normalMeshIndex');
+    material.setUniform('u_gbBaseColorRoughOrGloss', this._gBufferRT, 'baseColorRoughOrGloss');
+    material.setUniform('u_gbNormalMeshIndexGlass', this._gBufferRT, 'normalMeshIndexGlass');
     material.setUniform('u_gbSpecMatIndexMatType', this._gBufferRT, 'specMatIndexMatType');
   }
 }
