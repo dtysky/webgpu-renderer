@@ -8,6 +8,15 @@ struct PBRData {
   roughness: f32;
 };
 
+fn refract(I: vec3<f32>, N: vec3<f32>, eta: f32) -> vec3<f32> {
+  let k: f32 = 1.0 - eta * eta * (1.0 - dot(N, I) * dot(N, I));
+  if (k < 0.0) {
+    return vec3<f32>(0.);
+  }
+
+  return eta * I - (eta * dot(N, I) + sqrt(k)) * N;
+}
+
 fn pbrDiffuse(diffuseColor: vec3<f32>)-> vec3<f32> {
   return diffuseColor * 0.3183098861837907;
 }

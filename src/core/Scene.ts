@@ -80,6 +80,16 @@ export default class Scene extends HObject {
       }
     });
 
+    const lightInfos = renderEnv.getUniform('u_lightInfos') as Float32Array;
+    if (lightInfos) {
+      this._lights.forEach((l, i) => {
+        if (i < 4) {
+          lightInfos.set(l.ubInfo, i * 16);
+        }
+      });
+      renderEnv.setUniform('u_lightInfos', lightInfos); 
+    }
+
     this._command = renderEnv.device.createCommandEncoder();
   }
 

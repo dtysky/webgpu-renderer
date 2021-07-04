@@ -13,7 +13,7 @@ struct FragmentOutput {
   [[location(3)]] specMatIndexMatType: vec4<f32>;
 };
 
-require('./common.chuck.wgsl');
+require('./common.chunk.wgsl');
 
 fn getFaceNormal(position: vec3<f32>) -> vec3<f32> {
   return normalize(cross(dpdx(position), dpdy(position)));

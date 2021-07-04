@@ -58,6 +58,26 @@ export function init() {
           name: 'u_envColor',
           type: 'vec4',
           defaultValue: new Float32Array([0, 0, 0, 0])
+        },
+        {
+          // info: bit1(pack (4bits type|4bits mode)|r|g|b), bit2(intensity), bit3/4(areaLightSize.xy)
+          name: 'u_lightInfos',
+          customType: {
+            name: 'LightInfo',
+            len: 16,
+            code: `
+struct LightInfo {
+  lightType: u32;
+  areaMode: u32;
+  areaSize: vec2<f32>;
+  color: vec4<f32>;
+  position: vec4<f32>;
+  direction: vec4<f32>;
+};`
+          },
+          type: 'vec4',
+          size: 4,
+          defaultValue: new Float32Array(16 * 4)
         }
       ],
       textures: [

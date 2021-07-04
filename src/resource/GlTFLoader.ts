@@ -13,7 +13,7 @@ import Mesh from "../core/Mesh";
 import Texture from "../core/Texture";
 import Loader from "./Loader";
 import {TUniformValue} from "../core/UBTemplate";
-import Light from "../core/Light";
+import Light, { EAreaLightMode, ELightType } from "../core/Light";
 import CubeTexture from "../core/CubeTexture";
 
 export interface IGlTFLoaderOptions {
@@ -272,12 +272,16 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     const {lights} = this._res;
 
     if (lightsSrc) {
-      for (const {name, type, intensity, color} of lightsSrc) {
-        if (type !== 'directional') {
-          throw new Error('Only support directional light now!');
+      for (const {name, type, intensity, color, mode, size} of lightsSrc) {
+        if (type !== 'directional' && type !== 'area') {
+          throw new Error('Only support directional and area light now!');
         }
   
-        const light = new Light(color.map(c => c * intensity));
+        const light = new Light(
+          type === 'directional' ? ELightType.Directional : ELightType.Area,
+          color.map(c => c * intensity),
+          type === 'directional' ? {} : {mode: mode === 'rect' ? EAreaLightMode.Rect : EAreaLightMode.Disc, size}
+        );
         light.name = name;
   
         lights.push(light);

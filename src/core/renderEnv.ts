@@ -8,7 +8,7 @@ declare type UBTemplate = import('./UBTemplate').default;
 declare type IUniformBlock = import('./UBTemplate').IUniformBlock;
 declare type TUniformValue = import('./UBTemplate').TUniformValue;
 
-class RenderEnv {
+export class RenderEnv {
   public static  CLASS_NAME: string = 'RenderEnv';
   public isRenderEnv: boolean = true;
 

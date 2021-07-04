@@ -84,12 +84,13 @@ export default class RayTracingApp {
   }
 
   public async update(dt: number) {
-    await this._frame();
+    // await this._frame();
   }
 
   private async _frame() {
     const {_scene} = this;
 
+    H.renderEnv.setUniform('u_randomSeed', new Float32Array(4).fill(Math.random()));
     _scene.startFrame();
     
     const first = !this._rtManager;

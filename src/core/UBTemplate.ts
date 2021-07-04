@@ -25,6 +25,7 @@ export interface IUniformsDescriptor {
     type: 'number' | 'vec2' | 'vec3' | 'vec4' | 'mat2x2' | 'mat3x3' | 'mat4x4',
     format?: 'f32' | 'u32' | 'i32',
     size?: number,
+    customType?: {name: string, code: string, len: number},
     defaultValue: TUniformTypedArray
   }[],
   textures?: {
@@ -122,6 +123,12 @@ export default class UBTemplate extends HObject {
     const entries: GPUBindGroupLayoutEntry[] = [];
     
     if (_uniformDesc.uniforms.length) {
+      _uniformDesc.uniforms.forEach((ud) => {
+        if (ud.customType) {
+          this._shaderPrefix += ud.customType.code + '\n';    
+        }
+      });
+
       this._shaderPrefix += `[[block]] struct ${ubStruct} {\n`;
       entries.push({
         binding: 0,
@@ -131,11 +138,11 @@ export default class UBTemplate extends HObject {
 
       let uniforms32Length: number = 0;
       _uniformDesc.uniforms.forEach((ud) => {
-        const {origLen, realLen, defaultValue} = this._getRealLayoutInfo(ud.type, ud.size || 1, ud.defaultValue);
+        const {origLen, realLen, defaultValue} = this._getRealLayoutInfo(ud.type, ud.size || 1, ud.defaultValue, ud.customType);
 
         this._uniformsInfo[ud.name] = {bindingId: 0, index, type: 'buffer', offset: uniforms32Length, defaultValue, origLen, realLen, size: ud.size || 1};
         uniforms32Length += defaultValue.length;
-        const sym = ud.type === 'number' ? `${ud.format || 'f32'}` : `${ud.type}<${ud.format || 'f32'}>`;
+        const sym = ud.customType ? ud.customType.name : ud.type === 'number' ? `${ud.format || 'f32'}` : `${ud.type}<${ud.format || 'f32'}>`;
         const pre = origLen !== realLen ? `[[stride(${realLen * 4})]]` : '';
         if (!ud.size) {
           this._shaderPrefix += `  [[align(16)]] ${ud.name}: ${sym};\n`;
@@ -237,10 +244,15 @@ export default class UBTemplate extends HObject {
   }
 
   protected _getRealLayoutInfo(
-    type: "number" | "vec2" | "vec3" | "vec4" | "mat2x2" | "mat3x3" | "mat4x4",
+    type: "number" | "vec2" | "vec3" | "vec4" | "mat2x2" | "mat3x3" | "mat4x4" | 'custom',
     size: number,
-    defaultValue: TUniformTypedArray
+    defaultValue: TUniformTypedArray,
+    custom?: {name: string, len: number}
   ) {
+    if (custom) {
+      return {origLen: custom.len, realLen: custom.len, defaultValue};
+    }
+
     let origLen: number;
     let realLen: number;
 
