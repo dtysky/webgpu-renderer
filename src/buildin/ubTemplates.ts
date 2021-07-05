@@ -64,20 +64,19 @@ export function init() {
           name: 'u_lightInfos',
           customType: {
             name: 'LightInfo',
-            len: 16,
+            len: 24,
             code: `
 struct LightInfo {
   lightType: u32;
   areaMode: u32;
   areaSize: vec2<f32>;
   color: vec4<f32>;
-  position: vec4<f32>;
-  direction: vec4<f32>;
+  worldTransform: mat4x4<f32>;
 };`
           },
           type: 'vec4',
           size: 4,
-          defaultValue: new Float32Array(16 * 4)
+          defaultValue: new Float32Array(24 * 4)
         }
       ],
       textures: [

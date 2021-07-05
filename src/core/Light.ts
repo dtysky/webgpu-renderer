@@ -82,7 +82,6 @@ export default class Light extends Node {
     vec3.transformMat4(this._worldDir, [0, 0, 1], this._worldMat);
 
     this._ubInfo.set(this._color, 4);
-    this._ubInfo.set(this._worldPos, 8);
-    this._ubInfo.set(this._worldDir, 12);
+    this._ubInfo.set(this._worldMat, 8);
   }
 }
