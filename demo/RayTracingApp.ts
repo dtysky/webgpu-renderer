@@ -76,15 +76,15 @@ export default class RayTracingApp {
     console.log(model)
 
     await this._frame();
-    // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([270, 210], [271, 211]);
+    // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([100, 100], [120, 120]);
     // this._rtDebugMesh = mesh;
     // rays.forEach(ray => debugRay(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
     // debugCamera(this._camera, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
-    await this._frame();
+    // await this._frame();
   }
 
   public async update(dt: number) {
-    // await this._frame();
+    await this._frame();
   }
 
   private async _frame() {

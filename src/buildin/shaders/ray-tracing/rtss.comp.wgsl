@@ -11,6 +11,7 @@ struct VertexOutput {
   [[location(0)]] uv: vec2<f32>;
 };
 
+require('../basic/common.chunk.wgsl');
 require('./common.chunk.wgsl');
 require('../pbr/common.chunk.wgsl');
 
@@ -372,9 +373,9 @@ fn hitTest(ray: Ray) -> HitPoint {
   return hit;
 }
 
-fn hitTestShadow(ray: Ray) -> bool {
+fn hitTestShadow(ray: Ray, maxT: f32) -> FragmentInfo {
   var fragInfo: FragmentInfo;
-  fragInfo.t = MAX_RAY_LENGTH;
+  fragInfo.t = maxT;
   var node: BVHNode;
   var nodeStack: array<u32, ${BVH_DEPTH}>;
   nodeStack[0] = 0u;
@@ -391,8 +392,8 @@ fn hitTestShadow(ray: Ray) -> bool {
     if (child.isLeaf) {
       let info: FragmentInfo = leafHitTest(ray, child.offset);
 
-      if (info.hit) {
-        return true;
+      if (info.hit && info.t < fragInfo.t) {
+        return info;
       }
 
       continue;
@@ -401,7 +402,7 @@ fn hitTestShadow(ray: Ray) -> bool {
     node = getBVHNodeInfo(child.offset);
     let hited: f32 = boxHitTest(ray, node.max, node.min);
 
-    if (hited < 0.) {
+    if (hited < 0. || hited >= fragInfo.t) {
       continue;
     }
 
@@ -411,7 +412,7 @@ fn hitTestShadow(ray: Ray) -> bool {
     nodeStack[stackDepth] = node.child1Index;
   }
 
-  return false;
+  return fragInfo;
 }
 
 // https://graphics.pixar.com/library/OrthonormalB/paper.pdf
@@ -443,21 +444,36 @@ fn sampleCircle(pi: vec2<f32>) -> vec2<f32> {
   return r * vec2<f32>(cos(theta), sin(theta));
 }
 
-fn calcIndirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>) -> vec3<f32> {
+fn calcIndirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>, debugIndex: i32) -> vec3<f32> {
   // sample area lights, get radiance or shadow
-  // only support one disc area light now
   let areaLight: LightInfo = global.u_lightInfos[0];
-  let samplePoint2D: vec2<f32> = sampleCircle(random) * areaLight.areaSize.x;
-  let samplePoint: vec4<f32> = areaLight.worldTransform * vec4<f32>(samplePoint2D.x, 0., samplePoint2D.y, 1.);
-  let sampleDir: vec3<f32> = samplePoint.xyz - ray.origin;
-  let sampleLight: Ray = Ray(ray.origin, sampleDir, 1. / sampleDir);
-  let inShadow: bool = hitTestShadow(sampleLight);
 
-  if (inShadow) {
+  // only support one disc area light now
+  if (areaLight.lightType != LIGHT_TYPE_AREA) {
     return vec3<f32>(0.);
   }
 
-  return areaLight.color.rgb;
+  let samplePoint2D: vec2<f32> = sampleCircle(random) * areaLight.areaSize.x;
+  let samplePoint: vec4<f32> = areaLight.worldTransform * vec4<f32>(samplePoint2D.x, 0., samplePoint2D.y, 1.);
+  // let samplePoint: vec3<f32> = vec3<f32>(0., 6., 0.);
+  var sampleDir: vec3<f32> = samplePoint.xyz - hit.position;
+  let maxT: f32 = length(sampleDir);
+  sampleDir = normalize(sampleDir);
+  let sampleLight: Ray = Ray(hit.position, sampleDir, 1. / sampleDir);
+  let shadowInfo: FragmentInfo = hitTestShadow(sampleLight, maxT);
+
+  // var hited: f32 = 0.;
+  // if (hit.hit) {
+  //   hited = 1.;
+  // }
+  // u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(shadowInfo.hitPoint, hited);
+  // u_debugInfo.rays[debugIndex].preDir = vec4<f32>(sampleDir, shadowInfo.t);
+
+  if (shadowInfo.hit) {
+    return vec3<f32>(0.);
+  }
+
+  return areaLight.color.rgb * hit.baseColor;
 }
 
 fn fresnelSchlickWeight(cosTheta: f32) -> f32 {
@@ -538,12 +554,14 @@ fn calcBsdfDir(ray: Ray, hit: HitPoint, isReflection: bool) -> vec3<f32> {
   return refract(ray.dir, sign(cosTheta) * hit.normal, realIOR);
 }
 
-fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool) -> Light {
+fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool, debugIndex: i32) -> Light {
   var light: Light;
   let random = getRandom(vec4<f32>(hit.position, hit.hited));
 
   if (isLastOut) {
-    light.color = textureSampleLevel(u_envTexture, u_sampler, ray.dir, 0.).rgb;
+    // rgbd
+    let bgColor: vec4<f32> = textureSampleLevel(u_envTexture, u_sampler, ray.dir, 0.);
+    light.color = bgColor.rgb / bgColor.a * global.u_envColor.rgb;
     return light;
   }
 
@@ -553,7 +571,7 @@ fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool) -> Light {
     light.brdf = hit.baseColor;
   } else {
     // brdf
-    light.color = calcIndirectLight(ray, hit, random.zw);
+    light.color = calcIndirectLight(ray, hit, random.zw, debugIndex);
     light.next.dir = calcBrdfDir(ray, hit, random.z < mix(.5, 0., hit.metal), random.xy);
     // light.brdf = pbrCalculateLo(hit.pbrData, -ray.dir, light.next.dir, hit.normal);
     light.brdf = vec3<f32>(.5);
@@ -567,9 +585,9 @@ fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool) -> Light {
 }
 
 fn traceLight(startRay: Ray, gBInfo: HitPoint, debugIndex: i32) -> vec3<f32> {
-  var light: Light = calcLight(startRay, gBInfo, false);
+  var light: Light = calcLight(startRay, gBInfo, false, debugIndex);
   var brdf: vec3<f32> = light.brdf;
-  var lightColor: vec3<f32> = light.color;
+  var lightColor: vec3<f32> = light.color * brdf;
   var hit: HitPoint;
   var ray: Ray = light.next;
 
@@ -577,8 +595,8 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, debugIndex: i32) -> vec3<f32> {
     hit = hitTest(ray);
     let isLastOut: bool = !hit.hit;
 
-    light = calcLight(ray, hit, isLastOut);
-    lightColor = lightColor + light.color * brdf;
+    light = calcLight(ray, hit, isLastOut, debugIndex);
+    // lightColor = lightColor + light.color * brdf;
     brdf = brdf * light.brdf;
     ray = light.next;
 
@@ -617,7 +635,8 @@ fn main(
     let t: vec4<f32> = global.u_skyVP * vec4<f32>(baseUV.x * 2. - 1., 1. - baseUV.y * 2., 1., 1.);
     let cubeUV: vec3<f32> = normalize(t.xyz / t.w);
     let bgColor: vec4<f32> = textureSampleLevel(u_envTexture, u_sampler, cubeUV, 0.);
-    textureStore(u_output, baseIndex, vec4<f32>(bgColor.rgb * global.u_envColor.rgb, bgColor.a));
+    // rgbd
+    textureStore(u_output, baseIndex, vec4<f32>(bgColor.rgb / bgColor.a * global.u_envColor.rgb, 1.));
     return;
   }
 
