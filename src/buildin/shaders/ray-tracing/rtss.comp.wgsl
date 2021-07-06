@@ -3,7 +3,7 @@ let MAX_LIGHTS_COUNT: u32 = 1u;
 let MAX_TRACE_COUNT: u32 = 1u;
 let MAX_RAY_LENGTH: f32 = 9999.;
 let BVH_DEPTH: i32 = ${BVH_DEPTH};
-let FLOAT_ZERO: f32 = 0.;
+let EPS: f32 = 0.005;
 let RAY_DIR_OFFSET: f32 = .01;
 
 struct VertexOutput {
@@ -202,15 +202,15 @@ fn boxHitTest(ray: Ray, max: vec3<f32>, min: vec3<f32>) -> f32 {
   let tmin: f32 = max(tvmin.x, max(tvmin.y, tvmin.z));
   let tmax: f32 = min(tvmax.x, min(tvmax.y, tvmax.z));
 
-  if (tmax - tmin < FLOAT_ZERO) {
+  if (tmax - tmin < 0.) {
     return -1.;
   }
   
-  if (tmin > FLOAT_ZERO) {
-    return tmin - FLOAT_ZERO;
+  if (tmin > 0.) {
+    return tmin;
   }
 
-  return tmax - FLOAT_ZERO;
+  return tmax;
 }
 
 fn triangleHitTest(ray: Ray, leaf: BVHLeaf) -> FragmentInfo {
@@ -226,7 +226,7 @@ fn triangleHitTest(ray: Ray, leaf: BVHLeaf) -> FragmentInfo {
   var det: f32 = dot(e0, p);
   var t: vec3<f32> = ray.origin - info.p0;
 
-  if (det < FLOAT_ZERO) {
+  if (det < 0.) {
     t = -t;
     det = -det;
   }
@@ -237,14 +237,14 @@ fn triangleHitTest(ray: Ray, leaf: BVHLeaf) -> FragmentInfo {
 
   let u: f32 = dot(t, p);
 
-  if (u < FLOAT_ZERO || u > det) {
+  if (u < 0. || u > det) {
     return info;
   }
 
   let q: vec3<f32> = cross(t, e0);
   let v: f32 = dot(ray.dir, q);
 
-  if (v < FLOAT_ZERO || v + u > det) {
+  if (v < 0. || v + u > det) {
     return info;
   }
 
@@ -375,7 +375,6 @@ fn hitTest(ray: Ray) -> HitPoint {
 
 fn hitTestShadow(ray: Ray, maxT: f32) -> FragmentInfo {
   var fragInfo: FragmentInfo;
-  fragInfo.t = maxT;
   var node: BVHNode;
   var nodeStack: array<u32, ${BVH_DEPTH}>;
   nodeStack[0] = 0u;
@@ -392,7 +391,7 @@ fn hitTestShadow(ray: Ray, maxT: f32) -> FragmentInfo {
     if (child.isLeaf) {
       let info: FragmentInfo = leafHitTest(ray, child.offset);
 
-      if (info.hit && info.t < fragInfo.t) {
+      if (info.hit && info.t < maxT && info.t > EPS) {
         return info;
       }
 
@@ -402,7 +401,7 @@ fn hitTestShadow(ray: Ray, maxT: f32) -> FragmentInfo {
     node = getBVHNodeInfo(child.offset);
     let hited: f32 = boxHitTest(ray, node.max, node.min);
 
-    if (hited < 0. || hited >= fragInfo.t) {
+    if (hited < 0.) {
       continue;
     }
 
@@ -453,21 +452,21 @@ fn calcIndirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>, debugIndex: i32
     return vec3<f32>(0.);
   }
 
-  let samplePoint2D: vec2<f32> = sampleCircle(random) * areaLight.areaSize.x;
-  let samplePoint: vec4<f32> = areaLight.worldTransform * vec4<f32>(samplePoint2D.x, 0., samplePoint2D.y, 1.);
-  // let samplePoint: vec3<f32> = vec3<f32>(0., 6., 0.);
+  // let samplePoint2D: vec2<f32> = sampleCircle(random) * areaLight.areaSize.x;
+  // let samplePoint: vec4<f32> = areaLight.worldTransform * vec4<f32>(samplePoint2D.x, 0., samplePoint2D.y, 1.);
+  let samplePoint: vec3<f32> = vec3<f32>(0., 5.5, 5.);
   var sampleDir: vec3<f32> = samplePoint.xyz - hit.position;
   let maxT: f32 = length(sampleDir);
   sampleDir = normalize(sampleDir);
   let sampleLight: Ray = Ray(hit.position, sampleDir, 1. / sampleDir);
   let shadowInfo: FragmentInfo = hitTestShadow(sampleLight, maxT);
 
-  // var hited: f32 = 0.;
-  // if (hit.hit) {
-  //   hited = 1.;
-  // }
-  // u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(shadowInfo.hitPoint, hited);
-  // u_debugInfo.rays[debugIndex].preDir = vec4<f32>(sampleDir, shadowInfo.t);
+  var hited: f32 = 0.;
+  if (shadowInfo.hit) {
+    hited = 1.;
+  }
+  u_debugInfo.rays[debugIndex].origin = vec4<f32>(hit.position, hited);
+  u_debugInfo.rays[debugIndex].dir = vec4<f32>(sampleDir, maxT);
 
   if (shadowInfo.hit) {
     return vec3<f32>(0.);
@@ -574,7 +573,7 @@ fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool, debugIndex: i32) -> Light
     light.color = calcIndirectLight(ray, hit, random.zw, debugIndex);
     light.next.dir = calcBrdfDir(ray, hit, random.z < mix(.5, 0., hit.metal), random.xy);
     // light.brdf = pbrCalculateLo(hit.pbrData, -ray.dir, light.next.dir, hit.normal);
-    light.brdf = vec3<f32>(.5);
+    light.brdf = vec3<f32>(1.);
   }
 
   // avoid self intersection
@@ -591,19 +590,19 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, debugIndex: i32) -> vec3<f32> {
   var hit: HitPoint;
   var ray: Ray = light.next;
 
-  for (var i: u32 = 0u; i < MAX_TRACE_COUNT; i = i + 1u) {
-    hit = hitTest(ray);
-    let isLastOut: bool = !hit.hit;
+  // for (var i: u32 = 0u; i < MAX_TRACE_COUNT; i = i + 1u) {
+  //   hit = hitTest(ray);
+  //   let isLastOut: bool = !hit.hit;
 
-    light = calcLight(ray, hit, isLastOut, debugIndex);
-    // lightColor = lightColor + light.color * brdf;
-    brdf = brdf * light.brdf;
-    ray = light.next;
+  //   light = calcLight(ray, hit, isLastOut, debugIndex);
+  //   // lightColor = lightColor + light.color * brdf;
+  //   brdf = brdf * light.brdf;
+  //   ray = light.next;
 
-    if (max(brdf.x, max(brdf.y, brdf.z)) < 0.01 || isLastOut) {
-      break;
-    }
-  }
+  //   if (max(brdf.x, max(brdf.y, brdf.z)) < 0.01 || isLastOut) {
+  //     break;
+  //   }
+  // }
 
   // var hited: f32 = 0.;
   // if (hit.hit) {
