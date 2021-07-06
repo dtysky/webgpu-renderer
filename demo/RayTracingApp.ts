@@ -76,9 +76,10 @@ export default class RayTracingApp {
     console.log(model)
 
     await this._frame();
-    const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([516, 360], [520, 362]);
+    // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([496, 375], [497, 376]);
+    const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([100, 100], [110, 110]);
     console.log(rays)
-    rays.slice(0, 1).forEach(ray => debugRayShadow(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
+    // rays.slice(0, 1).forEach(ray => debugRayShadow(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
     // this._rtDebugMesh = mesh;
     // rays.forEach(ray => debugRay(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
     // debugCamera(this._camera, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);

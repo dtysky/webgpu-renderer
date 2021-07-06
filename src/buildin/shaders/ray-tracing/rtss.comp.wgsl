@@ -84,7 +84,7 @@ struct Child {
 };
 
 fn getRandom(seeds: vec4<f32>) -> vec4<f32> {
-  return fract(seeds * global.u_randomSeed);
+  return fract(sin(seeds * global.u_randomSeed * 10.24));
 }
 
 fn genWorldRayByGBuffer(uv: vec2<f32>, gBInfo: HitPoint) -> Ray {
@@ -416,7 +416,12 @@ fn hitTestShadow(ray: Ray, maxT: f32) -> FragmentInfo {
 
 // https://graphics.pixar.com/library/OrthonormalB/paper.pdf
 fn orthonormalBasis(normal: vec3<f32>) -> mat3x3<f32> {
-  let zsign: f32 = sign(normal.z) * 1.;
+  // sign function return 0 if x is 0
+  // let zsign: f32 = sign(normal.z) * 1.;
+  var zsign: f32 = 1.;
+  if (normal.z < 1.) {
+    zsign = -1.;
+  }
   let a: f32 = -1.0 / (zsign + normal.z);
   let b: f32 = normal.x * normal.y * a;
   let s: vec3<f32> = vec3<f32>(1.0 + zsign * normal.x * normal.x * a, zsign * b, -zsign * normal.x);
@@ -452,21 +457,21 @@ fn calcIndirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>, debugIndex: i32
     return vec3<f32>(0.);
   }
 
-  // let samplePoint2D: vec2<f32> = sampleCircle(random) * areaLight.areaSize.x;
-  // let samplePoint: vec4<f32> = areaLight.worldTransform * vec4<f32>(samplePoint2D.x, 0., samplePoint2D.y, 1.);
-  let samplePoint: vec3<f32> = vec3<f32>(0., 5.5, 5.);
+  let samplePoint2D: vec2<f32> = sampleCircle(random) * areaLight.areaSize.x;
+  let samplePoint: vec4<f32> = areaLight.worldTransform * vec4<f32>(samplePoint2D.x, 0., samplePoint2D.y, 1.);
+  // let samplePoint: vec3<f32> = vec3<f32>(0., 5.5, 5.);
   var sampleDir: vec3<f32> = samplePoint.xyz - hit.position;
   let maxT: f32 = length(sampleDir);
   sampleDir = normalize(sampleDir);
   let sampleLight: Ray = Ray(hit.position, sampleDir, 1. / sampleDir);
   let shadowInfo: FragmentInfo = hitTestShadow(sampleLight, maxT);
 
-  var hited: f32 = 0.;
-  if (shadowInfo.hit) {
-    hited = 1.;
-  }
-  u_debugInfo.rays[debugIndex].origin = vec4<f32>(hit.position, hited);
-  u_debugInfo.rays[debugIndex].dir = vec4<f32>(sampleDir, maxT);
+  // var hited: f32 = 0.;
+  // if (shadowInfo.hit) {
+  //   hited = 1.;
+  // }
+  // u_debugInfo.rays[debugIndex].origin = vec4<f32>(hit.position, hited);
+  // u_debugInfo.rays[debugIndex].dir = vec4<f32>(sampleDir, maxT);
 
   if (shadowInfo.hit) {
     return vec3<f32>(0.);
@@ -572,8 +577,8 @@ fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool, debugIndex: i32) -> Light
     // brdf
     light.color = calcIndirectLight(ray, hit, random.zw, debugIndex);
     light.next.dir = calcBrdfDir(ray, hit, random.z < mix(.5, 0., hit.metal), random.xy);
-    // light.brdf = pbrCalculateLo(hit.pbrData, -ray.dir, light.next.dir, hit.normal);
-    light.brdf = vec3<f32>(1.);
+    light.brdf = pbrCalculateLo(hit.pbrData, -ray.dir, light.next.dir, hit.normal);
+    // light.brdf = vec3<f32>(1.);
   }
 
   // avoid self intersection
@@ -604,17 +609,17 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, debugIndex: i32) -> vec3<f32> {
   //   }
   // }
 
-  // var hited: f32 = 0.;
-  // if (hit.hit) {
-  //   hited = 1.;
-  // }
-  // u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(startRay.origin, hited);
-  // u_debugInfo.rays[debugIndex].preDir = vec4<f32>(startRay.dir, hit.hited);
-  // u_debugInfo.rays[debugIndex].origin = vec4<f32>(ray.origin, f32(gBInfo.matIndex));
-  // u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, f32(gBInfo.meshIndex));
-  // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(hit.position, f32(hit.matIndex));
+  var hited: f32 = 0.;
+  if (hit.hit) {
+    hited = 1.;
+  }
+  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(brdf, hited);
+  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(ray.dir, hit.hited);
+  // u_debugInfo.rays[debugIndex].origin = vec4<f32>(basis[0], f32(gBInfo.matIndex));
+  // u_debugInfo.rays[debugIndex].dir = vec4<f32>(basis[1], f32(gBInfo.meshIndex));
+  // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(basis[2], f32(hit.matIndex));
   // u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(nextLight.reflection.dir, f32(hit.meshIndex));
-  // u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
+  u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
 
   return lightColor;
 }

@@ -60,12 +60,12 @@ export class DebugInfo {
       const po = index * 3 * 6;
       const io = index * 6;
 
-      positions.set(preOrigin, po);
-      positions.set(H.math.vec3.add(new Float32Array(3), preOrigin, H.math.vec3.scale(new Float32Array(3), preDir, 20)), po + 3);
-      colors.set([1, 0, 0], po);
-      colors.set([1, 0, 0], po + 3);
+      // positions.set(preOrigin, po);
+      // positions.set(H.math.vec3.add(new Float32Array(3), preOrigin, H.math.vec3.scale(new Float32Array(3), preDir, 20)), po + 3);
+      // colors.set([1, 0, 0], po);
+      // colors.set([1, 0, 0], po + 3);
       positions.set(origin, po + 6);
-      positions.set(H.math.vec3.add(new Float32Array(3), origin, H.math.vec3.scale(new Float32Array(3), dir, 20)), po + 9);
+      positions.set(H.math.vec3.add(new Float32Array(3), origin, H.math.vec3.scale(new Float32Array(3), dir, dir[3])), po + 9);
       colors.set([1, 1, 0], po + 6);
       colors.set([1, 1, 0], po + 9);
       // positions.set(nextOrigin, po + 12);
@@ -385,6 +385,7 @@ function triangleHitTest(ray: Ray, leaf: BVHLeaf, positions: Float32Array): Frag
 
   let q = H.math.vec3.cross(new Float32Array(3), t, e0);
   let v = H.math.vec3.dot(ray.dir, q);
+  // console.log(det, u, v, v + u - det, p0, p1, p2, H.math.vec3.dot(e1, q) / det)
 
   if (v < 0. || v + u > det) {
     return info;
@@ -422,9 +423,9 @@ function leafHitTest(bvh: H.BVH, ray: Ray, positions: Float32Array, offset: numb
   };
   
   for (let i: number = 0; i < leaf.primitives; i = i + 1) {
-    console.log(leaf);
+    // console.log(leaf);
     let cInfo = triangleHitTest(ray, leaf, positions);
-    console.log('triangle hit', new Uint32Array([(offset + i) | 0x80000000])[0], cInfo, cInfo.hit && cInfo.t < info.t);
+    // console.log('triangle hit', new Uint32Array([(offset + i) | 0x80000000])[0], cInfo, cInfo.hit && cInfo.t < info.t);
 
     if (cInfo.hit && cInfo.t < info.t) {
       info = cInfo;
@@ -453,7 +454,7 @@ function hitTestShadow(bvh: H.BVH, ray: Ray, maxT: number, positions: Float32Arr
 
     if (isLeaf) {
       const info = leafHitTest(bvh, ray, positions, offset);
-      console.log('leaf hit', info.hit);
+      // console.log('leaf hit', info.hit);
 
       if (info.hit && info.t < maxT) {
         return info;
@@ -464,7 +465,7 @@ function hitTestShadow(bvh: H.BVH, ray: Ray, maxT: number, positions: Float32Arr
 
     const node = getBVHNodeInfo(bvh, offset);
     const hited = boxHitTest(ray, node.max, node.min);
-    // console.log('box hit', offset, node, hited, !(hited < 0 || hited > fragInfo.t));
+    hited > 0 && node.max[1] > 1.5 && console.log('box hit', offset, node.max, node.min, hited);
 
     if (hited < 0) {
       continue;
