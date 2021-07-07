@@ -86,6 +86,10 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
     const {images: imagesSrc} = this._json;
     const {images} = this._res;
 
+    if (!imagesSrc) {
+      return;
+    }
+
     for (const {uri} of imagesSrc) {
       const image = await this._loadImage(this._baseUri + '/' + uri);
       const bitmap = await createImageBitmap(image);
@@ -96,6 +100,10 @@ export default class GlTFLoader extends Loader<IGlTFLoaderOptions, IGlTFResource
   private async _loadTextures() {
     const {textures: texturesSrc, images: imagesSrc} = this._json;
     const {images, textures} = this._res;
+
+    if (!texturesSrc) {
+      return;
+    }
 
     for (const {source} of texturesSrc) {
       const image = images[source];

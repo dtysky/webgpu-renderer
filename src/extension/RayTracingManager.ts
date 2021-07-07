@@ -218,8 +218,8 @@ export default class RayTracingManager extends HObject {
       normalScale !== undefined && metallicRoughnessFactorNormalScaleMaterialTypes.set(normalScale.slice(0, 1), index * 3 + 2);
 
       if (useSpecGloss) {
-        specularFactor !== undefined && specularGlossinessFactors.set(specularFactor, index * 3);
-        glossinessFactor !== undefined && specularGlossinessFactors.set(glossinessFactor, index * 3 + 3);
+        specularFactor !== undefined && specularGlossinessFactors.set(specularFactor.slice(0, 3), index * 4);
+        glossinessFactor !== undefined && specularGlossinessFactors.set(glossinessFactor.slice(0, 1), index * 4 + 3);
         specularGlossinessTexture !== buildinTextures.empty && this._setTextures(mid + 2, metalRoughOrSpecGlossTextures, specularGlossinessTexture, matId2TexturesId);
         metallicRoughnessFactorNormalScaleMaterialTypes.set([useGlass ? EPBRMaterialType.GLASS_SPEC_GLOSS : EPBRMaterialType.SPEC_GLOSS], index * 3 + 3);
       } else {

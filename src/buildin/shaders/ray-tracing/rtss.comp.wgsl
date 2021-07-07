@@ -280,7 +280,7 @@ fn triangleHitTest(ray: Ray, leaf: BVHLeaf) -> FragmentInfo {
   let q: vec3<f32> = cross(t, e0);
   let v: f32 = dot(ray.dir, q);
 
-  if (v < 0. || v + u > det) {
+  if (v < 0. || v + u - det > 0.) {
     return info;
   }
 
@@ -357,13 +357,12 @@ fn leafHitTest(ray: Ray, offset: u32) -> FragmentInfo {
   let primitives: u32 = leaf.primitives;
   
   for (var i: u32 = 0u; i < primitives; i = i + 1u) {
+    leaf = getBVHLeafInfo(offset + i);
     let cInfo: FragmentInfo = triangleHitTest(ray, leaf);
 
     if (cInfo.hit && cInfo.t < info.t) {
       info = cInfo;
     }
-
-    leaf = getBVHLeafInfo(offset + i);
   }
 
   return info;
@@ -525,7 +524,7 @@ fn sampleCircle(pi: vec2<f32>) -> vec2<f32> {
   return r * vec2<f32>(cos(theta), sin(theta));
 }
 
-fn calcIndirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>, debugIndex: i32) -> vec3<f32> {
+fn calcIndirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>) -> vec3<f32> {
   // sample area lights, get radiance or shadow
   let areaLight: LightInfo = global.u_lightInfos[0];
 
@@ -534,21 +533,14 @@ fn calcIndirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>, debugIndex: i32
     return vec3<f32>(0.);
   }
 
-  // let samplePoint2D: vec2<f32> = sampleCircle(random) * areaLight.areaSize.x;
-  // let samplePoint: vec4<f32> = areaLight.worldTransform * vec4<f32>(samplePoint2D.x, 0., samplePoint2D.y, 1.);
-  let samplePoint: vec3<f32> = vec3<f32>(0., 5.5, 5.);
+  let samplePoint2D: vec2<f32> = sampleCircle(random) * areaLight.areaSize.x;
+  let samplePoint: vec4<f32> = areaLight.worldTransform * vec4<f32>(samplePoint2D.x, 0., samplePoint2D.y, 1.);
+  // let samplePoint: vec3<f32> = vec3<f32>(0., 5.5, 5.);
   var sampleDir: vec3<f32> = samplePoint.xyz - hit.position;
   let maxT: f32 = length(sampleDir);
   sampleDir = normalize(sampleDir);
   let sampleLight: Ray = genRay(hit.position, sampleDir);
   let shadowInfo: FragmentInfo = hitTestShadow(sampleLight, maxT);
-
-  var hited: f32 = 0.;
-  if (shadowInfo.hit) {
-    hited = 1.;
-  }
-  u_debugInfo.rays[debugIndex].origin = vec4<f32>(hit.position, hited);
-  u_debugInfo.rays[debugIndex].dir = vec4<f32>(sampleDir, maxT);
 
   if (shadowInfo.hit) {
     return vec3<f32>(0.);
@@ -653,7 +645,7 @@ fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool, debugIndex: i32) -> Light
     light.brdf = hit.baseColor;
   } else {
     // brdf
-    light.color = calcIndirectLight(ray, hit, random.zw, debugIndex);
+    light.color = calcIndirectLight(ray, hit, random.zw);
     nextDir = calcBrdfDir(ray, hit, random.z < mix(.5, 0., hit.metal), random.xy);
     // light.brdf = pbrCalculateLo(hit.pbrData, -ray.dir, light.next.dir, hit.normal);
     light.brdf = vec3<f32>(1.);

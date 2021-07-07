@@ -6,6 +6,7 @@
  */
 import { vec3 } from 'gl-matrix';
 import * as H from '../src';
+import { Bounds } from '../src/extension/BVH';
 
 interface IDebugPixel {
   preOrigin: Float32Array;
@@ -155,6 +156,8 @@ export class DebugInfo {
   }
 }
 
+let plotS: string[] = [];
+
 export function debugRay(rayInfo: {origin: Float32Array, dir: Float32Array}, bvh: H.BVH, positions: Float32Array) {
   const ray: Ray = {
     origin: rayInfo.origin,
@@ -168,6 +171,14 @@ export function debugRay(rayInfo: {origin: Float32Array, dir: Float32Array}, bvh
 
   const fragInfo = hitTest(bvh, ray, positions);
   console.log(fragInfo);
+}
+
+export function debugRayShadows(
+  rayInfos: {origin: Float32Array, dir: Float32Array}[], bvh: H.BVH, positions: Float32Array
+) {
+  plotS = [];
+  rayInfos.forEach(ray => debugRayShadow(ray, bvh, positions));
+  console.log('Show[\n' + plotS.join(',\n') + '\n]');
 }
 
 export function debugRayShadow(rayInfo: {origin: Float32Array, dir: Float32Array}, bvh: H.BVH, positions: Float32Array) {
@@ -201,11 +212,13 @@ export function debugRayShadow(rayInfo: {origin: Float32Array, dir: Float32Array
     return res;
   }
 
-  console.log(RSI([1.71, 1, 6.09], 1));
+  const rsiPoints = RSI([1.71, 1, 6.09], 1);
+  console.log(rsiPoints);
+  plotS.push(`Graphics3D[{Red, PointSize[0.1], Point[{${rsiPoints[1].join(',')}}]}]`);
 
-  console.log('ray info', rayInfo);
   console.log('ray', ray);
 
+  plotS.push(`ParametricPlot3D[{${ray.dir[0]}t + ${ray.origin[0]}, ${ray.dir[1]}t + ${ray.origin[1]}, ${ray.dir[2]}t + ${ray.origin[2]}}, {t, 0, ${maxT}}]`);
   const fragInfo = hitTestShadow(bvh, ray, maxT, positions);
   console.log(fragInfo);
 }
@@ -392,7 +405,6 @@ function triangleHitTest(ray: Ray, leaf: BVHLeaf, positions: Float32Array): Frag
   let p = H.math.vec3.cross(new Float32Array(3), ray.dir, e1);
   let det = H.math.vec3.dot(e0, p);
   let t = H.math.vec3.sub(new Float32Array(3), ray.origin, p0);
-  // console.log(p0, p1, p2)
 
   if (det < 0) {
     H.math.vec3.scale(t, t, -1);
@@ -411,10 +423,11 @@ function triangleHitTest(ray: Ray, leaf: BVHLeaf, positions: Float32Array): Frag
 
   let q = H.math.vec3.cross(new Float32Array(3), t, e0);
   let v = H.math.vec3.dot(ray.dir, q);
-  console.log(p0, p1, p2)
-  console.log(det, u, v, v + u - det, u / det, v / det, H.math.vec3.dot(e1, q) / det)
 
-  if (v < 0. || v + u > det) {
+  // plotS.push(`Graphics3D[Triangle[{{${p0.join(',')}}, {${p1.join(',')}}, {${p2.join(',')}}}]]`);
+  // console.log(det, u, v, v + u - det, H.math.vec3.dot(e1, q) / det)
+
+  if (v < 0 || v + u - det > 0) {
     return info;
   }
   
@@ -448,17 +461,16 @@ function leafHitTest(bvh: H.BVH, ray: Ray, positions: Float32Array, offset: numb
     hitPoint: null,
     weights: null
   };
-  console.log(new Uint32Array([offset | 0x80000000])[0], leaf);
-  
+  // console.log(new Uint32Array([(offset + 0) | 0x80000000])[0], leaf);
+
   for (let i: number = 0; i < leaf.primitives; i = i + 1) {
+    leaf = getBVHLeafInfo(bvh, offset + i);
     let cInfo = triangleHitTest(ray, leaf, positions);
     // console.log('triangle hit', new Uint32Array([(offset + i) | 0x80000000])[0], cInfo, cInfo.hit && cInfo.t < info.t);
 
     if (cInfo.hit && cInfo.t < info.t) {
       info = cInfo;
     }
-
-    leaf = getBVHLeafInfo(bvh, offset + i);
   }
 
   return info;
@@ -492,7 +504,8 @@ function hitTestShadow(bvh: H.BVH, ray: Ray, maxT: number, positions: Float32Arr
 
     const node = getBVHNodeInfo(bvh, offset);
     const hited = boxHitTest(ray, node.max, node.min);
-    hited > 0 && node.max[0] > 1.3 && node.max[1] > 1.8 && console.log('box hit', offset, node.child0Index, node.child1Index, node.max, node.min, hited);
+    // plotS.push(`Graphics3D[Cuboid[{${node.max.join(',')}}, {${node.min.join(',')}}]]`);
+    // console.log('box hit', offset, node.child0Index, node.child1Index, node.max, node.min, hited);
 
     if (hited < 0) {
       continue;

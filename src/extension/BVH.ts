@@ -17,7 +17,7 @@ enum EAxis {
   Z
 };
 
-class Bounds {
+export class Bounds {
   public static BUILD_BOX_MAX_MIN_ORDER = [
     // 0 is min, i is max
     [1, 1, 1],
@@ -104,6 +104,13 @@ class Bounds {
 
     this._isDirty = true;
     return this;
+  }
+
+  public pointIn(p: Float32Array): boolean {
+    const {max, min} = this;
+    return p[0] > min[0] && p[0] < max[0]
+      && p[1] > min[1] && p[1] < max[1]
+      && p[2] > min[2] && p[2] < max[2];
   }
 
   public getOffset(axis: EAxis, v: Float32Array) {

@@ -5,7 +5,7 @@
  * @Date    : 6/11/2021, 5:56:30 PM
 */
 import * as H from '../src/index';
-import {DebugInfo, debugRay, debugRayShadow} from './debugCs';
+import {DebugInfo, debugRay, debugRayShadow, debugRayShadows} from './debugCs';
 
 const MODEL_SRC = '/assets/models/walls/scene.gltf';
 
@@ -76,10 +76,10 @@ export default class RayTracingApp {
     console.log(model)
 
     await this._frame();
-    const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([483, 314], [484, 315]);
+    // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([476, 380], [500, 400]);
     // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([100, 100], [110, 110]);
-    console.log(rays)
-    rays.slice(0, 1).forEach(ray => debugRayShadow(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
+    // console.log(rays)
+    // debugRayShadows(rays.filter(ray => !ray.origin[3]).slice(0, 1), this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
     // this._rtDebugMesh = mesh;
     // rays.forEach(ray => debugRay(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
     // debugCamera(this._camera, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
