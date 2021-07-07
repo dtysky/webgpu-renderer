@@ -76,7 +76,7 @@ export default class RayTracingManager extends HObject {
     return this._bvh;
   }
 
-  constructor(protected _maxPrimitivesPerBVHLeaf: number = 4) {
+  constructor(protected _maxPrimitivesPerBVHLeaf: number = 1) {
     super();
 
     this._bvh = new BVH(_maxPrimitivesPerBVHLeaf);

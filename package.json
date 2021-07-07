@@ -29,6 +29,7 @@
   },
   "license": "MIT",
   "dependencies": {
-    "gl-matrix": "^3.3.0"
+    "gl-matrix": "^3.3.0",
+    "ray-sphere-intersection": "^1.0.0"
   }
 }

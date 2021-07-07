@@ -84,9 +84,9 @@ fn pbrPrepareData(
 fn pbrCalculateLo(pbr: PBRData, viewDir: vec3<f32>, lightDir: vec3<f32>, normal: vec3<f32>)-> vec3<f32> {
   let H: vec3<f32> = normalize(lightDir + viewDir);
   let NdotV: f32 = clamp(abs(dot(normal, viewDir)), 0.001, 1.0);
-  let NdotL: f32 = clamp(dot(normal, lightDir), 0.001, 1.0);
+  let NdotL: f32 = clamp(abs(dot(normal, lightDir)), 0.001, 1.0);
   let NdotH: f32 = clamp(dot(normal, H), 0.0, 1.0);
-  let LdotH: f32 = clamp(dot(lightDir, H), 0.0, 1.0);
+  let LdotH: f32 = clamp(abs(dot(lightDir, H)), 0.0, 1.0);
   let VdotH: f32 = clamp(dot(viewDir, H), 0.0, 1.0);
   // Calculate the shading terms for the microfacet specular shading model
   let F: vec3<f32> = pbrSpecularReflection(pbr.reflectance0, pbr.reflectance90, VdotH);

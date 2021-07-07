@@ -19,6 +19,8 @@ struct Ray {
   origin: vec3<f32>;
   dir: vec3<f32>;
   invDir: vec3<f32>;
+  shear: vec3<f32>;
+  maxDim: i32;
 };
 
 struct HitPoint {
@@ -87,18 +89,51 @@ fn getRandom(seeds: vec4<f32>) -> vec4<f32> {
   return fract(sin(seeds * global.u_randomSeed * 10.24));
 }
 
+fn genRay(origin: vec3<f32>, dir: vec3<f32>) -> Ray {
+  var ray: Ray;
+  ray.origin = origin;
+  ray.dir = dir;
+  ray.invDir = 1. / ray.dir;
+
+  var maxDim: i32 = 0;
+  
+  if (dir.x > dir.y) {
+    if (dir.x <= dir.z) {
+      maxDim = 2;
+    }
+  } else {
+    if (dir.y > dir.z) {
+      maxDim = 1;
+    } else {
+      maxDim = 2;
+    }
+  }
+
+  var shear: vec3<f32>;
+  if (maxDim == 0) {
+    shear = vec3<f32>(-dir.y, -dir.z, 1.) * ray.invDir.x;
+  }
+  else {
+    if (maxDim == 1) {
+      shear = vec3<f32>(-dir.z, -dir.x, 1.) * ray.invDir.y;
+    }
+    else {
+      shear = vec3<f32>(-dir.x, -dir.y, 1.) * ray.invDir.z;
+    }
+  }
+
+  ray.maxDim = maxDim;
+  ray.shear = shear;
+
+  return ray;
+}
+
 fn genWorldRayByGBuffer(uv: vec2<f32>, gBInfo: HitPoint) -> Ray {
   let pixelSSPos: vec4<f32> = vec4<f32>(uv.x * 2. - 1., 1. - uv.y * 2., 0., 1.);
   var pixelWorldPos: vec4<f32> = global.u_viewInverse * global.u_projInverse * pixelSSPos;
   pixelWorldPos = pixelWorldPos / pixelWorldPos.w;
 
-  var ray: Ray;
-
-  ray.origin = pixelWorldPos.xyz;
-  ray.dir = normalize(gBInfo.position - ray.origin);
-  ray.invDir = 1. / ray.dir;
-
-  return ray;
+  return genRay(pixelWorldPos.xyz, normalize(gBInfo.position - pixelWorldPos.xyz));
 };
 
 fn getGBInfo(uv: vec2<f32>) -> HitPoint {
@@ -220,6 +255,7 @@ fn triangleHitTest(ray: Ray, leaf: BVHLeaf) -> FragmentInfo {
   info.p1 = u_positions.value[indexes[1]];
   info.p2 = u_positions.value[indexes[2]];
 
+  // if ray is very near to its egde, test will be failed, especially when trangle is very small
   let e0: vec3<f32> = info.p1 - info.p0;
   let e1: vec3<f32> = info.p2 - info.p0;
   let p: vec3<f32> = cross(ray.dir, e1);
@@ -255,12 +291,53 @@ fn triangleHitTest(ray: Ray, leaf: BVHLeaf) -> FragmentInfo {
   }
 
   let invDet: f32 = 1. / det;
+  info.weights = vec3<f32>(0., u, v) * invDet;
+  info.weights.x = 1. - info.weights.y - info.weights.z;
+
+  // https://www.pbr-book.org/3ed-2018/Shapes/Triangle_Meshes#TriangleIntersection
+  // var p0t: vec3<f32> = info.p0 - ray.origin;
+  // var p1t: vec3<f32> = info.p1 - ray.origin;
+  // var p2t: vec3<f32> = info.p2 - ray.origin;
+  
+  // if (ray.maxDim == 0) {
+  //   p0t = p0t.yzx;
+  //   p1t = p1t.yzx;
+  //   p2t = p2t.yzx;
+  // }
+  // else {
+  //   if (ray.maxDim == 1) {
+  //     p0t = p0t.zxy;
+  //     p1t = p1t.zxy;
+  //     p2t = p2t.zxy;
+  //   }
+  // }
+
+  // p0t = vec3<f32>(p0t.xy + ray.shear.xy * p0t.z, p0t.z);
+  // p1t = vec3<f32>(p1t.xy + ray.shear.xy * p1t.z, p1t.z);
+  // p2t = vec3<f32>(p2t.xy + ray.shear.xy * p2t.z, p2t.z);
+
+  // let e: vec3<f32> = vec3<f32>(
+  //   p1t.x * p2t.y - p1t.y * p2t.x,
+  //   p2t.x * p0t.y - p2t.y * p0t.x,
+  //   p0t.x * p1t.y - p0t.y * p1t.x
+  // );
+
+  // if (any(e < vec3<f32>(0.)) && any(e > vec3<f32>(0.))) {
+  //   return info;
+  // }
+
+  // let det: f32 = e.x + e.y + e.z;
+
+  // p0t.z = p0t.z * ray.shear.z;
+  // p1t.z = p1t.z * ray.shear.z;
+  // p2t.z = p2t.z * ray.shear.z;
+  // let lt: f32 = e.x * p0t.z + e.y * p1t.z + e.z * p2t.z;
+  // let invDet: f32 = 1. / det;
+  // info.weights = e * invDet;
 
   info.hit = true;
   info.t = lt * invDet;
   info.hitPoint = ray.origin + ray.dir * info.t;
-  info.weights = vec3<f32>(0., u, v) * invDet;
-  info.weights.x = 1. - info.weights.y - info.weights.z;
   info.uv0 = u_uvs.value[indexes.x];
   info.uv1 = u_uvs.value[indexes.y];
   info.uv2 = u_uvs.value[indexes.z];
@@ -457,21 +534,21 @@ fn calcIndirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>, debugIndex: i32
     return vec3<f32>(0.);
   }
 
-  let samplePoint2D: vec2<f32> = sampleCircle(random) * areaLight.areaSize.x;
-  let samplePoint: vec4<f32> = areaLight.worldTransform * vec4<f32>(samplePoint2D.x, 0., samplePoint2D.y, 1.);
-  // let samplePoint: vec3<f32> = vec3<f32>(0., 5.5, 5.);
+  // let samplePoint2D: vec2<f32> = sampleCircle(random) * areaLight.areaSize.x;
+  // let samplePoint: vec4<f32> = areaLight.worldTransform * vec4<f32>(samplePoint2D.x, 0., samplePoint2D.y, 1.);
+  let samplePoint: vec3<f32> = vec3<f32>(0., 5.5, 5.);
   var sampleDir: vec3<f32> = samplePoint.xyz - hit.position;
   let maxT: f32 = length(sampleDir);
   sampleDir = normalize(sampleDir);
-  let sampleLight: Ray = Ray(hit.position, sampleDir, 1. / sampleDir);
+  let sampleLight: Ray = genRay(hit.position, sampleDir);
   let shadowInfo: FragmentInfo = hitTestShadow(sampleLight, maxT);
 
-  // var hited: f32 = 0.;
-  // if (shadowInfo.hit) {
-  //   hited = 1.;
-  // }
-  // u_debugInfo.rays[debugIndex].origin = vec4<f32>(hit.position, hited);
-  // u_debugInfo.rays[debugIndex].dir = vec4<f32>(sampleDir, maxT);
+  var hited: f32 = 0.;
+  if (shadowInfo.hit) {
+    hited = 1.;
+  }
+  u_debugInfo.rays[debugIndex].origin = vec4<f32>(hit.position, hited);
+  u_debugInfo.rays[debugIndex].dir = vec4<f32>(sampleDir, maxT);
 
   if (shadowInfo.hit) {
     return vec3<f32>(0.);
@@ -569,21 +646,21 @@ fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool, debugIndex: i32) -> Light
     return light;
   }
 
+  var nextDir: vec3<f32>;
   if (hit.isGlass) {
     // bsdf
-    light.next.dir = calcBsdfDir(ray, hit, random.x < 0.5);
+    nextDir = calcBsdfDir(ray, hit, random.x < 0.5);
     light.brdf = hit.baseColor;
   } else {
     // brdf
     light.color = calcIndirectLight(ray, hit, random.zw, debugIndex);
-    light.next.dir = calcBrdfDir(ray, hit, random.z < mix(.5, 0., hit.metal), random.xy);
-    light.brdf = pbrCalculateLo(hit.pbrData, -ray.dir, light.next.dir, hit.normal);
-    // light.brdf = vec3<f32>(1.);
+    nextDir = calcBrdfDir(ray, hit, random.z < mix(.5, 0., hit.metal), random.xy);
+    // light.brdf = pbrCalculateLo(hit.pbrData, -ray.dir, light.next.dir, hit.normal);
+    light.brdf = vec3<f32>(1.);
   }
 
   // avoid self intersection
-  light.next.origin = hit.position + light.next.dir * RAY_DIR_OFFSET;
-  light.next.invDir = 1. / light.next.dir;
+  light.next = genRay(hit.position + light.next.dir * RAY_DIR_OFFSET, nextDir);
 
   return light;
 }
@@ -609,17 +686,17 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, debugIndex: i32) -> vec3<f32> {
   //   }
   // }
 
-  var hited: f32 = 0.;
-  if (hit.hit) {
-    hited = 1.;
-  }
-  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(brdf, hited);
-  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(ray.dir, hit.hited);
+  // var hited: f32 = 0.;
+  // if (hit.hit) {
+  //   hited = 1.;
+  // }
+  // u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(brdf, hited);
+  // u_debugInfo.rays[debugIndex].preDir = vec4<f32>(ray.dir, hit.hited);
   // u_debugInfo.rays[debugIndex].origin = vec4<f32>(basis[0], f32(gBInfo.matIndex));
   // u_debugInfo.rays[debugIndex].dir = vec4<f32>(basis[1], f32(gBInfo.meshIndex));
   // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(basis[2], f32(hit.matIndex));
   // u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(nextLight.reflection.dir, f32(hit.meshIndex));
-  u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
+  // u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
 
   return lightColor;
 }

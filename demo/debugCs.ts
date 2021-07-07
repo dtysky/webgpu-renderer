@@ -4,6 +4,7 @@
  * @Link   : dtysky.moe
  * @Date   : 6/26/2021, 7:40:32 PM
  */
+import { vec3 } from 'gl-matrix';
 import * as H from '../src';
 
 interface IDebugPixel {
@@ -177,6 +178,30 @@ export function debugRayShadow(rayInfo: {origin: Float32Array, dir: Float32Array
   };
   const maxT = rayInfo.dir[3];
   H.math.vec3.div(ray.invDir, new Float32Array([1, 1, 1]), ray.dir);
+
+  function RSI(center: any, radius: number) {
+    const res: any[] = [];
+
+    const psubc = vec3.sub(new Float32Array(3), ray.origin, center);
+    const ddotpsubc = vec3.dot(ray.dir, psubc);
+    const det = Math.pow(ddotpsubc, 2) - vec3.dot(psubc, psubc) + radius * radius;
+
+    if (det < 0) {
+      return res;
+    }
+
+    const d = vec3.length(ray.dir) * vec3.length(ray.dir);
+
+    const ts = [(-ddotpsubc + Math.sqrt(det)) / d, (-ddotpsubc - Math.sqrt(det)) / d];
+
+    ts.forEach(t => {
+      res.push(t, vec3.scaleAndAdd(new Float32Array(3), ray.origin, ray.dir, t));
+    })
+
+    return res;
+  }
+
+  console.log(RSI([1.71, 1, 6.09], 1));
 
   console.log('ray info', rayInfo);
   console.log('ray', ray);
@@ -367,6 +392,7 @@ function triangleHitTest(ray: Ray, leaf: BVHLeaf, positions: Float32Array): Frag
   let p = H.math.vec3.cross(new Float32Array(3), ray.dir, e1);
   let det = H.math.vec3.dot(e0, p);
   let t = H.math.vec3.sub(new Float32Array(3), ray.origin, p0);
+  // console.log(p0, p1, p2)
 
   if (det < 0) {
     H.math.vec3.scale(t, t, -1);
@@ -385,7 +411,8 @@ function triangleHitTest(ray: Ray, leaf: BVHLeaf, positions: Float32Array): Frag
 
   let q = H.math.vec3.cross(new Float32Array(3), t, e0);
   let v = H.math.vec3.dot(ray.dir, q);
-  // console.log(det, u, v, v + u - det, p0, p1, p2, H.math.vec3.dot(e1, q) / det)
+  console.log(p0, p1, p2)
+  console.log(det, u, v, v + u - det, u / det, v / det, H.math.vec3.dot(e1, q) / det)
 
   if (v < 0. || v + u > det) {
     return info;
@@ -421,9 +448,9 @@ function leafHitTest(bvh: H.BVH, ray: Ray, positions: Float32Array, offset: numb
     hitPoint: null,
     weights: null
   };
+  console.log(new Uint32Array([offset | 0x80000000])[0], leaf);
   
   for (let i: number = 0; i < leaf.primitives; i = i + 1) {
-    // console.log(leaf);
     let cInfo = triangleHitTest(ray, leaf, positions);
     // console.log('triangle hit', new Uint32Array([(offset + i) | 0x80000000])[0], cInfo, cInfo.hit && cInfo.t < info.t);
 
@@ -465,7 +492,7 @@ function hitTestShadow(bvh: H.BVH, ray: Ray, maxT: number, positions: Float32Arr
 
     const node = getBVHNodeInfo(bvh, offset);
     const hited = boxHitTest(ray, node.max, node.min);
-    hited > 0 && node.max[1] > 1.5 && console.log('box hit', offset, node.max, node.min, hited);
+    hited > 0 && node.max[0] > 1.3 && node.max[1] > 1.8 && console.log('box hit', offset, node.child0Index, node.child1Index, node.max, node.min, hited);
 
     if (hited < 0) {
       continue;
