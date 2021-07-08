@@ -18,6 +18,7 @@ const effects: {
   rRTGBuffer: Effect,
   iRTGShow: Effect,
   cRTSS: Effect,
+  cRTDenoise: Effect,
   cCreateSimpleBlur: (radius: number) => Effect
 } = {} as any;
 
@@ -331,7 +332,8 @@ struct DebugRay {
         {
           name: 'u_output',
           defaultValue: textures.empty,
-          asOutput: true
+          storageAccess: 'write-only',
+          storageFormat: 'rgba16float'
         },
         {
           name: 'u_gbPositionMetal',
@@ -374,6 +376,46 @@ struct DebugRay {
       ]
     },
     marcos: {BVH_DEPTH: 0}
+  });
+
+  effects.cRTDenoise = new Effect('cRTDenoise', {
+    cs: require('./shaders/ray-tracing/denoise.comp.wgsl'),
+    uniformDesc: {
+      uniforms: [
+        {
+          name: 'u_preWeight',
+          type: 'vec3',
+          format: 'f32',
+          defaultValue: new Float32Array([.7, .7, .7])
+        }
+      ],
+      textures: [
+        {
+          name: 'u_output',
+          defaultValue: textures.empty,
+          storageAccess: 'write-only',
+          storageFormat: 'rgba16float'
+        },
+        {
+          name: 'u_pre',
+          defaultValue: textures.empty,
+          storageAccess: 'read-only',
+          storageFormat: 'rgba16float'
+        },
+        {
+          name: 'u_current',
+          defaultValue: textures.empty,
+          storageAccess: 'read-only',
+          storageFormat: 'rgba16float'
+        }
+      ],
+      samplers: [
+        {
+          name: 'u_sampler',
+          defaultValue: {magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'nearest'}
+        }
+      ]
+    }
   });
 
   effects.iRTGShow = new Effect('iRTGShow', {
@@ -457,7 +499,7 @@ struct DebugRay {
           {
             name: 'u_output',
             defaultValue: textures.white,
-            asOutput: true
+            storageAccess: 'write-only'
           }
         ],
         samplers: [

@@ -12,13 +12,13 @@ const MODEL_SRC = '/assets/models/walls/scene.gltf';
 export default class RayTracingApp {
   private _scene: H.Scene;
   private _camControl: H.NodeControl;
-  private _model: H.IGlTFResource;
-  private _lights: H.Light[];
   private _camera: H.Camera;
   private _gBufferRT: H.RenderTexture;
   private _gBufferDebugMesh: H.ImageMesh;
   protected _rtManager: H.RayTracingManager;
   protected _rtOutput: H.RenderTexture;
+  protected _denoiseRTs: {current: H.RenderTexture, pre: H.RenderTexture};
+  protected _denoiseUnit: H.ComputeUnit;
   protected _rtBlit: H.ImageMesh;
   protected _rtDebugInfo: DebugInfo;
   protected _rtDebugMesh: H.Mesh;
@@ -55,18 +55,36 @@ export default class RayTracingApp {
       width: renderEnv.width,
       height: renderEnv.height,
       forCompute: true,
-      colors: [{name: 'color', format: 'rgba8unorm'}]
+      colors: [{name: 'color', format: 'rgba16float'}]
     });
+
+    // this._denoiseRTs = {
+    //   current: new H.RenderTexture({
+    //     width: renderEnv.width,
+    //     height: renderEnv.height,
+    //     forCompute: true,
+    //     colors: [{name: 'color', format: 'rgba16float'}]
+    //   }),
+    //   pre: new H.RenderTexture({
+    //     width: renderEnv.width,
+    //     height: renderEnv.height,
+    //     forCompute: true,
+    //     colors: [{name: 'color', format: 'rgba16float'}]
+    //   })
+    // };
+    // this._denoiseUnit = new H.ComputeUnit(
+    //   H.buildinEffects.cRTDenoise,
+    //   {x: Math.ceil(renderEnv.width / 16), y: Math.ceil(renderEnv.height / 16)},
+    // );
+
     this._rtBlit = new H.ImageMesh(new H.Material(H.buildinEffects.iBlit, {u_texture: this._rtOutput}));
 
     this._rtDebugInfo = new DebugInfo();
     
-    const model = this._model = await H.resource.load({type: 'gltf', name: 'scene.gltf', src: MODEL_SRC});
+    const model = await H.resource.load({type: 'gltf', name: 'scene.gltf', src: MODEL_SRC});
     if (model.cameras.length) {
       this._camera = model.cameras[0];
     }
-    this._lights = model.lights;
-    _scene.rootNode.addChild(model.rootNode);
 
     if (this._camera.isOrth) {
       this._rtBlit.material.setMarcos({FLIP: true});
@@ -76,8 +94,9 @@ export default class RayTracingApp {
     console.log(model)
 
     await this._frame();
-    const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([100, 100], [110, 110]);
-    console.log(rays)
+    // await this._frame();
+    // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([100, 100], [110, 110]);
+    // console.log(rays)
     // debugRayShadows(rays.filter(ray => !ray.origin[3]).slice(0, 1), this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
     // this._rtDebugMesh = mesh;
     // rays.forEach(ray => debugRay(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
@@ -103,9 +122,12 @@ export default class RayTracingApp {
     }
 
     // this._showBVH();
-    this._renderGBuffer();
+    // this._renderGBuffer();
     // this._showGBufferResult();
+    this._scene.setRenderTarget(null);
     this._computeRTSS();
+    // this._computeDenoise();
+    this._scene.renderImages([this._rtBlit]);
 
     if (first) {
       this._rtDebugInfo.run(_scene);
@@ -127,10 +149,22 @@ export default class RayTracingApp {
   }
 
   protected _computeRTSS() {
-    this._scene.setRenderTarget(null);
     this._scene.computeUnits([this._rtManager.rtUnit]);
-    this._scene.renderImages([this._rtBlit]);
   }
+
+  // protected _computeDenoise() {
+  //   const {current, pre} = this._denoiseRTs;
+  //   this._denoiseUnit.setUniform('u_output', current);
+  //   this._denoiseUnit.setUniform('u_pre', pre);
+  //   this._denoiseUnit.setUniform('u_current', this._rtOutput);
+
+  //   this._scene.computeUnits([this._denoiseUnit]);
+
+  //   this._rtBlit.material.setUniform('u_texture', current);
+
+  //   this._denoiseRTs.current = pre;
+  //   this._denoiseRTs.pre = current;
+  // }
 
   private _showGBufferResult() {
     this._scene.setRenderTarget(null);

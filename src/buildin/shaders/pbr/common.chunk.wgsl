@@ -100,10 +100,8 @@ fn pbrCalculateLo(
   let specContrib: vec3<f32> = F * G * D / (4.0 * NdotL * NdotV);
   // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
   u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(specContrib, NdotL);
-  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(
-    NdotV, dot(normal, lightDir), abs(dot(normal, lightDir)),
-  1.);
+  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(F, D);
   u_debugInfo.rays[debugIndex].origin = vec4<f32>(lightDir, 1.);
-  u_debugInfo.rays[debugIndex].normal = vec4<f32>(normal, 1.);
+  u_debugInfo.rays[debugIndex].normal = vec4<f32>(normal, G);
   return NdotL * specContrib;
 }

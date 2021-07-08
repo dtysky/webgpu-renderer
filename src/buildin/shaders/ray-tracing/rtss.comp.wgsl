@@ -1,5 +1,5 @@
 let PI: f32 = 3.14159265358979;
-let MAX_LIGHTS_COUNT: u32 = 1u;
+let MAX_LIGHTS_COUNT: u32 = 4u;
 let MAX_TRACE_COUNT: u32 = 1u;
 let MAX_RAY_LENGTH: f32 = 9999.;
 let BVH_DEPTH: i32 = ${BVH_DEPTH};
@@ -136,13 +136,13 @@ fn genWorldRayByGBuffer(uv: vec2<f32>, gBInfo: HitPoint) -> Ray {
   return genRay(pixelWorldPos.xyz, normalize(gBInfo.position - pixelWorldPos.xyz));
 };
 
-fn getGBInfo(uv: vec2<f32>) -> HitPoint {
+fn getGBInfo(index: vec2<i32>) -> HitPoint {
   var info: HitPoint;
 
-  let wPMtl: vec4<f32> = textureSampleLevel(u_gbPositionMetal, u_samplerGB, uv, 0.);
-  let dfRghGls: vec4<f32> = textureSampleLevel(u_gbBaseColorRoughOrGloss, u_samplerGB, uv, 0.);
-  let nomMeshIdGlass: vec4<f32> = textureSampleLevel(u_gbNormalMeshIndexGlass, u_samplerGB, uv, 0.);
-  let specMatIdMatType: vec4<f32> = textureSampleLevel(u_gbSpecMatIndexMatType, u_samplerGB, uv, 0.);
+  let wPMtl: vec4<f32> = textureLoad(u_gbPositionMetal, index, 0);
+  let dfRghGls: vec4<f32> = textureLoad(u_gbBaseColorRoughOrGloss, index, 0);
+  let nomMeshIdGlass: vec4<f32> = textureLoad(u_gbNormalMeshIndexGlass, index, 0);
+  let specMatIdMatType: vec4<f32> = textureLoad(u_gbSpecMatIndexMatType, index, 0);
 
   let meshIndexGlass: u32 = u32(nomMeshIdGlass.w);
   let meshIndex: u32 = meshIndexGlass >> 8u;
@@ -663,19 +663,19 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, debugIndex: i32) -> vec3<f32> {
   var hit: HitPoint;
   var ray: Ray = light.next;
 
-  // for (var i: u32 = 0u; i < MAX_TRACE_COUNT; i = i + 1u) {
-  //   hit = hitTest(ray);
-  //   let isLastOut: bool = !hit.hit;
+  for (var i: u32 = 0u; i < MAX_TRACE_COUNT; i = i + 1u) {
+    hit = hitTest(ray);
+    let isLastOut: bool = !hit.hit;
 
-  //   light = calcLight(ray, hit, isLastOut, debugIndex);
-  //   // lightColor = lightColor + light.color * brdf;
-  //   brdf = brdf * light.brdf;
-  //   ray = light.next;
+    light = calcLight(ray, hit, isLastOut, debugIndex);
+    lightColor = lightColor + light.color * brdf;
+    brdf = brdf * light.brdf;
+    ray = light.next;
 
-  //   if (max(brdf.x, max(brdf.y, brdf.z)) < 0.01 || isLastOut) {
-  //     break;
-  //   }
-  // }
+    if (max(brdf.x, max(brdf.y, brdf.z)) < 0.01 || isLastOut) {
+      break;
+    }
+  }
 
   // var hited: f32 = 0.;
   // if (hit.hit) {
@@ -701,7 +701,7 @@ fn main(
   let groupOffset: vec2<i32> = vec2<i32>(workGroupID.xy) * 16;
   let baseIndex: vec2<i32> = groupOffset + vec2<i32>(localInvocationID.xy);
   let baseUV: vec2<f32> = vec2<f32>(baseIndex) / vec2<f32>(screenSize);
-  let gBInfo: HitPoint = getGBInfo(baseUV);
+  let gBInfo: HitPoint = getGBInfo(baseIndex);
 
   if (!gBInfo.hit) {
     let t: vec4<f32> = global.u_skyVP * vec4<f32>(baseUV.x * 2. - 1., 1. - baseUV.y * 2., 1., 1.);
