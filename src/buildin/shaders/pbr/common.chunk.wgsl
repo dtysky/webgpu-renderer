@@ -81,7 +81,11 @@ fn pbrPrepareData(
   return pbr;
 }
 
-fn pbrCalculateLo(pbr: PBRData, viewDir: vec3<f32>, lightDir: vec3<f32>, normal: vec3<f32>)-> vec3<f32> {
+fn pbrCalculateLo(
+  pbr: PBRData, normal: vec3<f32>,
+  viewDir: vec3<f32>, lightDir: vec3<f32>,
+  debugIndex: i32
+)-> vec3<f32> {
   let H: vec3<f32> = normalize(lightDir + viewDir);
   let NdotV: f32 = clamp(abs(dot(normal, viewDir)), 0.001, 1.0);
   let NdotL: f32 = clamp(abs(dot(normal, lightDir)), 0.001, 1.0);
@@ -95,5 +99,11 @@ fn pbrCalculateLo(pbr: PBRData, viewDir: vec3<f32>, lightDir: vec3<f32>, normal:
 
   let specContrib: vec3<f32> = F * G * D / (4.0 * NdotL * NdotV);
   // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
+  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(specContrib, NdotL);
+  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(
+    NdotV, dot(normal, lightDir), abs(dot(normal, lightDir)),
+  1.);
+  u_debugInfo.rays[debugIndex].origin = vec4<f32>(lightDir, 1.);
+  u_debugInfo.rays[debugIndex].normal = vec4<f32>(normal, 1.);
   return NdotL * specContrib;
 }

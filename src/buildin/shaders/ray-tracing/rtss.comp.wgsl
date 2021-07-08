@@ -535,7 +535,6 @@ fn calcIndirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>) -> vec3<f32> {
 
   let samplePoint2D: vec2<f32> = sampleCircle(random) * areaLight.areaSize.x;
   let samplePoint: vec4<f32> = areaLight.worldTransform * vec4<f32>(samplePoint2D.x, 0., samplePoint2D.y, 1.);
-  // let samplePoint: vec3<f32> = vec3<f32>(0., 5.5, 5.);
   var sampleDir: vec3<f32> = samplePoint.xyz - hit.position;
   let maxT: f32 = length(sampleDir);
   sampleDir = normalize(sampleDir);
@@ -647,8 +646,8 @@ fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool, debugIndex: i32) -> Light
     // brdf
     light.color = calcIndirectLight(ray, hit, random.zw);
     nextDir = calcBrdfDir(ray, hit, random.z < mix(.5, 0., hit.metal), random.xy);
-    // light.brdf = pbrCalculateLo(hit.pbrData, -ray.dir, light.next.dir, hit.normal);
-    light.brdf = vec3<f32>(1.);
+    light.brdf = pbrCalculateLo(hit.pbrData, hit.normal, -ray.dir, nextDir, debugIndex);
+    // light.brdf = vec3<f32>(1.);
   }
 
   // avoid self intersection
