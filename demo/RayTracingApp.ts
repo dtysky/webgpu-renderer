@@ -14,6 +14,7 @@ export default class RayTracingApp {
   private _camControl: H.NodeControl;
   private _camera: H.Camera;
   private _model: H.IGlTFResource;
+  private _noiseTex: H.Texture;
   private _gBufferRT: H.RenderTexture;
   private _gBufferDebugMesh: H.ImageMesh;
   protected _rtManager: H.RayTracingManager;
@@ -36,6 +37,14 @@ export default class RayTracingApp {
       {near: 0.01, far: 100, fov: Math.PI / 3}
     ));
     this._camera.pos.set([0, 0, 6]);
+
+    this._noiseTex = await H.resource.load({type: 'texture', name: 'noise.tex', src: '/assets/textures/noise-rgba.webp'});
+    const model = this._model = await H.resource.load({type: 'gltf', name: 'scene.gltf', src: MODEL_SRC});
+    if (model.cameras.length) {
+      this._camera = model.cameras[0];
+    }
+    _scene.rootNode.addChild(model.rootNode);
+    console.log(model);
 
     this._gBufferRT = new H.RenderTexture({
       width: renderEnv.width,
@@ -75,25 +84,18 @@ export default class RayTracingApp {
     };
     this._denoiseUnit = new H.ComputeUnit(
       H.buildinEffects.cRTDenoise,
-      {x: Math.ceil(renderEnv.width / 16), y: Math.ceil(renderEnv.height / 16)},
+      {x: Math.ceil(renderEnv.width / 16), y: Math.ceil(renderEnv.height / 16)}
     );
 
     this._rtBlit = new H.ImageMesh(new H.Material(H.buildinEffects.iBlit, {u_texture: this._rtOutput}));
 
     this._rtDebugInfo = new DebugInfo();
-    
-    const model = this._model = await H.resource.load({type: 'gltf', name: 'scene.gltf', src: MODEL_SRC});
-    if (model.cameras.length) {
-      this._camera = model.cameras[0];
-    }
-    _scene.rootNode.addChild(model.rootNode);
 
     if (this._camera.isOrth) {
       this._rtBlit.material.setMarcos({FLIP: true});
     }
     
     this._camControl.control(this._camera, new H.Node());
-    console.log(model)
 
     await this._frame();
     // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([100, 100], [110, 110]);
@@ -105,7 +107,7 @@ export default class RayTracingApp {
   }
 
   public async update(dt: number) {
-    // await this._frame();
+    await this._frame();
   }
 
   private async _frame() {
@@ -118,6 +120,7 @@ export default class RayTracingApp {
     if (first) {
       this._rtManager = new H.RayTracingManager();
       this._rtManager.process(this._scene.cullCamera(this._camera), this._rtOutput);
+      this._rtManager.rtUnit.setUniform('u_noise', this._noiseTex);
       this._connectGBufferRenderTexture(this._rtManager.rtUnit);
       this._rtDebugInfo.setup(this._rtManager);
     }
@@ -127,7 +130,7 @@ export default class RayTracingApp {
     // this._showGBufferResult();
     this._scene.setRenderTarget(null);
     this._computeRTSS();
-    // this._computeDenoise();
+    this._computeDenoise();
     this._scene.renderImages([this._rtBlit]);
 
     if (first) {

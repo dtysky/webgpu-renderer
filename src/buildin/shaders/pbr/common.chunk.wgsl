@@ -83,8 +83,7 @@ fn pbrPrepareData(
 
 fn pbrCalculateLo(
   pbr: PBRData, normal: vec3<f32>,
-  viewDir: vec3<f32>, lightDir: vec3<f32>,
-  debugIndex: i32
+  viewDir: vec3<f32>, lightDir: vec3<f32>
 )-> vec3<f32> {
   let H: vec3<f32> = normalize(lightDir + viewDir);
   let NdotV: f32 = clamp(abs(dot(normal, viewDir)), 0.001, 1.0);
@@ -99,9 +98,26 @@ fn pbrCalculateLo(
 
   let specContrib: vec3<f32> = F * G * D / (4.0 * NdotL * NdotV);
   // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
-  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(specContrib, NdotL);
-  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(F, D);
-  u_debugInfo.rays[debugIndex].origin = vec4<f32>(lightDir, 1.);
-  u_debugInfo.rays[debugIndex].normal = vec4<f32>(normal, G);
   return NdotL * specContrib;
+}
+
+fn pbrCalculateLoRT(
+  pbr: PBRData, normal: vec3<f32>,
+  viewDir: vec3<f32>, lightDir: vec3<f32>
+)-> vec3<f32> {
+  let H: vec3<f32> = normalize(lightDir + viewDir);
+  let NdotV: f32 = clamp(abs(dot(normal, viewDir)), 0.001, 1.0);
+  let NdotL: f32 = clamp(abs(dot(normal, lightDir)), 0.001, 1.0);
+  let NdotH: f32 = clamp(abs(dot(normal, H)), 0.0, 1.0);
+  let LdotH: f32 = clamp(abs(dot(lightDir, H)), 0.0, 1.0);
+  let VdotH: f32 = clamp(dot(viewDir, H), 0.0, 1.0);
+  // Calculate the shading terms for the microfacet specular shading model
+  let F: vec3<f32> = pbrSpecularReflection(pbr.reflectance0, pbr.reflectance90, VdotH);
+  let G: f32 = pbrGeometricOcclusion(NdotL, NdotV, pbr.alphaRoughness);
+  let D: f32 = pbrMicrofacetDistribution(pbr.alphaRoughness, NdotH);
+
+  let specContrib: vec3<f32> = F * G * D / (4.0 * NdotL * NdotV);
+  // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
+  // return NdotL * specContrib;
+  return vec3<f32>(.7);
 }

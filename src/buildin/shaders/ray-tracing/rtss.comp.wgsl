@@ -1,5 +1,5 @@
 let PI: f32 = 3.14159265358979;
-let MAX_LIGHTS_COUNT: u32 = 1u;
+let MAX_LIGHTS_COUNT: u32 = 4u;
 let MAX_TRACE_COUNT: u32 = 0u;
 let MAX_RAY_LENGTH: f32 = 9999.;
 let BVH_DEPTH: i32 = ${BVH_DEPTH};
@@ -85,8 +85,10 @@ struct Child {
   offset: u32;
 };
 
-fn getRandom(seeds: vec4<f32>) -> vec4<f32> {
-  return fract(sin(seeds * global.u_randomSeed * 10.24));
+fn getRandom(uv: vec2<f32>, jitters: vec4<f32>) -> vec4<f32> {
+  let noise: vec4<f32> = textureSampleLevel(u_noise, u_sampler, uv, 0.);
+
+  return fract(global.u_randomSeed * (noise + fract(jitters)));
 }
 
 fn genRay(origin: vec3<f32>, dir: vec3<f32>) -> Ray {
@@ -626,9 +628,9 @@ fn calcBsdfDir(ray: Ray, hit: HitPoint, isReflection: bool) -> vec3<f32> {
   return refract(ray.dir, sign(cosTheta) * hit.normal, realIOR);
 }
 
-fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool, debugIndex: i32) -> Light {
+fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, isLastOut: bool) -> Light {
   var light: Light;
-  let random = getRandom(vec4<f32>(hit.position, hit.hited));
+  let random = getRandom(baseUV, vec4<f32>(hit.position, hit.hited));
 
   if (isLastOut) {
     // rgbd
@@ -645,8 +647,9 @@ fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool, debugIndex: i32) -> Light
   } else {
     // brdf
     light.color = calcIndirectLight(ray, hit, random.zw);
-    nextDir = calcBrdfDir(ray, hit, random.z < mix(.5, 0., hit.metal), random.xy);
-    light.brdf = pbrCalculateLo(hit.pbrData, hit.normal, -ray.dir, nextDir, debugIndex);
+    // nextDir = calcBrdfDir(ray, hit, random.z < mix(.5, 0., hit.metal), random.xy);
+    nextDir = calcBrdfDir(ray, hit, true, random.xy);
+    light.brdf = pbrCalculateLoRT(hit.pbrData, hit.normal, -ray.dir, nextDir);
   }
 
   // avoid self intersection
@@ -655,8 +658,8 @@ fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool, debugIndex: i32) -> Light
   return light;
 }
 
-fn traceLight(startRay: Ray, gBInfo: HitPoint, debugIndex: i32) -> vec3<f32> {
-  var light: Light = calcLight(startRay, gBInfo, false, debugIndex);
+fn traceLight(startRay: Ray, gBInfo: HitPoint, baseUV: vec2<f32>, debugIndex: i32) -> vec3<f32> {
+  var light: Light = calcLight(startRay, gBInfo, baseUV, false);
   var brdf: vec3<f32> = light.brdf;
   var lightColor: vec3<f32> = light.color * brdf;
   var hit: HitPoint;
@@ -666,7 +669,7 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, debugIndex: i32) -> vec3<f32> {
     hit = hitTest(ray);
     let isLastOut: bool = !hit.hit;
 
-    light = calcLight(ray, hit, isLastOut, debugIndex);
+    light = calcLight(ray, hit, baseUV, isLastOut);
     lightColor = lightColor + light.color * brdf;
     brdf = brdf * light.brdf;
     ray = light.next;
@@ -676,13 +679,13 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, debugIndex: i32) -> vec3<f32> {
     }
   }
 
-  // var hited: f32 = 0.;
-  // if (hit.hit) {
-  //   hited = 1.;
-  // }
-  // u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(brdf, hited);
-  // u_debugInfo.rays[debugIndex].preDir = vec4<f32>(ray.dir, hit.hited);
-  // u_debugInfo.rays[debugIndex].origin = vec4<f32>(basis[0], f32(gBInfo.matIndex));
+  var hited: f32 = 0.;
+  if (hit.hit) {
+    hited = 1.;
+  }
+  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(brdf, hited);
+  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(lightColor, hit.hited);
+  u_debugInfo.rays[debugIndex].origin = vec4<f32>(light.color, f32(gBInfo.matIndex));
   // u_debugInfo.rays[debugIndex].dir = vec4<f32>(basis[1], f32(gBInfo.meshIndex));
   // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(basis[2], f32(hit.matIndex));
   // u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(nextLight.reflection.dir, f32(hit.meshIndex));
@@ -713,7 +716,7 @@ fn main(
 
   let debugIndex: i32 = baseIndex.x + baseIndex.y * screenSize.x;
   let worldRay: Ray = genWorldRayByGBuffer(baseUV, gBInfo);
-  let light: vec3<f32> = traceLight(worldRay, gBInfo, debugIndex);
+  let light: vec3<f32> = traceLight(worldRay, gBInfo, baseUV, debugIndex);
 
   textureStore(u_output, baseIndex, vec4<f32>(light, 1.));
 }

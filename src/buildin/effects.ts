@@ -336,6 +336,10 @@ struct DebugRay {
           storageFormat: 'rgba16float'
         },
         {
+          name: 'u_noise',
+          defaultValue: textures.empty
+        },
+        {
           name: 'u_gbPositionMetal',
           defaultValue: textures.empty
         },
@@ -386,7 +390,7 @@ struct DebugRay {
           name: 'u_preWeight',
           type: 'vec3',
           format: 'f32',
-          defaultValue: new Float32Array([.7, .7, .7])
+          defaultValue: new Float32Array([.9, .9, .9])
         }
       ],
       textures: [
