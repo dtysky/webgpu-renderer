@@ -118,8 +118,8 @@ export default class Scene extends HObject {
     };
 
     const pass = this._command.beginRenderPass(renderPassDescriptor);
-
     pass.setBindGroup(0, renderEnv.bindingGroup);
+
     for (const mesh of meshes) {
       mesh.render(pass);
     }
@@ -129,9 +129,9 @@ export default class Scene extends HObject {
 
   public computeUnits(units: ComputeUnit[]) {
     const pass = this._command.beginComputePass();
+    pass.setBindGroup(0, renderEnv.bindingGroup);
 
     for (const unit of units) {
-      pass.setBindGroup(0, renderEnv.bindingGroup);
       unit.compute(pass);
     }
 

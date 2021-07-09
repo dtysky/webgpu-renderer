@@ -1,6 +1,6 @@
 let PI: f32 = 3.14159265358979;
-let MAX_LIGHTS_COUNT: u32 = 4u;
-let MAX_TRACE_COUNT: u32 = 1u;
+let MAX_LIGHTS_COUNT: u32 = 1u;
+let MAX_TRACE_COUNT: u32 = 0u;
 let MAX_RAY_LENGTH: f32 = 9999.;
 let BVH_DEPTH: i32 = ${BVH_DEPTH};
 let EPS: f32 = 0.005;
@@ -647,7 +647,6 @@ fn calcLight(ray: Ray, hit: HitPoint, isLastOut: bool, debugIndex: i32) -> Light
     light.color = calcIndirectLight(ray, hit, random.zw);
     nextDir = calcBrdfDir(ray, hit, random.z < mix(.5, 0., hit.metal), random.xy);
     light.brdf = pbrCalculateLo(hit.pbrData, hit.normal, -ray.dir, nextDir, debugIndex);
-    // light.brdf = vec3<f32>(1.);
   }
 
   // avoid self intersection

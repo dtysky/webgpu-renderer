@@ -80,10 +80,10 @@ export default class RenderTexture extends HObject {
     return this._colorFormats;
   }
 
-  constructor(options: IRenderTextureOptions) {
+  constructor(protected _options: IRenderTextureOptions) {
     super();
 
-    const {width, height, colors, depthStencil, forCompute} = options;
+    const {width, height, colors, depthStencil, forCompute} = _options;
 
     this._width = width;
     this._height = height;

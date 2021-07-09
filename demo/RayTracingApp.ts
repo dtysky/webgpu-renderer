@@ -13,6 +13,7 @@ export default class RayTracingApp {
   private _scene: H.Scene;
   private _camControl: H.NodeControl;
   private _camera: H.Camera;
+  private _model: H.IGlTFResource;
   private _gBufferRT: H.RenderTexture;
   private _gBufferDebugMesh: H.ImageMesh;
   protected _rtManager: H.RayTracingManager;
@@ -58,33 +59,34 @@ export default class RayTracingApp {
       colors: [{name: 'color', format: 'rgba16float'}]
     });
 
-    // this._denoiseRTs = {
-    //   current: new H.RenderTexture({
-    //     width: renderEnv.width,
-    //     height: renderEnv.height,
-    //     forCompute: true,
-    //     colors: [{name: 'color', format: 'rgba16float'}]
-    //   }),
-    //   pre: new H.RenderTexture({
-    //     width: renderEnv.width,
-    //     height: renderEnv.height,
-    //     forCompute: true,
-    //     colors: [{name: 'color', format: 'rgba16float'}]
-    //   })
-    // };
-    // this._denoiseUnit = new H.ComputeUnit(
-    //   H.buildinEffects.cRTDenoise,
-    //   {x: Math.ceil(renderEnv.width / 16), y: Math.ceil(renderEnv.height / 16)},
-    // );
+    this._denoiseRTs = {
+      current: new H.RenderTexture({
+        width: renderEnv.width,
+        height: renderEnv.height,
+        forCompute: true,
+        colors: [{name: 'color', format: 'rgba16float'}]
+      }),
+      pre: new H.RenderTexture({
+        width: renderEnv.width,
+        height: renderEnv.height,
+        forCompute: true,
+        colors: [{name: 'color', format: 'rgba16float'}]
+      })
+    };
+    this._denoiseUnit = new H.ComputeUnit(
+      H.buildinEffects.cRTDenoise,
+      {x: Math.ceil(renderEnv.width / 16), y: Math.ceil(renderEnv.height / 16)},
+    );
 
     this._rtBlit = new H.ImageMesh(new H.Material(H.buildinEffects.iBlit, {u_texture: this._rtOutput}));
 
     this._rtDebugInfo = new DebugInfo();
     
-    const model = await H.resource.load({type: 'gltf', name: 'scene.gltf', src: MODEL_SRC});
+    const model = this._model = await H.resource.load({type: 'gltf', name: 'scene.gltf', src: MODEL_SRC});
     if (model.cameras.length) {
       this._camera = model.cameras[0];
     }
+    _scene.rootNode.addChild(model.rootNode);
 
     if (this._camera.isOrth) {
       this._rtBlit.material.setMarcos({FLIP: true});
@@ -94,7 +96,6 @@ export default class RayTracingApp {
     console.log(model)
 
     await this._frame();
-    // await this._frame();
     // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([100, 100], [110, 110]);
     // console.log(rays)
     // debugRayShadows(rays.filter(ray => !ray.origin[3]).slice(0, 1), this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
@@ -122,7 +123,7 @@ export default class RayTracingApp {
     }
 
     // this._showBVH();
-    // this._renderGBuffer();
+    this._renderGBuffer();
     // this._showGBufferResult();
     this._scene.setRenderTarget(null);
     this._computeRTSS();
@@ -152,19 +153,19 @@ export default class RayTracingApp {
     this._scene.computeUnits([this._rtManager.rtUnit]);
   }
 
-  // protected _computeDenoise() {
-  //   const {current, pre} = this._denoiseRTs;
-  //   this._denoiseUnit.setUniform('u_output', current);
-  //   this._denoiseUnit.setUniform('u_pre', pre);
-  //   this._denoiseUnit.setUniform('u_current', this._rtOutput);
+  protected _computeDenoise() {
+    const {current, pre} = this._denoiseRTs;
+    this._denoiseUnit.setUniform('u_output', current);
+    this._denoiseUnit.setUniform('u_pre', pre);
+    this._denoiseUnit.setUniform('u_current', this._rtOutput);
 
-  //   this._scene.computeUnits([this._denoiseUnit]);
+    this._scene.computeUnits([this._denoiseUnit]);
 
-  //   this._rtBlit.material.setUniform('u_texture', current);
+    this._rtBlit.material.setUniform('u_texture', current);
 
-  //   this._denoiseRTs.current = pre;
-  //   this._denoiseRTs.pre = current;
-  // }
+    this._denoiseRTs.current = pre;
+    this._denoiseRTs.pre = current;
+  }
 
   private _showGBufferResult() {
     this._scene.setRenderTarget(null);

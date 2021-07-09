@@ -45,7 +45,6 @@ export default class ComputeUnit extends HObject {
       this._createPipeline();
       this._matVersion = _material.version;
     }
-    console.log(_material.effect.ubTemplate.shaderPrefix)
 
     pass.setPipeline(this._pipeline);
     pass.setBindGroup(1, _material.bindingGroup);

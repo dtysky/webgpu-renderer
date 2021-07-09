@@ -14,7 +14,7 @@ export default class Material extends HObject {
 
   protected _version: number = 0;
   protected _isBufferDirty: boolean = false;
-  protected _isDirty: boolean = false;
+  protected _isDirty: boolean = true;
   protected _uniformBlock: IUniformBlock;
   protected _bindingGroup: GPUBindGroup;
   protected _marcos: {[key: string]: number | boolean};
@@ -73,8 +73,6 @@ export default class Material extends HObject {
 
     this._marcos = marcos || {};
     this._renderStates = renderStates || {};
-
-    this._bindingGroup = this._effect.ubTemplate.getBindingGroup(this._uniformBlock, null);
   }
 
   public setUniform(name: string, value: TUniformValue, rtSubNameOrGPUBuffer?: string | GPUBuffer) {
