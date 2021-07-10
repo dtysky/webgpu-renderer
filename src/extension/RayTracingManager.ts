@@ -215,18 +215,18 @@ export default class RayTracingManager extends HObject {
       baseColorTexture !== buildinTextures.empty && this._setTextures(mid, baseColorTextures, baseColorTexture, matId2TexturesId);
       normalTexture !== buildinTextures.empty && this._setTextures(mid + 1, normalTextures, normalTexture, matId2TexturesId);
       baseColorFactor && baseColorFactors.set(baseColorFactor, index * 4);
-      normalScale !== undefined && metallicRoughnessFactorNormalScaleMaterialTypes.set(normalScale.slice(0, 1), index * 3 + 2);
+      normalScale !== undefined && metallicRoughnessFactorNormalScaleMaterialTypes.set(normalScale.slice(0, 1), index * 4 + 2);
 
       if (useSpecGloss) {
         specularFactor !== undefined && specularGlossinessFactors.set(specularFactor.slice(0, 3), index * 4);
         glossinessFactor !== undefined && specularGlossinessFactors.set(glossinessFactor.slice(0, 1), index * 4 + 3);
         specularGlossinessTexture !== buildinTextures.empty && this._setTextures(mid + 2, metalRoughOrSpecGlossTextures, specularGlossinessTexture, matId2TexturesId);
-        metallicRoughnessFactorNormalScaleMaterialTypes.set([useGlass ? EPBRMaterialType.GLASS_SPEC_GLOSS : EPBRMaterialType.SPEC_GLOSS], index * 3 + 3);
+        metallicRoughnessFactorNormalScaleMaterialTypes.set([useGlass ? EPBRMaterialType.GLASS_SPEC_GLOSS : EPBRMaterialType.SPEC_GLOSS], index * 4 + 3);
       } else {
-        metallicFactor !== undefined && metallicRoughnessFactorNormalScaleMaterialTypes.set(metallicFactor.slice(0, 1), index * 3);
-        roughnessFactor !== undefined && metallicRoughnessFactorNormalScaleMaterialTypes.set(roughnessFactor.slice(0, 1), index * 3 + 1);
+        metallicFactor !== undefined && metallicRoughnessFactorNormalScaleMaterialTypes.set(metallicFactor.slice(0, 1), index * 4);
+        roughnessFactor !== undefined && metallicRoughnessFactorNormalScaleMaterialTypes.set(roughnessFactor.slice(0, 1), index * 4 + 1);
         metallicRoughnessTexture !== buildinTextures.empty && this._setTextures(mid + 2, metalRoughOrSpecGlossTextures, metallicRoughnessTexture, matId2TexturesId);
-        metallicRoughnessFactorNormalScaleMaterialTypes.set([useGlass ? EPBRMaterialType.GLASS_METAL_ROUGH : EPBRMaterialType.METAL_ROUGH], index * 3 + 3);
+        metallicRoughnessFactorNormalScaleMaterialTypes.set([useGlass ? EPBRMaterialType.GLASS_METAL_ROUGH : EPBRMaterialType.METAL_ROUGH], index * 4 + 3);
       }
     });
 

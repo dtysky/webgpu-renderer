@@ -383,12 +383,13 @@ export default class UBTemplate extends HObject {
     if (type === 'buffer') {
       value = value as TUniformTypedArray;
       const cpuValue = values.value as TUniformTypedArray;
+      value = (typeof value === 'number' ? [value] : value) as Uint32Array;
       if (origLen !== realLen) {
         const size = value.length / origLen;
 
         for (let index = 0; index < size; index += 1) {
           cpuValue.set(
-            new (value.constructor as typeof Uint32Array)(value.buffer, origLen * index * 4, origLen),
+            value.slice(origLen * index, origLen * (index + 1)),
             realLen * index
           );
         }

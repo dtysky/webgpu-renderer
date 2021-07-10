@@ -1,6 +1,6 @@
 let PI: f32 = 3.14159265358979;
 let MAX_LIGHTS_COUNT: u32 = 4u;
-let MAX_TRACE_COUNT: u32 = 0u;
+let MAX_TRACE_COUNT: u32 = 2u;
 let MAX_RAY_LENGTH: f32 = 9999.;
 let BVH_DEPTH: i32 = ${BVH_DEPTH};
 let EPS: f32 = 0.005;
@@ -88,7 +88,8 @@ struct Child {
 fn getRandom(uv: vec2<f32>, jitters: vec4<f32>) -> vec4<f32> {
   let noise: vec4<f32> = textureSampleLevel(u_noise, u_sampler, uv, 0.);
 
-  return fract(global.u_randomSeed * (noise + fract(jitters)));
+  return fract(global.u_randomSeed * (noise));
+  // return noise;
 }
 
 fn genRay(origin: vec3<f32>, dir: vec3<f32>) -> Ray {
@@ -497,7 +498,7 @@ fn orthonormalBasis(normal: vec3<f32>) -> mat3x3<f32> {
   // sign function return 0 if x is 0
   // let zsign: f32 = sign(normal.z) * 1.;
   var zsign: f32 = 1.;
-  if (normal.z < 1.) {
+  if (normal.z < 0.) {
     zsign = -1.;
   }
   let a: f32 = -1.0 / (zsign + normal.z);
@@ -647,6 +648,7 @@ fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, isLastOut: bool) -> Lig
   } else {
     // brdf
     light.color = calcIndirectLight(ray, hit, random.zw);
+    // light.color = vec3<f32>(1.);
     // nextDir = calcBrdfDir(ray, hit, random.z < mix(.5, 0., hit.metal), random.xy);
     nextDir = calcBrdfDir(ray, hit, true, random.xy);
     light.brdf = pbrCalculateLoRT(hit.pbrData, hit.normal, -ray.dir, nextDir);
@@ -679,15 +681,16 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, baseUV: vec2<f32>, debugIndex: i3
     }
   }
 
-  var hited: f32 = 0.;
-  if (hit.hit) {
-    hited = 1.;
-  }
-  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(brdf, hited);
-  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(lightColor, hit.hited);
-  u_debugInfo.rays[debugIndex].origin = vec4<f32>(light.color, f32(gBInfo.matIndex));
-  // u_debugInfo.rays[debugIndex].dir = vec4<f32>(basis[1], f32(gBInfo.meshIndex));
-  // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(basis[2], f32(hit.matIndex));
+  // var hited: f32 = 0.;
+  // if (hit.hit) {
+  //   hited = 1.;
+  // }
+  // u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(brdf, hited);
+  // u_debugInfo.rays[debugIndex].preDir = vec4<f32>(lightColor, hit.hited);
+  // u_debugInfo.rays[debugIndex].origin = vec4<f32>(light.color, f32(gBInfo.matIndex));
+  // let random: vec4<f32> = getRandom(baseUV, vec4<f32>(hit.position, hit.hited));
+  // u_debugInfo.rays[debugIndex].dir = vec4<f32>(random.xy, sampleCircle(random.xy));
+  // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(cosineSampleHemisphere(random.xy), f32(hit.matIndex));
   // u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(nextLight.reflection.dir, f32(hit.meshIndex));
   // u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
 

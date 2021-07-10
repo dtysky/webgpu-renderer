@@ -73,9 +73,8 @@ fn pbrPrepareData(
   pbr.specularColor = specularColor;
   
   let reflectance: f32 = max(max(specularColor.r, specularColor.g), specularColor.b);
-  let reflectance90: f32 = clamp(reflectance * 25.0, 0.0, 1.0);
+  pbr.reflectance90 = vec3<f32>(clamp(reflectance * 25.0, 0.0, 1.0));
   pbr.reflectance0 = specularColor.rgb;
-  pbr.reflectance90 = vec3<f32>(1.0, 1.0, 1.0) * reflectance90;
   pbr.alphaRoughness = roughness * roughness;
 
   return pbr;
@@ -107,7 +106,7 @@ fn pbrCalculateLoRT(
 )-> vec3<f32> {
   let H: vec3<f32> = normalize(lightDir + viewDir);
   let NdotV: f32 = clamp(abs(dot(normal, viewDir)), 0.001, 1.0);
-  let NdotL: f32 = clamp(abs(dot(normal, lightDir)), 0.001, 1.0);
+  let NdotL: f32 = clamp(dot(normal, lightDir), 0.001, 1.0);
   let NdotH: f32 = clamp(abs(dot(normal, H)), 0.0, 1.0);
   let LdotH: f32 = clamp(abs(dot(lightDir, H)), 0.0, 1.0);
   let VdotH: f32 = clamp(dot(viewDir, H), 0.0, 1.0);
@@ -119,5 +118,5 @@ fn pbrCalculateLoRT(
   let specContrib: vec3<f32> = F * G * D / (4.0 * NdotL * NdotV);
   // Obtain final intensity as reflectance (BRDF) scaled by the energy of the light (cosine law)
   // return NdotL * specContrib;
-  return vec3<f32>(.7);
+  return F * D / (4.0 * NdotL * NdotV);
 }

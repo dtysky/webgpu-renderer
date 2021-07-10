@@ -223,6 +223,27 @@ export function debugRayShadow(rayInfo: {origin: Float32Array, dir: Float32Array
   console.log(fragInfo);
 }
 
+export function sampleCircle(pi: Float32Array) {
+  let p = [2.0 * pi[0] - 1.0, 2.0 * pi[1] - 1.0, ];
+  console.log('start', pi.slice(0, 2), p);
+  let greater = Math.abs(p[0]) > Math.abs(p[1]);
+  let r: number;
+  let theta: number;
+
+  if (greater) {
+    r = p[0];
+    theta = 0.25 * Math.PI * p[1] / p[0];
+  } else {
+    r = p[1];
+    theta = Math.PI * (0.5 - 0.25 * p[0] / p[1]);
+  }
+
+  const x = r * Math.cos(theta);
+  const y = r * Math.sin(theta);
+  console.log(r, theta, Math.cos(theta), Math.sin(theta));
+  console.log(x, y, Math.sqrt(1 - x * x - y * y));
+}
+
 // export function debugCamera(camera: H.Camera, bvh: H.BVH, positions: Float32Array) {
 //   for (let i = 0; i < 10; i += 1) {
 //     const uv = new Float32Array([Math.random() / 2, Math.random() / 2]);

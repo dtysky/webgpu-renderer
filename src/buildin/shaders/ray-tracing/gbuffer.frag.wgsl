@@ -59,7 +59,7 @@ fn main(vo: VertexOutput) -> FragmentOutput {
   let metallicRoughnessFactorNormalScaleMaterialType: vec4<f32> = material.u_metallicRoughnessFactorNormalScaleMaterialTypes[matId];
   let specularGlossinessFactor: vec4<f32> = material.u_specularGlossinessFactors[matId];
   let textureIds: vec4<i32> = material.u_matId2TexturesId[matId];
-  let matType = bitcast<u32>(metallicRoughnessFactorNormalScaleMaterialType[3]);
+  let matType = u32(metallicRoughnessFactorNormalScaleMaterialType[3]);
   let isMatSpecGloss: bool = isMatSpecGloss(matType);
 
   fo.positionMetal = vec4<f32>(
