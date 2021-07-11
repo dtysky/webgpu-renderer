@@ -3,3 +3,6 @@ let LIGHT_TYPE_AREA: u32 = 1u;
 let LIGHT_TYPE_DIRECTIONAL: u32 = 2u;
 let LIGHT_TYPE_POINT: u32 = 3u;
 let LIGHT_TYPE_SPOT: u32 = 4u;
+
+let LIGHT_AREA_RRCT: u32 = 0u;
+let LIGHT_AREA_DISC: u32 = 1u;

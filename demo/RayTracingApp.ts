@@ -98,7 +98,7 @@ export default class RayTracingApp {
     this._camControl.control(this._camera, new H.Node());
 
     await this._frame();
-    // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([100, 100], [110, 110]);
+    // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([200, 56], [210, 66]);
     // console.log(rays)
     // rays.slice(52, 58).forEach(ray => sampleCircle(ray.dir));
     // debugRayShadows(rays.filter(ray => !ray.origin[3]).slice(0, 1), this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
@@ -115,6 +115,7 @@ export default class RayTracingApp {
     const {_scene} = this;
 
     H.renderEnv.setUniform('u_randomSeed', new Float32Array(4).fill(Math.random()));
+    // H.renderEnv.setUniform('u_randomSeed', new Float32Array(4).fill(1));
     _scene.startFrame();
     
     const first = !this._rtManager;

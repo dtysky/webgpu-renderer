@@ -24,6 +24,10 @@
     // canvas.height = window.innerHeight * window.devicePixelRatio;
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+
+    canvas.addEventListener('mousedown', (e) => {
+      console.log(e.clientX, e.clientY);
+    })
   </script>
 </body>
 </html>

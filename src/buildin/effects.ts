@@ -390,7 +390,7 @@ struct DebugRay {
           name: 'u_preWeight',
           type: 'vec3',
           format: 'f32',
-          defaultValue: new Float32Array([.9, .9, .9])
+          defaultValue: new Float32Array([.8, .8, .8])
         }
       ],
       textures: [
