@@ -6,7 +6,7 @@
  */
 import {mat4} from 'gl-matrix';
 import Effect from '../core/Effect';
-import {createGPUBuffer} from '../core/shared';
+import {createGPUBuffer, genGaussianKernel, lpfKernel} from '../core/shared';
 import textures from './textures';
 
 const effects: {
@@ -391,6 +391,13 @@ struct DebugRay {
           type: 'vec3',
           format: 'f32',
           defaultValue: new Float32Array([.8, .8, .8])
+        },
+        {
+          name: 'u_spaceKernel',
+          type: 'vec4',
+          // 7x7 window
+          size: 7 * 8 / 4,
+          defaultValue: lpfKernel(new Float32Array(7 * 8).fill(1), 3)
         }
       ],
       textures: [
@@ -482,10 +489,7 @@ struct DebugRay {
     const kernelSize = realKernelSize + (4 - mod);
 
     return new Effect('cSimpleBlur-' + radius, {
-      cs: require('./shaders/compute/blur.comp.wgsl')
-        .replace(/\${MARCO_RADIUS}/g, radius)
-        .replace(/\${MARCO_WINDOW_SIZE}/g, radius * 2 + 1)
-        .replace(/\${TILE_SIZE}/g, radius * 4 + 1),
+      cs: require('./shaders/compute/blur.comp.wgsl'),
       uniformDesc: {
         uniforms: [
           {
@@ -512,7 +516,8 @@ struct DebugRay {
             defaultValue: {magFilter: 'linear', minFilter: 'linear'}
           }
         ]
-      }
-    })
+      },
+      marcos: {RADIUS: radius, WINDOW_SIZE: radius * 2 + 1, TILE_SIZE: radius * 4 + 1}
+    });
   };
 }

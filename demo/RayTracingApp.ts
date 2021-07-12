@@ -105,10 +105,27 @@ export default class RayTracingApp {
     // this._rtDebugMesh = mesh;
     // rays.forEach(ray => debugRay(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
     // await this._frame();
+
+    await this._frame();
+    await this._frame();
+    await this._frame();
+    await this._frame();
+    // await this._frame();
+    // await this._frame();
+    // await this._frame();
+    // await this._frame();
+    // await this._frame();
+    // await this._frame();
+    // await this._frame();
+    // await this._frame();
+    // await this._frame();
+    // await this._frame();
+    // await this._frame();
+    // await this._frame();
   }
 
   public async update(dt: number) {
-    await this._frame();
+    // await this._frame();
   }
 
   private async _frame() {
@@ -116,6 +133,7 @@ export default class RayTracingApp {
 
     H.renderEnv.setUniform('u_randomSeed', new Float32Array(4).fill(Math.random()));
     // H.renderEnv.setUniform('u_randomSeed', new Float32Array(4).fill(1));
+    // this._denoiseUnit.setUniform('u_preWeight', new Float32Array([0]));
     _scene.startFrame();
     
     const first = !this._rtManager;

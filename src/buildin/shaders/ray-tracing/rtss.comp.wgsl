@@ -1,6 +1,6 @@
 let PI: f32 = 3.14159265358979;
 let MAX_LIGHTS_COUNT: u32 = 4u;
-let MAX_TRACE_COUNT: u32 = 0u;
+let MAX_TRACE_COUNT: u32 = 1u;
 let MAX_RAY_LENGTH: f32 = 9999.;
 let BVH_DEPTH: i32 = ${BVH_DEPTH};
 let EPS: f32 = 0.005;
@@ -88,7 +88,7 @@ struct Child {
 fn getRandom(uv: vec2<f32>, jitters: vec4<f32>) -> vec4<f32> {
   let noise: vec4<f32> = textureSampleLevel(u_noise, u_sampler, uv, 0.);
 
-  return fract(global.u_randomSeed * (noise));
+  return fract(global.u_randomSeed + noise);
 }
 
 fn genRay(origin: vec3<f32>, dir: vec3<f32>) -> Ray {
@@ -542,8 +542,9 @@ fn calcIndirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>) -> vec3<f32> {
     samplePoint2D = sampleCircle(random) * areaLight.areaSize.x;
     area = 2. * PI * areaLight.areaSize.x;
   } else {
-    samplePoint2D = random * areaLight.areaSize;
-    area = areaLight.areaSize.x * areaLight.areaSize.y;
+    samplePoint2D = (random) * areaLight.areaSize;
+    area = samplePoint2D.x * samplePoint2D.y;
+    samplePoint2D = samplePoint2D * 2. - areaLight.areaSize;
   }
 
   let samplePoint: vec4<f32> = areaLight.worldTransform * vec4<f32>(samplePoint2D.x, 0., samplePoint2D.y, 1.);
@@ -618,19 +619,20 @@ fn calcBrdfDir(ray: Ray, hit: HitPoint, isDiffuse: bool, random: vec2<f32>) -> v
   return calcSpecularLightDir(basis, ray, hit, random);
 }
 
-fn calcBsdfDir(ray: Ray, hit: HitPoint, isReflection: bool) -> vec3<f32> {
+fn calcBsdfDir(ray: Ray, hit: HitPoint, reflectProbability: f32) -> vec3<f32> {
   // reflection or refraction
-  if (isReflection) {
-    return reflect(ray.dir, hit.normal);
-  }
 
   let ior: f32 = 1. / hit.glass;
   var r0: f32 = (1. - ior) / (1. + ior);
   r0 = r0 * r0;
   let cosTheta: f32 = dot(hit.normal, -ray.dir);
   let F: f32 = fresnelSchlickTIR(cosTheta, r0, ior);
-  var realIOR: f32;
 
+  if (F > reflectProbability) {
+    return reflect(ray.dir, hit.normal);
+  }
+
+  var realIOR: f32;
   if (cosTheta < 0.) {
     realIOR = ior;
   } else {
@@ -655,7 +657,7 @@ fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, isLastOut: bool) -> Lig
   var nextDir: vec3<f32>;
   if (hit.isGlass) {
     // bsdf
-    nextDir = calcBsdfDir(ray, hit, random.x < 0.5);
+    nextDir = calcBsdfDir(ray, hit, random.x);
     light.throughEng = hit.baseColor;
   } else {
     // brdf

@@ -101,7 +101,7 @@ export default class RenderTexture extends HObject {
       const color = renderEnv.device.createTexture(this._colorDescs[index] = {
         label: this.hash + '_color_' + (info.name || index),
         size: {width, height},
-        format: info.format || renderEnv.swapChainFormat,
+        format: info.format || (forCompute ? 'rgba8unorm' : renderEnv.swapChainFormat),
         usage: (
           GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.SAMPLED
         ) | (

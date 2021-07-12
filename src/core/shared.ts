@@ -130,3 +130,24 @@ function swap<T>(array: Array<T>, a: number, b: number) {
   array[b] = array[a];
   array[a] = x;
 }
+
+export function genGaussianKernel(out: Float32Array, radius: number, z: number = 0.84563): Float32Array {
+  for (let y: number = -radius; y <= radius; y += 1) {
+    for (let x: number = -radius; x < radius; x += 1) {
+      out[(y + radius) * (radius * 2 + 1) + x + radius] = Math.exp(-(x * x + y * y) / (2 * z * z)) / (2 * Math.PI * z * z);
+    } 
+  }
+  
+  return out;
+}
+
+export function lpfKernel(out: Float32Array, radius: number): Float32Array {
+  for (let y: number = -radius; y <= radius; y += 1) {
+    for (let x: number = -radius; x < radius; x += 1) {
+      out[(y + radius) * (radius * 2 + 1) + x + radius] = 1;
+    } 
+  }
+  
+  console.log(out)
+  return out;
+}
