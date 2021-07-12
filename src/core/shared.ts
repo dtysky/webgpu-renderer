@@ -131,23 +131,14 @@ function swap<T>(array: Array<T>, a: number, b: number) {
   array[a] = x;
 }
 
-export function genGaussianKernel(out: Float32Array, radius: number, z: number = 0.84563): Float32Array {
-  for (let y: number = -radius; y <= radius; y += 1) {
-    for (let x: number = -radius; x < radius; x += 1) {
-      out[(y + radius) * (radius * 2 + 1) + x + radius] = Math.exp(-(x * x + y * y) / (2 * z * z)) / (2 * Math.PI * z * z);
-    } 
-  }
-  
-  return out;
-}
+export function genGaussianParams(sigmas: Float32Array, dims: number[]): Float32Array {
+  const res = new Float32Array(sigmas.length * 2);
 
-export function lpfKernel(out: Float32Array, radius: number): Float32Array {
-  for (let y: number = -radius; y <= radius; y += 1) {
-    for (let x: number = -radius; x < radius; x += 1) {
-      out[(y + radius) * (radius * 2 + 1) + x + radius] = 1;
-    } 
+  for (let i: number = 0; i < sigmas.length; i += 1) {
+    const s = sigmas[i];
+    res[i * 2] = Math.pow(1 / (Math.sqrt(2 * Math.PI) * s), dims[i]);
+    res[i * 2 + 1] = -1 / (2 * s * s);
   }
   
-  console.log(out)
-  return out;
+  return res;
 }

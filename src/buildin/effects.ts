@@ -6,7 +6,7 @@
  */
 import {mat4} from 'gl-matrix';
 import Effect from '../core/Effect';
-import {createGPUBuffer, genGaussianKernel, lpfKernel} from '../core/shared';
+import {createGPUBuffer, genGaussianParams} from '../core/shared';
 import textures from './textures';
 
 const effects: {
@@ -393,11 +393,11 @@ struct DebugRay {
           defaultValue: new Float32Array([.8, .8, .8])
         },
         {
-          name: 'u_spaceKernel',
-          type: 'vec4',
-          // 7x7 window
-          size: 7 * 8 / 4,
-          defaultValue: lpfKernel(new Float32Array(7 * 8).fill(1), 3)
+          // [distance, color, depth, normal]
+          name: 'u_filterFactors',
+          type: 'vec2',
+          size: 4,
+          defaultValue: genGaussianParams(new Float32Array([1.5, 0.1, 2, 0.5]), [2, 3, 1, 3])
         }
       ],
       textures: [
@@ -418,7 +418,15 @@ struct DebugRay {
           defaultValue: textures.empty,
           storageAccess: 'read-only',
           storageFormat: 'rgba16float'
-        }
+        },
+        {
+          name: 'u_gbPositionMetal',
+          defaultValue: textures.empty
+        },
+        {
+          name: 'u_gbNormalMeshIndexGlass',
+          defaultValue: textures.empty
+        },
       ],
       samplers: [
         {
@@ -426,7 +434,8 @@ struct DebugRay {
           defaultValue: {magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'nearest'}
         }
       ]
-    }
+    },
+    marcos: {WINDOW_SIZE: 7}
   });
 
   effects.iRTGShow = new Effect('iRTGShow', {

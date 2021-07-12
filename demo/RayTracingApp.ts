@@ -84,8 +84,11 @@ export default class RayTracingApp {
     };
     this._denoiseUnit = new H.ComputeUnit(
       H.buildinEffects.cRTDenoise,
-      {x: Math.ceil(renderEnv.width / 16), y: Math.ceil(renderEnv.height / 16)}
+      {x: Math.ceil(renderEnv.width / 16), y: Math.ceil(renderEnv.height / 16)},
+      undefined,
+      {WINDOW_SIZE: 5}
     );
+    this._connectGBufferRenderTexture(this._denoiseUnit);
 
     this._rtBlit = new H.ImageMesh(new H.Material(H.buildinEffects.iBlit, {u_texture: this._rtOutput}));
 
@@ -107,9 +110,9 @@ export default class RayTracingApp {
     // await this._frame();
 
     await this._frame();
-    await this._frame();
-    await this._frame();
-    await this._frame();
+    // await this._frame();
+    // await this._frame();
+    // await this._frame();
     // await this._frame();
     // await this._frame();
     // await this._frame();
@@ -125,7 +128,7 @@ export default class RayTracingApp {
   }
 
   public async update(dt: number) {
-    // await this._frame();
+    await this._frame();
   }
 
   private async _frame() {
