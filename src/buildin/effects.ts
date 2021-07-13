@@ -246,6 +246,12 @@ export function init() {
     cs: require('./shaders/ray-tracing/rtss.comp.wgsl'),
     uniformDesc: {
       uniforms: [
+        {
+          name: 'u_randoms',
+          type: 'vec4',
+          size: 4,
+          defaultValue: new Float32Array(16)
+        },
         // support materials up to 128
         {
           name: 'u_matId2TexturesId',

@@ -100,16 +100,16 @@ export default class RayTracingApp {
     
     this._camControl.control(this._camera, new H.Node());
 
-    await this._frame();
-    // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([200, 56], [210, 66]);
-    // console.log(rays)
+    await this._frame(0);
+    const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([100, 56], [110, 66]);
+    console.log(rays)
     // rays.slice(52, 58).forEach(ray => sampleCircle(ray.dir));
     // debugRayShadows(rays.filter(ray => !ray.origin[3]).slice(0, 1), this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
     // this._rtDebugMesh = mesh;
     // rays.forEach(ray => debugRay(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
     // await this._frame();
 
-    await this._frame();
+    await this._frame(16);
     // await this._frame();
     // await this._frame();
     // await this._frame();
@@ -128,16 +128,12 @@ export default class RayTracingApp {
   }
 
   public async update(dt: number) {
-    await this._frame();
+    await this._frame(dt);
   }
 
-  private async _frame() {
+  private async _frame(dt: number) {
     const {_scene} = this;
-
-    H.renderEnv.setUniform('u_randomSeed', new Float32Array(4).fill(Math.random()));
-    // H.renderEnv.setUniform('u_randomSeed', new Float32Array(4).fill(1));
-    // this._denoiseUnit.setUniform('u_preWeight', new Float32Array([0]));
-    _scene.startFrame();
+    _scene.startFrame(dt);
     
     const first = !this._rtManager;
     if (first) {
@@ -148,12 +144,14 @@ export default class RayTracingApp {
       this._rtDebugInfo.setup(this._rtManager);
     }
 
+    this._rtManager.rtUnit.setUniform('u_randoms', new Float32Array(16).map(v => Math.random()));
+
     // this._showBVH();
     this._renderGBuffer();
     // this._showGBufferResult();
     this._scene.setRenderTarget(null);
     this._computeRTSS();
-    this._computeDenoise();
+    // this._computeDenoise();
     this._scene.renderImages([this._rtBlit]);
 
     if (first) {

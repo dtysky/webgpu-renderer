@@ -50,9 +50,9 @@ export function init() {
           defaultValue: mat4.identity(new Float32Array(16)) as Float32Array
         },
         {
-          name: 'u_randomSeed',
-          type: 'vec4',
-          defaultValue: new Float32Array([0, 0, 0, 0])
+          name: 'u_gameTime',
+          type: 'number',
+          defaultValue: new Float32Array([0])
         },
         {
           name: 'u_envColor',

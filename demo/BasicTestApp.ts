@@ -134,14 +134,14 @@ export default class BasicTestApp {
     // _scene.rootNode.addChild(model.rootNode);
     // console.log(model);
 
-    this._test();
+    this._test(0);
   }
 
-  protected _test() {
+  protected _test(dt: number) {
     const {device} = H.renderEnv;
     const {_scene} = this;
 
-    _scene.startFrame();
+    _scene.startFrame(dt);
     // _scene.renderCamera(this._camera, _scene.cullCamera(this._camera));
     _scene.computeUnits([this._blurUnit]);
     _scene.renderImages([this._imageMesh]);

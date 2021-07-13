@@ -55,6 +55,10 @@ export default class ComputeUnit extends HObject {
     this._material.setUniform(name, value, rtSubNameOrGPUBuffer);
   }
 
+  public getUniform(name: string): TUniformValue {
+    return this._material.getUniform(name);
+  }
+
   public setGroups(x: number, y?: number, z?: number) {
     this._groups = {x, y, z};
   }

@@ -20,6 +20,7 @@ export default class Scene extends HObject {
   public static CLASS_NAME: string = 'Scene';
   public isScene: boolean = true;
 
+  protected _gameTime: number;
   protected _rootNode: Node;
   protected _meshes: Mesh[];
   protected _lights: Light[];
@@ -68,7 +69,8 @@ export default class Scene extends HObject {
     this._renderTarget = target ? target : this._screen;
   }
 
-  public startFrame() {
+  public startFrame(dt: number) {
+    this._gameTime += dt;
     this._meshes = [];
     this._lights = [];
 
@@ -90,6 +92,7 @@ export default class Scene extends HObject {
       renderEnv.setUniform('u_lightInfos', lightInfos); 
     }
 
+    renderEnv.setUniform('u_gameTime', new Float32Array([this._gameTime / 1000]));
     this._command = renderEnv.device.createCommandEncoder();
   }
 
