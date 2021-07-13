@@ -1,6 +1,6 @@
 let PI: f32 = 3.14159265358979;
 let MAX_LIGHTS_COUNT: u32 = 4u;
-let MAX_TRACE_COUNT: u32 = 0u;
+let MAX_TRACE_COUNT: u32 = 1u;
 let MAX_RAY_LENGTH: f32 = 9999.;
 let BVH_DEPTH: i32 = ${BVH_DEPTH};
 let EPS: f32 = 0.005;
@@ -724,8 +724,7 @@ fn main(
     let cubeUV: vec3<f32> = normalize(t.xyz / t.w);
     let bgColor: vec4<f32> = textureSampleLevel(u_envTexture, u_sampler, cubeUV, 0.);
     // rgbd
-    // textureStore(u_output, baseIndex, vec4<f32>(bgColor.rgb / bgColor.a * global.u_envColor.rgb, 1.));
-    textureStore(u_output, baseIndex, vec4<f32>(1.));
+    textureStore(u_output, baseIndex, vec4<f32>(bgColor.rgb / bgColor.a * global.u_envColor.rgb, 1.));
     return;
   }
 

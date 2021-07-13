@@ -5,11 +5,11 @@ fn calcWeightNumber(params: vec2<f32>, a: f32, b: f32) -> f32 {
 }
 
 fn calcWeightVec2(params: vec2<f32>, a: vec2<f32>, b: vec2<f32>) -> f32 {
-  return params.x * exp(params.y * abs(dot(a, b)));
+  return params.x * exp(params.y * length(a - b));
 }
 
 fn calcWeightVec3(params: vec2<f32>, a: vec3<f32>, b: vec3<f32>) -> f32 {
-  return params.x * exp(params.y * abs(dot(a, b)));
+  return params.x * exp(params.y * length(a - b));
 }
 
 fn blur(center: vec2<i32>, size: vec2<i32>) -> vec4<f32> {
@@ -68,7 +68,14 @@ fn blur(center: vec2<i32>, size: vec2<i32>) -> vec4<f32> {
     }
   }
 
-  return vec4<f32>(res / f32(weightsSum), centerColor.a);
+  res = res / weightsSum;
+
+  if (any(isNan(res))) {
+    res = centerColor.rgb;
+  }
+
+  return vec4<f32>(res, centerColor.a);
+  // return vec4<f32>(weightsSum, res.b, 0., 1.);
 }
 
 [[stage(compute), workgroup_size(16, 16, 1)]]
@@ -88,6 +95,6 @@ fn main(
     current = textureLoad(u_current, baseIndex);
   }
 
-  // textureStore(u_output, baseIndex, vec4<f32>(mix(current.rgb, pre.rgb, material.u_preWeight), current.a));
-  textureStore(u_output, baseIndex, current);
+  textureStore(u_output, baseIndex, vec4<f32>(mix(current.rgb, pre.rgb, material.u_preWeight), current.a));
+  // textureStore(u_output, baseIndex, current);
 }

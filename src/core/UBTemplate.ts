@@ -372,7 +372,7 @@ export default class UBTemplate extends HObject {
   public setUniform(ub: IUniformBlock, name: string, value: TUniformValue, rtSubNameOrGPUBuffer?: string | GPUBuffer) {
     const info = this._uniformsInfo[name];
 
-    if (!info || !value) {
+    if (!info || value === undefined) {
       return;
     }
 

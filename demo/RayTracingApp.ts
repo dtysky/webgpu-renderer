@@ -86,7 +86,7 @@ export default class RayTracingApp {
       H.buildinEffects.cRTDenoise,
       {x: Math.ceil(renderEnv.width / 16), y: Math.ceil(renderEnv.height / 16)},
       undefined,
-      {WINDOW_SIZE: 5}
+      {WINDOW_SIZE: 7}
     );
     this._connectGBufferRenderTexture(this._denoiseUnit);
 
@@ -101,7 +101,7 @@ export default class RayTracingApp {
     this._camControl.control(this._camera, new H.Node());
 
     await this._frame(0);
-    const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([100, 56], [110, 66]);
+    const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([160, 360], [170, 370]);
     console.log(rays)
     // rays.slice(52, 58).forEach(ray => sampleCircle(ray.dir));
     // debugRayShadows(rays.filter(ray => !ray.origin[3]).slice(0, 1), this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
@@ -151,7 +151,7 @@ export default class RayTracingApp {
     // this._showGBufferResult();
     this._scene.setRenderTarget(null);
     this._computeRTSS();
-    // this._computeDenoise();
+    this._computeDenoise();
     this._scene.renderImages([this._rtBlit]);
 
     if (first) {

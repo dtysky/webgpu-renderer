@@ -396,7 +396,7 @@ struct DebugRay {
           name: 'u_preWeight',
           type: 'vec3',
           format: 'f32',
-          defaultValue: new Float32Array([.8, .8, .8])
+          defaultValue: new Float32Array(3).fill(0.8)
         },
         {
           // [distance, color, depth, normal]

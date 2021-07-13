@@ -50,7 +50,6 @@ fn pbrPrepareData(
   var pbr: PBRData;
 
   var specularColor: vec3<f32>;
-  var diffuseColor: vec3<f32>;
   var roughness: f32;
 
   // metallic roughness
@@ -59,18 +58,18 @@ fn pbrPrepareData(
     let metallic: f32 = clamp(metal, 0.0, 1.0);
     let f0: vec3<f32> = vec3<f32>(0.04, 0.04, 0.04);
 
-    diffuseColor = (1.0 - metallic) * (baseColor * (vec3<f32>(1.0, 1.0, 1.0) - f0));
     specularColor = mix(f0, baseColor, vec3<f32>(metallic));
     pbr.metallic = metallic;
+    pbr.diffuseColor = (1.0 - metallic) * (baseColor * (vec3<f32>(1.0, 1.0, 1.0) - f0));
   }
   else {
   // specular glossiness
     let specular: vec3<f32> = spec.rgb;
 
     roughness = 1.0 - gloss;
-    diffuseColor = baseColor * (1.0 - max(max(specular.r, specular.g), specular.b));
     specularColor = specular;
     pbr.metallic = 0.;
+    pbr.diffuseColor = baseColor * (1.0 - max(max(specular.r, specular.g), specular.b));
   }
   
   pbr.baseColor = baseColor;
