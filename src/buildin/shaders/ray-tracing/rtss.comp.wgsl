@@ -189,13 +189,15 @@ fn getBVHLeafInfo(offset: u32) -> BVHLeaf {
   var leaf: BVHLeaf;
   let data1: vec4<f32> = u_bvh.value[offset];
   leaf.primitives = bitcast<u32>(data1.x);
-  leaf.indexes = bitcast<vec3<u32>>(data1.yzw);
+  leaf.indexes.x = bitcast<u32>(data1.y);
+  leaf.indexes.y = bitcast<u32>(data1.z);
+  leaf.indexes.z = bitcast<u32>(data1.w);
 
   return leaf;
 }
 
 fn getFaceNormal(frag: FragmentInfo) -> vec3<f32> {
-  return normalize(cross(frag.p1 - frag.p0, frag.p2 - frag.p0));
+  return normalize(cross(frag.p2 - frag.p0, frag.p1 - frag.p0));
 }
 
 fn getNormal(
@@ -547,7 +549,7 @@ fn calcIndirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>) -> vec3<f32> {
     samplePoint2D = samplePoint2D * 2. - areaLight.areaSize;
   }
 
-  let samplePoint: vec4<f32> = areaLight.worldTransform * vec4<f32>(samplePoint2D.x, 0., samplePoint2D.y, 1.);
+  let samplePoint: vec4<f32> = areaLight.worldTransform * vec4<f32>(samplePoint2D.x, samplePoint2D.y, 0., 1.);
   var sampleDir: vec3<f32> = samplePoint.xyz - hit.position;
   let maxT: f32 = length(sampleDir);
   sampleDir = normalize(sampleDir);
@@ -595,7 +597,8 @@ fn cosineSampleHemisphere(p: vec2<f32>) -> vec3<f32> {
 }
 
 fn calcDiffuseLightDir(basis: mat3x3<f32>, sign: f32, random: vec2<f32>) -> vec3<f32> {
-  return basis * sign * cosineSampleHemisphere(random);
+  // return basis * sign * cosineSampleHemisphere(random);
+  return basis * sign * vec3<f32>(0., 0., 1.);
 }
 
 // GGX distrubtion
@@ -663,6 +666,7 @@ fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounds: u32, isLastOut:
     // brdf
     light.color = calcIndirectLight(ray, hit, random.zw);
     nextDir = calcBrdfDir(ray, hit, random.z < mix(.5, 0., hit.metal), random.xy);
+    // nextDir = calcBrdfDir(ray, hit, true, random.xy);
     light.throughEng = pbrCalculateLoRT(hit.pbrData, hit.normal, -ray.dir, nextDir);
   }
 
@@ -693,17 +697,18 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, baseUV: vec2<f32>, debugIndex: i3
     }
   }
 
-  var hited: f32 = 0.;
-  if (gBInfo.hit) {
-    hited = 1.;
-  }
-  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(throughEng, hited);
-  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(light.color, f32(gBInfo.meshIndex));
-  u_debugInfo.rays[debugIndex].origin = vec4<f32>(lightColor, 0.);
-  u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, gBInfo.sign);
-  // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(cosineSampleHemisphere(random.xy), f32(hit.matIndex));
-  // u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(nextLight.reflection.dir, f32(hit.meshIndex));
-  u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
+
+  // var hited: f32 = 0.;
+  // if (gBInfo.hit) {
+  //   hited = 1.;
+  // }
+  // u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(throughEng, hited);
+  // u_debugInfo.rays[debugIndex].preDir = vec4<f32>(light.color, f32(gBInfo.meshIndex));
+  // u_debugInfo.rays[debugIndex].origin = vec4<f32>(lightColor, 0.);
+  // u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, gBInfo.sign);
+  // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(throughEng, hited);
+  // u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(light.color, f32(gBInfo.meshIndex));
+  // u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
 
   return lightColor;
 }

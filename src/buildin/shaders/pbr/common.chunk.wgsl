@@ -121,9 +121,10 @@ fn pbrCalculateLoRT(
 
   let specular: vec3<f32> = F * G * D / (4.0 * NdotL * NdotV);
   let diffuse: vec3<f32> = pbrDiffuse(pbr.diffuseColor);
-  let specularPdf: f32 = D * NdotH / (4.0 * LdotH);
   let diffusePdf: f32 = NdotL * 0.3183098861837907;
+  let specularPdf: f32 = D * NdotH / (4.0 * LdotH);
   let pdf: f32 = mix(0.5 * (specularPdf + diffusePdf), specularPdf, pbr.metallic);
 
   return mix(pbr.baseColor * diffuse + specular, pbr.baseColor * specular, vec3<f32>(pbr.metallic)) / pdf;
+  // return diffuse / diffusePdf;
 }

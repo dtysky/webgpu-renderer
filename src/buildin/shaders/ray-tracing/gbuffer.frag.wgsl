@@ -16,7 +16,7 @@ struct FragmentOutput {
 require('./common.chunk.wgsl');
 
 fn getFaceNormal(position: vec3<f32>) -> vec3<f32> {
-  return -normalize(cross(dpdx(position), dpdy(position)));
+  return normalize(cross(dpdy(position), dpdx(position)));
 }
 
 fn getNormal(
@@ -60,7 +60,7 @@ fn main(vo: VertexOutput) -> FragmentOutput {
   let specularGlossinessFactor: vec4<f32> = material.u_specularGlossinessFactors[matId];
   let textureIds: vec4<i32> = material.u_matId2TexturesId[matId];
   let matType = u32(metallicRoughnessFactorNormalScaleMaterialType[3]);
-  let isMatSpecGloss: bool = isMatSpecGloss(matType);
+  let isSpecGloss: bool = isMatSpecGloss(matType);
 
   fo.positionMetal = vec4<f32>(
     vo.wPosition.xyz,
@@ -69,14 +69,14 @@ fn main(vo: VertexOutput) -> FragmentOutput {
 
   let baseColor: vec4<f32> = getBaseColor(material.u_baseColorFactors[matId], textureIds[0], vo.texcoord_0);
   fo.baseColorRoughOrGloss = vec4<f32>(baseColor.rgb, 0.);
-  if (isMatSpecGloss) {
+  if (isSpecGloss) {
     fo.baseColorRoughOrGloss.w = getGlossiness(specularGlossinessFactor[3], textureIds[2], vo.texcoord_0);
   } else {
     fo.baseColorRoughOrGloss.w = getRoughness(metallicRoughnessFactorNormalScaleMaterialType[1], textureIds[2], vo.texcoord_0);
   }
 
   let matIdMatType: u32 = (matType << 12u) + matId;
-  if (isMatSpecGloss) {
+  if (isSpecGloss) {
     fo.specMatIndexMatType = vec4<f32>(
       getSpecular(specularGlossinessFactor.xyz, textureIds[2], vo.texcoord_0),
       f32(matIdMatType)
@@ -87,8 +87,7 @@ fn main(vo: VertexOutput) -> FragmentOutput {
 
   let faceNormal: vec3<f32> = getFaceNormal(vo.wPosition.xyz);
   fo.normalMeshIndexGlass = vec4<f32>(
-    // getNormal(vo.normal, vo.wPosition.xyz, faceNormal, textureIds[1], vo.texcoord_0, metallicRoughnessFactorNormalScaleMaterialType[2]),
-    vo.normal,
+    getNormal(vo.normal, vo.wPosition.xyz, faceNormal, textureIds[1], vo.texcoord_0, metallicRoughnessFactorNormalScaleMaterialType[2]),
     f32(meshId + u32(baseColor.a * 255.) << 8u)
   );
 

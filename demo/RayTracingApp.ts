@@ -101,30 +101,20 @@ export default class RayTracingApp {
     this._camControl.control(this._camera, new H.Node());
 
     await this._frame(0);
-    const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([160, 360], [170, 370]);
-    console.log(rays)
-    // rays.slice(52, 58).forEach(ray => sampleCircle(ray.dir));
-    // debugRayShadows(rays.filter(ray => !ray.origin[3]).slice(0, 1), this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
+    
+    // setTimeout(async () => {
+      // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([180, 350], [190, 360]);
+      // console.log(rays)
+      // debugRayShadows(rays.filter(ray => ray.origin[3]).slice(0, 1), this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
+    // }, 1000);
+    // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([160, 360], [200, 400]);
+    // console.log(rays)
+    // debugRayShadows(rays.filter(ray => ray.origin[3]).slice(0, 1), this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
     // this._rtDebugMesh = mesh;
     // rays.forEach(ray => debugRay(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
     // await this._frame();
 
-    await this._frame(16);
-    // await this._frame();
-    // await this._frame();
-    // await this._frame();
-    // await this._frame();
-    // await this._frame();
-    // await this._frame();
-    // await this._frame();
-    // await this._frame();
-    // await this._frame();
-    // await this._frame();
-    // await this._frame();
-    // await this._frame();
-    // await this._frame();
-    // await this._frame();
-    // await this._frame();
+    // await this._frame(16);
   }
 
   public async update(dt: number) {
