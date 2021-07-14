@@ -4,7 +4,7 @@
  * @Link   : dtysky.moe
  * @Date   : 6/19/2021, 10:53:21 PM
  */
-import { vec3 } from 'gl-matrix';
+import { mat4, vec3 } from 'gl-matrix';
 import { buildinEffects, buildinTextures } from '../buildin';
 import ComputeUnit from '../core/ComputeUnit';
 import Geometry from '../core/Geometry';
@@ -138,6 +138,8 @@ export default class RayTracingManager extends HObject {
 
     for (let meshIndex = 0; meshIndex < meshes.length; meshIndex += 1) {
       const mesh = meshes[meshIndex];
+      const {worldMat} = mesh;
+      const quat = mat4.getRotation(new Float32Array(4), worldMat) as Float32Array;
       const { geometry, material } = mesh;
       const { indexData, vertexInfo, vertexCount, count } = geometry;
 
@@ -160,9 +162,9 @@ export default class RayTracingManager extends HObject {
       }
 
       for (let index = 0; index < vertexCount; index += 1) {
-        this._copyAttribute(vertexInfo.position, position, attrOffset, index, mesh.worldMat);
+        this._copyAttribute(vertexInfo.position, position, attrOffset, index, worldMat);
         this._copyAttribute(vertexInfo.texcoord_0, texcoord_0, attrOffset, index);
-        this._copyAttribute(vertexInfo.normal, normal, attrOffset, index);
+        this._copyAttribute(vertexInfo.normal, normal, attrOffset, index, quat, true);
 
         meshMatIndex.value.set([meshIndex, materialIndex], (attrOffset + index) * meshMatIndex.length);
       }
@@ -175,12 +177,16 @@ export default class RayTracingManager extends HObject {
   protected _copyAttribute(
     src: { offset: number, stride: number, data: TTypedArray, length: number },
     dst: IBVHAttributeValue, attrOffset: number, index: number,
-    transformMat?: Float32Array
+    transform?: Float32Array, isQuat?: boolean
   ) {
     const srcOffset = src.offset + index * src.stride;
     let srcData = src.data.slice(srcOffset, srcOffset + src.length) as Float32Array;
 
-    transformMat && vec3.transformMat4(srcData, srcData, transformMat);
+    transform &&
+      (isQuat
+        ? vec3.transformQuat(srcData, srcData, transform)
+        : vec3.transformMat4(srcData, srcData, transform)
+      );
 
     dst.value.set(
       srcData,

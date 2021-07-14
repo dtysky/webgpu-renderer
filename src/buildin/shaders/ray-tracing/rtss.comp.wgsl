@@ -699,11 +699,11 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, baseUV: vec2<f32>, debugIndex: i3
   }
   u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(throughEng, hited);
   u_debugInfo.rays[debugIndex].preDir = vec4<f32>(light.color, f32(gBInfo.meshIndex));
-  // u_debugInfo.rays[debugIndex].origin = vec4<f32>(light.color, f32(gBInfo.matIndex));
-  // u_debugInfo.rays[debugIndex].dir = vec4<f32>(gBInfo.nomMeshIdGlass);
+  u_debugInfo.rays[debugIndex].origin = vec4<f32>(lightColor, 0.);
+  u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, gBInfo.sign);
   // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(cosineSampleHemisphere(random.xy), f32(hit.matIndex));
   // u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(nextLight.reflection.dir, f32(hit.meshIndex));
-  // u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
+  u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
 
   return lightColor;
 }
