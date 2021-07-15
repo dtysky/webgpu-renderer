@@ -528,44 +528,6 @@ fn sampleCircle(pi: vec2<f32>) -> vec2<f32> {
   return r * vec2<f32>(cos(theta), sin(theta));
 }
 
-fn calcIndirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>) -> vec3<f32> {
-  // sample area lights, get radiance or shadow
-  let areaLight: LightInfo = global.u_lightInfos[0];
-
-  var samplePoint2D: vec2<f32>;
-  // only support one area light now
-  if (areaLight.lightType != LIGHT_TYPE_AREA) {
-    return vec3<f32>(0.);
-  }
-
-  let normal: vec3<f32> = normalize((areaLight.worldTransform * vec4<f32>(0., 0., -1., 0.)).xyz);
-  var area: f32;
-  if (areaLight.areaMode == LIGHT_AREA_DISC) {
-    samplePoint2D = sampleCircle(random) * areaLight.areaSize.x;
-    area = 2. * PI * areaLight.areaSize.x;
-  } else {
-    samplePoint2D = (random) * areaLight.areaSize;
-    area = samplePoint2D.x * samplePoint2D.y;
-    samplePoint2D = samplePoint2D * 2. - areaLight.areaSize;
-  }
-
-  let samplePoint: vec4<f32> = areaLight.worldTransform * vec4<f32>(samplePoint2D.x, samplePoint2D.y, 0., 1.);
-  var sampleDir: vec3<f32> = samplePoint.xyz - hit.position;
-  let maxT: f32 = length(sampleDir);
-  sampleDir = normalize(sampleDir);
-  let sampleLight: Ray = genRay(hit.position, sampleDir);
-  let shadowInfo: FragmentInfo = hitTestShadow(sampleLight, maxT);
-
-  if (shadowInfo.hit) {
-    return vec3<f32>(0.);
-  }
-
-  let cosine: f32 = abs(dot(normal, sampleDir));
-  let pdf: f32 = maxT * maxT / (area * cosine);
-
-  return areaLight.color.rgb / pdf;
-}
-
 fn fresnelSchlickWeight(cosTheta: f32) -> f32 {
   let w: f32 = 1.0 - cosTheta;
 
@@ -645,7 +607,47 @@ fn calcBsdfDir(ray: Ray, hit: HitPoint, reflectProbability: f32) -> vec3<f32> {
   return refract(ray.dir, sign(cosTheta) * hit.normal, realIOR);
 }
 
-fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounds: u32, isLastOut: bool) -> Light {
+fn calcDirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>) -> vec3<f32> {
+  // sample area lights, get radiance or shadow
+  let areaLight: LightInfo = global.u_lightInfos[0];
+
+  var samplePoint2D: vec2<f32>;
+  // only support one area light now
+  if (areaLight.lightType != LIGHT_TYPE_AREA) {
+    return vec3<f32>(0.);
+  }
+
+  let normal: vec3<f32> = normalize((areaLight.worldTransform * vec4<f32>(0., 0., 1., 0.)).xyz);
+  var area: f32;
+  if (areaLight.areaMode == LIGHT_AREA_DISC) {
+    samplePoint2D = sampleCircle(random) * areaLight.areaSize.x;
+    area = 2. * PI * areaLight.areaSize.x;
+  } else {
+    samplePoint2D = (random) * areaLight.areaSize;
+    area = samplePoint2D.x * samplePoint2D.y;
+    samplePoint2D = samplePoint2D * 2. - areaLight.areaSize;
+  }
+
+  let samplePoint: vec4<f32> = areaLight.worldTransform * vec4<f32>(samplePoint2D.x, samplePoint2D.y, 0., 1.);
+  var sampleDir: vec3<f32> = samplePoint.xyz - hit.position;
+  let maxT: f32 = length(sampleDir);
+  sampleDir = normalize(sampleDir);
+  let sampleLight: Ray = genRay(hit.position, sampleDir);
+  let shadowInfo: FragmentInfo = hitTestShadow(sampleLight, maxT);
+
+  if (shadowInfo.hit) {
+    return vec3<f32>(0.);
+  }
+
+  let cosine: f32 = abs(dot(normal, sampleDir));
+  let pdf: f32 = maxT * maxT / (area * cosine);
+
+  return areaLight.color.rgb / pdf;
+  // return areaLight.color.rgb * hit.baseColor * cosine / PI;
+}
+
+fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounds: u32, isOut: bool) -> Light {
+  let isLast: bounds == MAX_TRACE_COUNT;
   var light: Light;
   let random = getRandom(baseUV, bounds);
 
@@ -662,10 +664,11 @@ fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounds: u32, isLastOut:
     nextDir = calcBsdfDir(ray, hit, random.x);
     light.throughEng = hit.baseColor;
   } else {
+    // if last
     // brdf
-    light.color = calcIndirectLight(ray, hit, random.zw);
-    nextDir = calcBrdfDir(ray, hit, random.z < mix(.5, 0., hit.metal), random.xy);
-    // nextDir = calcBrdfDir(ray, hit, true, random.xy);
+    light.color = calcDirectLight(ray, hit, random.zw);
+    // nextDir = calcBrdfDir(ray, hit, random.z < mix(.5, 0., hit.metal), random.xy);
+    nextDir = calcBrdfDir(ray, hit, true, random.xy);
     light.throughEng = pbrCalculateLoRT(hit.pbrData, hit.normal, -ray.dir, nextDir);
   }
 
@@ -682,32 +685,33 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, baseUV: vec2<f32>, debugIndex: i3
   var hit: HitPoint;
   var ray: Ray = light.next;
 
-  for (var i: u32 = 0u; i < MAX_TRACE_COUNT; i = i + 1u) {
-    hit = hitTest(ray);
-    let isLastOut: bool = !hit.hit;
+  // for (var i: u32 = 1u; i < MAX_TRACE_COUNT + 1u; i = i + 1u) {
+  //   hit = hitTest(ray);
+  //   let isLastOut: bool = !hit.hit;
 
-    light = calcLight(ray, hit, baseUV, i, isLastOut);
-    throughEng = throughEng * light.throughEng;
-    lightColor = lightColor + light.color * throughEng;
-    ray = light.next;
+  //   light = calcLight(ray, hit, baseUV, i, isLastOut);
+  //   // throughEng = throughEng * light.throughEng;
+  //   throughEng = light.throughEng;
+  //   lightColor = lightColor + light.color * throughEng;
+  //   ray = light.next;
 
-    if (max(throughEng.x, max(throughEng.y, throughEng.z)) < 0.01 || isLastOut) {
-      break;
-    }
-  }
+  //   if (max(throughEng.x, max(throughEng.y, throughEng.z)) < 0.01 || isLastOut) {
+  //     break;
+  //   }
+  // }
 
 
-  var hited: f32 = 0.;
-  if (gBInfo.hit) {
-    hited = 1.;
-  }
-  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(startRay.origin, hited);
-  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(startRay.dir, f32(gBInfo.meshIndex));
-  u_debugInfo.rays[debugIndex].origin = vec4<f32>(ray.origin, 0.);
-  u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, gBInfo.sign);
-  u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(ray.origin, hited);
-  u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(reflect(startRay.dir, ray.dir), f32(gBInfo.meshIndex));
-  u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
+  // var hited: f32 = 0.;
+  // if (gBInfo.hit) {
+  //   hited = 1.;
+  // }
+  // u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(startRay.origin, hited);
+  // u_debugInfo.rays[debugIndex].preDir = vec4<f32>(startRay.dir, f32(gBInfo.meshIndex));
+  // u_debugInfo.rays[debugIndex].origin = vec4<f32>(ray.origin, 0.);
+  // u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, gBInfo.sign);
+  // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(ray.origin, hited);
+  // u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(reflect(startRay.dir, ray.dir), f32(gBInfo.meshIndex));
+  // u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
 
   return lightColor;
 }
