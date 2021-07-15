@@ -87,7 +87,8 @@ fn main(vo: VertexOutput) -> FragmentOutput {
 
   let faceNormal: vec3<f32> = getFaceNormal(vo.wPosition.xyz);
   fo.normalMeshIndexGlass = vec4<f32>(
-    getNormal(vo.normal, vo.wPosition.xyz, faceNormal, textureIds[1], vo.texcoord_0, metallicRoughnessFactorNormalScaleMaterialType[2]),
+    // getNormal(vo.normal, vo.wPosition.xyz, faceNormal, textureIds[1], vo.texcoord_0, metallicRoughnessFactorNormalScaleMaterialType[2]),
+    vo.normal,
     f32(meshId + u32(baseColor.a * 255.) << 8u)
   );
 

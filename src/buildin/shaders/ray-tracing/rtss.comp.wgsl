@@ -538,7 +538,7 @@ fn calcIndirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>) -> vec3<f32> {
     return vec3<f32>(0.);
   }
 
-  let normal: vec3<f32> = normalize((areaLight.worldTransform * vec4<f32>(0., 1., 0., 1.)).xyz);
+  let normal: vec3<f32> = normalize((areaLight.worldTransform * vec4<f32>(0., 0., -1., 0.)).xyz);
   var area: f32;
   if (areaLight.areaMode == LIGHT_AREA_DISC) {
     samplePoint2D = sampleCircle(random) * areaLight.areaSize.x;
@@ -597,15 +597,14 @@ fn cosineSampleHemisphere(p: vec2<f32>) -> vec3<f32> {
 }
 
 fn calcDiffuseLightDir(basis: mat3x3<f32>, sign: f32, random: vec2<f32>) -> vec3<f32> {
-  // return basis * sign * cosineSampleHemisphere(random);
-  return basis * sign * vec3<f32>(0., 0., 1.);
+  return basis * sign * cosineSampleHemisphere(random);
 }
 
 // GGX distrubtion
 fn calcSpecularLightDir(basis: mat3x3<f32>, ray: Ray, hit: HitPoint, random: vec2<f32>) -> vec3<f32> {
-  let phi: f32 = PI * 2. * random.y;
+  let phi: f32 = PI * 2. * random.x;
   let alpha: f32 = hit.pbrData.alphaRoughness;
-  let cosTheta: f32 = sqrt((1.0 - random.x) / (1.0 + (alpha * alpha - 1.0) * random.x));
+  let cosTheta: f32 = sqrt((1.0 - random.y) / (1.0 + (alpha * alpha - 1.0) * random.y));
   let sinTheta: f32 = sqrt(1.0 - cosTheta * cosTheta);
   let halfVector: vec3<f32> = basis * hit.sign * vec3<f32>(sinTheta * cos(phi), sinTheta * sin(phi), cosTheta);
 
@@ -698,17 +697,17 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, baseUV: vec2<f32>, debugIndex: i3
   }
 
 
-  // var hited: f32 = 0.;
-  // if (gBInfo.hit) {
-  //   hited = 1.;
-  // }
-  // u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(throughEng, hited);
-  // u_debugInfo.rays[debugIndex].preDir = vec4<f32>(light.color, f32(gBInfo.meshIndex));
-  // u_debugInfo.rays[debugIndex].origin = vec4<f32>(lightColor, 0.);
-  // u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, gBInfo.sign);
-  // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(throughEng, hited);
-  // u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(light.color, f32(gBInfo.meshIndex));
-  // u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
+  var hited: f32 = 0.;
+  if (gBInfo.hit) {
+    hited = 1.;
+  }
+  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(startRay.origin, hited);
+  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(startRay.dir, f32(gBInfo.meshIndex));
+  u_debugInfo.rays[debugIndex].origin = vec4<f32>(ray.origin, 0.);
+  u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, gBInfo.sign);
+  u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(ray.origin, hited);
+  u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(reflect(startRay.dir, ray.dir), f32(gBInfo.meshIndex));
+  u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
 
   return lightColor;
 }

@@ -95,6 +95,6 @@ fn main(
     current = textureLoad(u_current, baseIndex);
   }
 
-  textureStore(u_output, baseIndex, vec4<f32>(mix(current.rgb, pre.rgb, material.u_preWeight), current.a));
-  // textureStore(u_output, baseIndex, current);
+  // textureStore(u_output, baseIndex, vec4<f32>(mix(current.rgb, pre.rgb, material.u_preWeight), current.a));
+  textureStore(u_output, baseIndex, current);
 }
