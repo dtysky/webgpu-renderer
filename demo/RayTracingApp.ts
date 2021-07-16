@@ -8,6 +8,7 @@ import * as H from '../src/index';
 import {DebugInfo, debugRay, debugRayShadow, debugRayShadows, sampleCircle} from './debugCs';
 
 const MODEL_SRC = '/assets/models/walls/scene.gltf';
+const MAX_SAMPLERS = 256;
 
 export default class RayTracingApp {
   private _scene: H.Scene;
@@ -24,6 +25,7 @@ export default class RayTracingApp {
   protected _rtBlit: H.ImageMesh;
   protected _rtDebugInfo: DebugInfo;
   protected _rtDebugMesh: H.Mesh;
+  protected _frameCount: number = 0;
 
   public async init() {
     const {renderEnv} = H;
@@ -99,6 +101,9 @@ export default class RayTracingApp {
     }
     
     this._camControl.control(this._camera, new H.Node());
+    this._camControl.onChange = () => {
+      this._frameCount = 0;
+    };
 
     await this._frame(0);
     
@@ -123,6 +128,14 @@ export default class RayTracingApp {
 
   private async _frame(dt: number) {
     const {_scene} = this;
+    this._frameCount += 1;
+    const preWeight = (this._frameCount - 1) / this._frameCount;
+
+    if (preWeight > .99) {
+      return;
+    }
+    // console.log(preWeight)
+
     _scene.startFrame(dt);
     
     const first = !this._rtManager;
@@ -135,6 +148,7 @@ export default class RayTracingApp {
     }
 
     this._rtManager.rtUnit.setUniform('u_randoms', new Float32Array(16).map(v => Math.random()));
+    this._denoiseUnit.setUniform('u_preWeight', new Float32Array([preWeight]));
 
     // this._showBVH();
     this._renderGBuffer();
@@ -147,9 +161,6 @@ export default class RayTracingApp {
     if (first) {
       this._rtDebugInfo.run(_scene);
     }
-
-    // const {mesh} = await this._rtDebugInfo.showDebugInfo([2000, 400], [2001, 401]);
-    // this._rtDebugMesh = mesh;
 
     if (this._rtDebugMesh) {
       _scene.renderCamera(this._camera, [this._rtDebugMesh], false);

@@ -102,11 +102,16 @@ fn pbrCalculateLo(
   return NdotL * specContrib;
 }
 
+struct PBRRTRes {
+  direct: vec3<f32>;
+  indirect: vec3<f32>;
+};
+
 fn pbrCalculateLoRT(
   pbr: PBRData, normal: vec3<f32>,
   viewDir: vec3<f32>, lightDir: vec3<f32>,
-  isDirect: bool, isDiffuse: bool
-)-> vec3<f32> {
+  isDiffuse: bool, probDiffuse: f32
+)-> PBRRTRes {
   let H: vec3<f32> = normalize(lightDir + viewDir);
   let NdotV: f32 = clamp(abs(dot(normal, viewDir)), 0.001, 1.0);
   let NdotL: f32 = clamp(dot(normal, lightDir), 0.001, 1.0);
@@ -120,20 +125,17 @@ fn pbrCalculateLoRT(
 
   let specular: vec3<f32> = F * G * D / (4.0 * NdotL * NdotV);
   let diffuse: vec3<f32> = pbrDiffuse(pbr.diffuseColor);
-  let diffusePdf: f32 = NdotL * 0.3183098861837907;
+  // let diffusePdf: f32 = NdotL * 0.3183098861837907;
   let specularPdf: f32 = D * NdotH / (4.0 * LdotH);
-  // let pdf: f32 = mix(0.5 * (specularPdf + diffusePdf), specularPdf, pbr.metallic);
-  // return mix(pbr.baseColor * diffuse + specular, pbr.baseColor * specular, vec3<f32>(pbr.metallic)) / pdf;
 
   var res: PBRRTRes;
-
-  if (isDirect) {
-    return specular + NdotL * diffuse;
-  }
+  res.direct = specular + NdotL * diffuse;
 
   if (isDiffuse) {
-    return diffuse / diffusePdf;
+    res.indirect = diffuse / probDiffuse;
+  } else {
+    res.indirect = NdotL * specular / (mix(specularPdf, 0., probDiffuse));
   }
 
-  return NdotL * specular / (mix(specularPdf, 0., diffusePdf));
+  return res;
 }

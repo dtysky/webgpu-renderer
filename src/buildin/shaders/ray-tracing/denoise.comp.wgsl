@@ -75,7 +75,6 @@ fn blur(center: vec2<i32>, size: vec2<i32>) -> vec4<f32> {
   }
 
   return vec4<f32>(res, centerColor.a);
-  // return vec4<f32>(weightsSum, res.b, 0., 1.);
 }
 
 [[stage(compute), workgroup_size(16, 16, 1)]]
@@ -95,6 +94,5 @@ fn main(
     current = textureLoad(u_current, baseIndex);
   }
 
-  // textureStore(u_output, baseIndex, vec4<f32>(mix(current.rgb, pre.rgb, material.u_preWeight), current.a));
-  textureStore(u_output, baseIndex, current);
+  textureStore(u_output, baseIndex, vec4<f32>(mix(current.rgb, pre.rgb, vec3<f32>(material.u_preWeight)), current.a));
 }

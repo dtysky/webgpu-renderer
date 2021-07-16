@@ -1,6 +1,6 @@
 let PI: f32 = 3.14159265358979;
 let MAX_LIGHTS_COUNT: u32 = 4u;
-let MAX_TRACE_COUNT: u32 = 1u;
+let MAX_TRACE_COUNT: u32 = 2u;
 let MAX_RAY_LENGTH: f32 = 9999.;
 let BVH_DEPTH: i32 = ${BVH_DEPTH};
 let EPS: f32 = 0.005;
@@ -607,7 +607,7 @@ fn calcBsdfDir(ray: Ray, hit: HitPoint, reflectProbability: f32) -> vec3<f32> {
   return refract(ray.dir, sign(cosTheta) * hit.normal, realIOR);
 }
 
-fn calcDirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>) -> vec3<f32> {
+fn sampleDirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>) -> vec3<f32> {
   // sample area lights, get radiance or shadow
   let areaLight: LightInfo = global.u_lightInfos[0];
 
@@ -643,15 +643,15 @@ fn calcDirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>) -> vec3<f32> {
   let pdf: f32 = maxT * maxT / (area * cosine);
 
   return areaLight.color.rgb / pdf;
-  // return areaLight.color.rgb * hit.baseColor * cosine / PI;
+  // return areaLight.color.rgb;
 }
 
 fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounds: u32, isOut: bool) -> Light {
-  let isLast: bounds == MAX_TRACE_COUNT;
+  let isLast: bool = bounds == MAX_TRACE_COUNT;
   var light: Light;
   let random = getRandom(baseUV, bounds);
 
-  if (isLastOut) {
+  if (isOut) {
     // rgbd
     let bgColor: vec4<f32> = textureSampleLevel(u_envTexture, u_sampler, ray.dir, 0.);
     light.color = bgColor.rgb / bgColor.a * global.u_envColor.rgb;
@@ -666,10 +666,14 @@ fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounds: u32, isOut: boo
   } else {
     // if last
     // brdf
-    light.color = calcDirectLight(ray, hit, random.zw);
-    // nextDir = calcBrdfDir(ray, hit, random.z < mix(.5, 0., hit.metal), random.xy);
-    nextDir = calcBrdfDir(ray, hit, true, random.xy);
-    light.throughEng = pbrCalculateLoRT(hit.pbrData, hit.normal, -ray.dir, nextDir);
+    // let probDiffuse: f32 = mix(.5, 0., hit.metal);
+    let probDiffuse: f32 = 0.;
+    let isDiffuse: bool = random.z < probDiffuse;
+    nextDir = calcBrdfDir(ray, hit, isDiffuse, random.xy);
+    let directLight: vec3<f32> = sampleDirectLight(ray, hit, random.zw);
+    let brdfRes: PBRRTRes = pbrCalculateLoRT(hit.pbrData, hit.normal, -ray.dir, nextDir, isDiffuse, probDiffuse);
+    light.color = directLight * brdfRes.direct;
+    light.throughEng = brdfRes.indirect;
   }
 
   // avoid self intersection
@@ -680,25 +684,24 @@ fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounds: u32, isOut: boo
 
 fn traceLight(startRay: Ray, gBInfo: HitPoint, baseUV: vec2<f32>, debugIndex: i32) -> vec3<f32> {
   var light: Light = calcLight(startRay, gBInfo, baseUV, 0u, false);
+  var lightColor: vec3<f32> = light.color;
   var throughEng: vec3<f32> = light.throughEng;
-  var lightColor: vec3<f32> = light.color * throughEng;
   var hit: HitPoint;
   var ray: Ray = light.next;
 
-  // for (var i: u32 = 1u; i < MAX_TRACE_COUNT + 1u; i = i + 1u) {
-  //   hit = hitTest(ray);
-  //   let isLastOut: bool = !hit.hit;
+  for (var i: u32 = 1u; i < MAX_TRACE_COUNT; i = i + 1u) {
+    hit = hitTest(ray);
+    let isLastOut: bool = !hit.hit;
 
-  //   light = calcLight(ray, hit, baseUV, i, isLastOut);
-  //   // throughEng = throughEng * light.throughEng;
-  //   throughEng = light.throughEng;
-  //   lightColor = lightColor + light.color * throughEng;
-  //   ray = light.next;
+    light = calcLight(ray, hit, baseUV, i, isLastOut);
+    lightColor = lightColor + light.color * throughEng;
+    throughEng = throughEng * light.throughEng;
+    ray = light.next;
 
-  //   if (max(throughEng.x, max(throughEng.y, throughEng.z)) < 0.01 || isLastOut) {
-  //     break;
-  //   }
-  // }
+    if (max(throughEng.x, max(throughEng.y, throughEng.z)) < 0.01 || isLastOut) {
+      break;
+    }
+  }
 
 
   // var hited: f32 = 0.;

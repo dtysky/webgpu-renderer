@@ -19,6 +19,7 @@ const UP = new Float32Array([0, 1, 0]);
 export default class NodeControl extends HObject {
   public static CLASS_NAME: string = 'NodeControl';
   public isNodeControl: boolean = true;
+  public onChange: () => void;
 
   protected _start: boolean = false;
   protected _x: number;
@@ -107,6 +108,8 @@ export default class NodeControl extends HObject {
 
     this._x = clientX;
     this._y = clientY;
+
+    this.onChange && this.onChange()
   }
 
   protected _handleZoom = (event: WheelEvent) => {
@@ -128,6 +131,8 @@ export default class NodeControl extends HObject {
     if (this._mode === 'arc') {
       this._arcRadius += delta;
     }
+
+    this.onChange && this.onChange()
   }
 
   protected _handleTouchStart = (event: TouchEvent) => {
