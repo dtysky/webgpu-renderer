@@ -107,11 +107,11 @@ export default class RayTracingApp {
 
     await this._frame(0);
     
-    // setTimeout(async () => {
-      // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([180, 350], [190, 360]);
-      // console.log(rays)
+    setTimeout(async () => {
+      const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([560, 300], [570, 310]);
+      console.log(rays)
       // debugRayShadows(rays.filter(ray => ray.origin[3]).slice(0, 1), this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
-    // }, 1000);
+    }, 1000);
     // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([160, 360], [200, 400]);
     // console.log(rays)
     // debugRayShadows(rays.filter(ray => ray.origin[3]).slice(0, 1), this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
@@ -131,7 +131,7 @@ export default class RayTracingApp {
     this._frameCount += 1;
     const preWeight = (this._frameCount - 1) / this._frameCount;
 
-    if (preWeight > .99) {
+    if (preWeight > .999) {
       return;
     }
     // console.log(preWeight)

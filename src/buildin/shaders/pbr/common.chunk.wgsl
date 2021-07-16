@@ -19,10 +19,6 @@ fn refract(I: vec3<f32>, N: vec3<f32>, eta: f32) -> vec3<f32> {
   return eta * I - (eta * dot(N, I) + sqrt(k)) * N;
 }
 
-fn pbrDiffuse(diffuseColor: vec3<f32>)-> vec3<f32> {
-  return diffuseColor * 0.3183098861837907;
-}
-
 fn pbrSpecularReflection(reflectance0: vec3<f32>, reflectance90: vec3<f32>, VdotH: f32)-> vec3<f32> {
   return reflectance0 + (reflectance90 - reflectance0) * pow(clamp(1.0 - VdotH, 0.0, 1.0), 5.0);
 }
@@ -110,11 +106,11 @@ struct PBRRTRes {
 fn pbrCalculateLoRT(
   pbr: PBRData, normal: vec3<f32>,
   viewDir: vec3<f32>, lightDir: vec3<f32>,
-  isDiffuse: bool, probDiffuse: f32
-)-> PBRRTRes {
+  isDirect: bool, isDiffuse: bool, probDiffuse: f32
+)-> vec3<f32> {
   let H: vec3<f32> = normalize(lightDir + viewDir);
   let NdotV: f32 = clamp(abs(dot(normal, viewDir)), 0.001, 1.0);
-  let NdotL: f32 = clamp(dot(normal, lightDir), 0.001, 1.0);
+  let NdotL: f32 = clamp(abs(dot(normal, lightDir)), 0.001, 1.0);
   let NdotH: f32 = clamp(abs(dot(normal, H)), 0.0, 1.0);
   let LdotH: f32 = clamp(abs(dot(lightDir, H)), 0.0, 1.0);
   let VdotH: f32 = clamp(dot(viewDir, H), 0.0, 1.0);
@@ -124,18 +120,17 @@ fn pbrCalculateLoRT(
   let D: f32 = pbrMicrofacetDistribution(pbr.alphaRoughness, NdotH);
 
   let specular: vec3<f32> = F * G * D / (4.0 * NdotL * NdotV);
-  let diffuse: vec3<f32> = pbrDiffuse(pbr.diffuseColor);
-  // let diffusePdf: f32 = NdotL * 0.3183098861837907;
-  let specularPdf: f32 = D * NdotH / (4.0 * LdotH);
 
-  var res: PBRRTRes;
-  res.direct = specular + NdotL * diffuse;
-
-  if (isDiffuse) {
-    res.indirect = diffuse / probDiffuse;
-  } else {
-    res.indirect = NdotL * specular / (mix(specularPdf, 0., probDiffuse));
+  if (isDirect) {
+    let diffuse: vec3<f32> = NdotL * 0.3183098861837907 * pbr.diffuseColor;
+    return specular + diffuse;
   }
 
-  return res;
+  if (isDiffuse) {
+    // let diffusePdf: f32 = NdotL * 0.3183098861837907;
+    return pbr.diffuseColor / probDiffuse;
+  }
+
+  let specularPdf: f32 = D * NdotH / (4.0 * LdotH);
+  return NdotL * specular / (mix(specularPdf, 0., probDiffuse));
 }

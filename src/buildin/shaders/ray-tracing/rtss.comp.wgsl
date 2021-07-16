@@ -607,7 +607,7 @@ fn calcBsdfDir(ray: Ray, hit: HitPoint, reflectProbability: f32) -> vec3<f32> {
   return refract(ray.dir, sign(cosTheta) * hit.normal, realIOR);
 }
 
-fn sampleDirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>) -> vec3<f32> {
+fn calcDirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>, debugIndex: i32) -> vec3<f32> {
   // sample area lights, get radiance or shadow
   let areaLight: LightInfo = global.u_lightInfos[0];
 
@@ -617,7 +617,7 @@ fn sampleDirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>) -> vec3<f32> {
     return vec3<f32>(0.);
   }
 
-  let normal: vec3<f32> = normalize((areaLight.worldTransform * vec4<f32>(0., 0., 1., 0.)).xyz);
+  let normal: vec3<f32> = normalize((areaLight.worldTransform * vec4<f32>(0., 0., -1., 0.)).xyz);
   var area: f32;
   if (areaLight.areaMode == LIGHT_AREA_DISC) {
     samplePoint2D = sampleCircle(random) * areaLight.areaSize.x;
@@ -641,12 +641,31 @@ fn sampleDirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>) -> vec3<f32> {
 
   let cosine: f32 = abs(dot(normal, sampleDir));
   let pdf: f32 = maxT * maxT / (area * cosine);
+  let directLight: vec3<f32> = areaLight.color.rgb / pdf;
+  let brdf = pbrCalculateLoRT(hit.pbrData, hit.normal, -ray.dir, sampleDir, true, false, 0.);
 
-  return areaLight.color.rgb / pdf;
-  // return areaLight.color.rgb;
+  var hited: f32 = 0.;
+  if (shadowInfo.hit) {
+    hited = 1.;
+  } 
+  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(samplePoint.xyz, f32(hited));
+  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(sampleDir, f32(shadowInfo.meshIndex));
+  u_debugInfo.rays[debugIndex].origin = vec4<f32>(directLight, 0.);
+  u_debugInfo.rays[debugIndex].dir = vec4<f32>(brdf, pdf);
+
+  return directLight * brdf;
 }
 
-fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounds: u32, isOut: bool) -> Light {
+fn getDiffuseProb(hit: HitPoint) -> f32 {
+  // let lumDiffuse: f32 = max(.01, dot(hit.pbrData.diffuseColor, vec3<f32>(0.2125, 0.7154, 0.0721)));
+  // let lumSpecular: f32 = max(.01, dot(hit.pbrData.specularColor, vec3<f32>(0.2125, 0.7154, 0.0721)));
+
+  // return lumDiffuse / (lumDiffuse + lumSpecular);
+  // return mix(.5, 0., hit.metal);
+  return 1.;
+}
+
+fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounds: u32, isOut: bool, debugIndex: i32) -> Light {
   let isLast: bool = bounds == MAX_TRACE_COUNT;
   var light: Light;
   let random = getRandom(baseUV, bounds);
@@ -664,16 +683,17 @@ fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounds: u32, isOut: boo
     nextDir = calcBsdfDir(ray, hit, random.x);
     light.throughEng = hit.baseColor;
   } else {
-    // if last
     // brdf
-    // let probDiffuse: f32 = mix(.5, 0., hit.metal);
-    let probDiffuse: f32 = 0.;
+    light.color = calcDirectLight(ray, hit, random.zw, debugIndex);
+
+    if (isLast) {
+      return light;
+    }
+
+    let probDiffuse: f32 = getDiffuseProb(hit);
     let isDiffuse: bool = random.z < probDiffuse;
     nextDir = calcBrdfDir(ray, hit, isDiffuse, random.xy);
-    let directLight: vec3<f32> = sampleDirectLight(ray, hit, random.zw);
-    let brdfRes: PBRRTRes = pbrCalculateLoRT(hit.pbrData, hit.normal, -ray.dir, nextDir, isDiffuse, probDiffuse);
-    light.color = directLight * brdfRes.direct;
-    light.throughEng = brdfRes.indirect;
+    light.throughEng = pbrCalculateLoRT(hit.pbrData, hit.normal, -ray.dir, nextDir, false, isDiffuse, probDiffuse);
   }
 
   // avoid self intersection
@@ -683,7 +703,7 @@ fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounds: u32, isOut: boo
 }
 
 fn traceLight(startRay: Ray, gBInfo: HitPoint, baseUV: vec2<f32>, debugIndex: i32) -> vec3<f32> {
-  var light: Light = calcLight(startRay, gBInfo, baseUV, 0u, false);
+  var light: Light = calcLight(startRay, gBInfo, baseUV, 0u, false, debugIndex);
   var lightColor: vec3<f32> = light.color;
   var throughEng: vec3<f32> = light.throughEng;
   var hit: HitPoint;
@@ -691,25 +711,24 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, baseUV: vec2<f32>, debugIndex: i3
 
   for (var i: u32 = 1u; i < MAX_TRACE_COUNT; i = i + 1u) {
     hit = hitTest(ray);
-    let isLastOut: bool = !hit.hit;
+    let isOut: bool = !hit.hit;
 
-    light = calcLight(ray, hit, baseUV, i, isLastOut);
+    light = calcLight(ray, hit, baseUV, i, isOut, debugIndex);
     lightColor = lightColor + light.color * throughEng;
-    throughEng = throughEng * light.throughEng;
+    // throughEng = throughEng * light.throughEng;
     ray = light.next;
 
-    if (max(throughEng.x, max(throughEng.y, throughEng.z)) < 0.01 || isLastOut) {
+    if (max(throughEng.x, max(throughEng.y, throughEng.z)) < 0.01 || isOut) {
       break;
     }
   }
-
 
   // var hited: f32 = 0.;
   // if (gBInfo.hit) {
   //   hited = 1.;
   // }
-  // u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(startRay.origin, hited);
-  // u_debugInfo.rays[debugIndex].preDir = vec4<f32>(startRay.dir, f32(gBInfo.meshIndex));
+  // u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(throughEng, hited);
+  // u_debugInfo.rays[debugIndex].preDir = vec4<f32>(light.color, f32(gBInfo.meshIndex));
   // u_debugInfo.rays[debugIndex].origin = vec4<f32>(ray.origin, 0.);
   // u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, gBInfo.sign);
   // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(ray.origin, hited);
