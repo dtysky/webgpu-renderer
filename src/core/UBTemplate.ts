@@ -30,7 +30,7 @@ export interface IUniformsDescriptor {
   }[],
   textures?: {
     name: string,
-    format?: 'f32',
+    format?: GPUTextureSampleType,
     defaultValue: Texture | CubeTexture,
     storageAccess?: GPUStorageTextureAccess,
     storageFormat?: GPUTextureFormat
@@ -166,7 +166,7 @@ export default class UBTemplate extends HObject {
         binding: bindingId,
         visibility,
         texture: !ud.storageAccess ? {
-          sampleType: 'float' as GPUTextureSampleType,
+          sampleType: ud.format || 'float',
           viewDimension
         } : undefined,
         storageTexture: ud.storageAccess ? {
@@ -175,18 +175,22 @@ export default class UBTemplate extends HObject {
           access: ud.storageAccess
         } : undefined
       });
+
       this._uniformsInfo[ud.name] = {
         bindingId, index, type: 'texture',
         defaultGpuValue: (ud.defaultValue as Texture).view
       };
+
+      let texFormat: string = ud.format === 'depth' ? 'depth' : ud.format === 'uint' ? 'u32' : ud.format === 'sint' ? 'i32' : 'f32';
+
       if (ud.storageAccess) {
         this._shaderPrefix += `[[group(${_groupId}), binding(${bindingId})]] var ${ud.name}: texture_storage_2d<${ud.storageFormat || 'rgba8unorm'}, ${ud.storageAccess.replace('-only', '')}>;\n`
       } else if (isCube) {
-        this._shaderPrefix += `[[group(${_groupId}), binding(${bindingId})]] var ${ud.name}: texture_cube<${ud.format || 'f32'}>;\n`
+        this._shaderPrefix += `[[group(${_groupId}), binding(${bindingId})]] var ${ud.name}: texture_cube<${texFormat}>;\n`
       } else if ((ud.defaultValue as Texture).isArray) {
-        this._shaderPrefix += `[[group(${_groupId}), binding(${bindingId})]] var ${ud.name}: texture_2d_array<${ud.format || 'f32'}>;\n`
+        this._shaderPrefix += `[[group(${_groupId}), binding(${bindingId})]] var ${ud.name}: texture_2d_array<${texFormat}>;\n`
       } else {
-        this._shaderPrefix += `[[group(${_groupId}), binding(${bindingId})]] var ${ud.name}: texture_2d<${ud.format || 'f32'}>;\n`
+        this._shaderPrefix += `[[group(${_groupId}), binding(${bindingId})]] var ${ud.name}: texture_2d<${texFormat}>;\n`
       }
       bindingId += 1;
       index += 1;

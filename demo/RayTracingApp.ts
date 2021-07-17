@@ -52,10 +52,10 @@ export default class RayTracingApp {
       width: renderEnv.width,
       height: renderEnv.height,
       colors: [
-        {name: 'positionMetal', format: 'rgba16float'},
+        {name: 'positionMetalOrSpec', format: 'rgba16float'},
         {name: 'baseColorRoughOrGloss', format: 'rgba16float'},
-        {name: 'normalMeshIndexGlass', format: 'rgba16float'},
-        {name: 'specMatIndexMatType', format: 'rgba16float'}
+        {name: 'normalGlass', format: 'rgba16float'},
+        {name: 'meshIndexMatIndexMatType', format: 'rgba8uint'}
       ],
       depthStencil: {needStencil: false}
     });
@@ -106,12 +106,18 @@ export default class RayTracingApp {
     };
 
     await this._frame(0);
+
+    H.renderEnv.canvas.addEventListener('mouseup', async (e) => {
+      const {clientX, clientY} = e;
+      const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([clientX, clientY], [clientX + 10, clientY + 10]);
+      console.log(rays);
+    })
     
-    setTimeout(async () => {
-      const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([560, 300], [570, 310]);
-      console.log(rays)
-      // debugRayShadows(rays.filter(ray => ray.origin[3]).slice(0, 1), this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
-    }, 1000);
+    // setTimeout(async () => {
+    //   const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([610, 250], [620, 260]);
+    //   console.log(rays)
+    // }, 1000);
+    // debugRayShadows(rays.filter(ray => ray.origin[3]).slice(0, 1), this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
     // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([160, 360], [200, 400]);
     // console.log(rays)
     // debugRayShadows(rays.filter(ray => ray.origin[3]).slice(0, 1), this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
@@ -206,9 +212,9 @@ export default class RayTracingApp {
   }
 
   private _connectGBufferRenderTexture(material: H.Material | H.ComputeUnit) {
-    material.setUniform('u_gbPositionMetal', this._gBufferRT, 'positionMetal');
+    material.setUniform('u_gbPositionMetalOrSpec', this._gBufferRT, 'positionMetalOrSpec');
     material.setUniform('u_gbBaseColorRoughOrGloss', this._gBufferRT, 'baseColorRoughOrGloss');
-    material.setUniform('u_gbNormalMeshIndexGlass', this._gBufferRT, 'normalMeshIndexGlass');
-    material.setUniform('u_gbSpecMatIndexMatType', this._gBufferRT, 'specMatIndexMatType');
+    material.setUniform('u_gbNormalGlass', this._gBufferRT, 'normalGlass');
+    material.setUniform('u_gbMeshIndexMatIndexMatType', this._gBufferRT, 'meshIndexMatIndexMatType');
   }
 }

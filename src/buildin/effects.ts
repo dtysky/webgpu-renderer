@@ -346,7 +346,7 @@ struct DebugRay {
           defaultValue: textures.empty
         },
         {
-          name: 'u_gbPositionMetal',
+          name: 'u_gbPositionMetalOrSpec',
           defaultValue: textures.empty
         },
         {
@@ -354,11 +354,12 @@ struct DebugRay {
           defaultValue: textures.empty
         },
         {
-          name: 'u_gbNormalMeshIndexGlass',
+          name: 'u_gbNormalGlass',
           defaultValue: textures.empty
         },
         {
-          name: 'u_gbSpecMatIndexMatType',
+          name: 'u_gbMeshIndexMatIndexMatType',
+          format: 'uint',
           defaultValue: textures.empty
         },
         {
@@ -426,11 +427,11 @@ struct DebugRay {
           storageFormat: 'rgba16float'
         },
         {
-          name: 'u_gbPositionMetal',
+          name: 'u_gbPositionMetalOrSpec',
           defaultValue: textures.empty
         },
         {
-          name: 'u_gbNormalMeshIndexGlass',
+          name: 'u_gbNormalGlass',
           defaultValue: textures.empty
         },
       ],
@@ -451,21 +452,22 @@ struct DebugRay {
       uniforms: [],
       textures: [
         {
-          name: 'u_gbPositionMetal',
-          defaultValue: textures.white
+          name: 'u_gbPositionMetalOrSpec',
+          defaultValue: textures.empty
         },
         {
           name: 'u_gbBaseColorRoughOrGloss',
-          defaultValue: textures.white
+          defaultValue: textures.empty
         },
         {
-          name: 'u_gbNormalMeshIndexGlass',
-          defaultValue: textures.white
+          name: 'u_gbNormalGlass',
+          defaultValue: textures.empty
         },
         {
-          name: 'u_gbSpecMatIndexMatType',
-          defaultValue: textures.white
-        }
+          name: 'u_gbMeshIndexMatIndexMatType',
+          format: 'uint',
+          defaultValue: textures.empty
+        },
       ],
       samplers: [
         {

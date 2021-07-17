@@ -19,8 +19,8 @@ fn blur(center: vec2<i32>, size: vec2<i32>) -> vec4<f32> {
   let zigmaZ: vec2<f32> = material.u_filterFactors[2].xy;
   let zigmaN: vec2<f32> = material.u_filterFactors[3].xy;
   let centerColor: vec4<f32> = textureLoad(u_current, center);
-  let centerPosition = textureLoad(u_gbPositionMetal, center, 0).xyz;
-  let centerNormal = textureLoad(u_gbPositionMetal, center, 0).xyz;
+  let centerPosition = textureLoad(u_gbPositionMetalOrSpec, center, 0).xyz;
+  let centerNormal = textureLoad(u_gbNormalGlass, center, 0).xyz;
   // var colors: array<array<vec3<f32>, WINDOW_SIZE>, WINDOW_SIZE>;
 
   // var max: vec3<f32> = vec3<f32>(0.);
@@ -57,8 +57,8 @@ fn blur(center: vec2<i32>, size: vec2<i32>) -> vec4<f32> {
 
       var color: vec3<f32> = textureLoad(u_current, iuv).rgb;
       // color = clamp(color, vec3<f32>(0.), large);
-      let position: vec4<f32> = textureLoad(u_gbPositionMetal, iuv, 0);
-      let normal: vec4<f32> = textureLoad(u_gbPositionMetal, iuv, 0);
+      let position: vec4<f32> = textureLoad(u_gbPositionMetalOrSpec, iuv, 0);
+      let normal: vec4<f32> = textureLoad(u_gbNormalGlass, iuv, 0);
       let weight: f32 = calcWeightVec2(zigmaD, vec2<f32>(f32(r), f32(c)), vec2<f32>(0.))
         * calcWeightVec3(zigmaC, color.rgb, centerColor.rgb);
         // * calcWeightVec3(zigmaN, normal.xyz, centerNormal.xyz);

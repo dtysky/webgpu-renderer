@@ -7,7 +7,6 @@ struct PBRData {
   baseColor: vec3<f32>;
   ao: vec3<f32>;
   roughness: f32;
-  metallic: f32;
 };
 
 fn refract(I: vec3<f32>, N: vec3<f32>, eta: f32) -> vec3<f32> {
@@ -55,14 +54,12 @@ fn pbrPrepareData(
     let f0: vec3<f32> = vec3<f32>(0.04, 0.04, 0.04);
 
     specularColor = mix(f0, baseColor, vec3<f32>(metallic));
-    pbr.metallic = metallic;
     pbr.diffuseColor = (1.0 - metallic) * (baseColor * (vec3<f32>(1.0, 1.0, 1.0) - f0));
   }
   else {
   // specular glossiness
     roughness = 1.0 - gloss;
-    specularColor = spec.rgb;
-    pbr.metallic = 0.;
+    specularColor = spec;
     pbr.diffuseColor = baseColor * (1.0 - max(max(specularColor.r, specularColor.g), specularColor.b));
   }
   

@@ -7,10 +7,10 @@ struct VertexOutput {
 };
 
 struct FragmentOutput {
-  [[location(0)]] positionMetal: vec4<f32>;
+  [[location(0)]] positionMetalOrSpec: vec4<f32>;
   [[location(1)]] baseColorRoughOrGloss: vec4<f32>;
-  [[location(2)]] normalMeshIndexGlass: vec4<f32>;
-  [[location(3)]] specMatIndexMatType: vec4<f32>;
+  [[location(2)]] normalGlass: vec4<f32>;
+  [[location(3)]] meshIndexMatIndexMatType: vec4<u32>;
 };
 
 require('./common.chunk.wgsl');
@@ -62,35 +62,26 @@ fn main(vo: VertexOutput) -> FragmentOutput {
   let matType = u32(metallicRoughnessFactorNormalScaleMaterialType[3]);
   let isSpecGloss: bool = isMatSpecGloss(matType);
 
-  fo.positionMetal = vec4<f32>(
-    vo.wPosition.xyz,
-    getMetallic(metallicRoughnessFactorNormalScaleMaterialType[0], textureIds[2], vo.texcoord_0)
-  );
+  fo.positionMetalOrSpec = vec4<f32>(vo.wPosition.xyz, 0.);
 
   let baseColor: vec4<f32> = getBaseColor(material.u_baseColorFactors[matId], textureIds[0], vo.texcoord_0);
   fo.baseColorRoughOrGloss = vec4<f32>(baseColor.rgb, 0.);
+
   if (isSpecGloss) {
+    fo.positionMetalOrSpec.w = getSpecular(specularGlossinessFactor.xyz, textureIds[2], vo.texcoord_0).r;
     fo.baseColorRoughOrGloss.w = getGlossiness(specularGlossinessFactor[3], textureIds[2], vo.texcoord_0);
   } else {
+    fo.positionMetalOrSpec.w = getMetallic(metallicRoughnessFactorNormalScaleMaterialType[0], textureIds[2], vo.texcoord_0);
     fo.baseColorRoughOrGloss.w = getRoughness(metallicRoughnessFactorNormalScaleMaterialType[1], textureIds[2], vo.texcoord_0);
   }
 
-  let matIdMatType: u32 = (matType << 12u) + matId;
-  if (isSpecGloss) {
-    fo.specMatIndexMatType = vec4<f32>(
-      getSpecular(specularGlossinessFactor.xyz, textureIds[2], vo.texcoord_0),
-      f32(matIdMatType)
-    );
-  } else {
-    fo.specMatIndexMatType = vec4<f32>(0., 0., 0., f32(matIdMatType));
-  }
-
   let faceNormal: vec3<f32> = getFaceNormal(vo.wPosition.xyz);
-  fo.normalMeshIndexGlass = vec4<f32>(
-    // getNormal(vo.normal, vo.wPosition.xyz, faceNormal, textureIds[1], vo.texcoord_0, metallicRoughnessFactorNormalScaleMaterialType[2]),
-    vo.normal,
-    f32(meshId + u32(baseColor.a * 255.) << 8u)
+  fo.normalGlass = vec4<f32>(
+    getNormal(vo.normal, vo.wPosition.xyz, faceNormal, textureIds[1], vo.texcoord_0, metallicRoughnessFactorNormalScaleMaterialType[2]),
+    baseColor.a
   );
+
+  fo.meshIndexMatIndexMatType = vec4<u32>(meshId, matId, matType, 0u);
 
   return fo;
 }

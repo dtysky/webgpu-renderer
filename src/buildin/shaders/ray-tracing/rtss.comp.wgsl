@@ -141,27 +141,24 @@ fn genWorldRayByGBuffer(uv: vec2<f32>, gBInfo: HitPoint) -> Ray {
 fn getGBInfo(index: vec2<i32>) -> HitPoint {
   var info: HitPoint;
 
-  let wPMtl: vec4<f32> = textureLoad(u_gbPositionMetal, index, 0);
+  let wPMtlSpec: vec4<f32> = textureLoad(u_gbPositionMetalOrSpec, index, 0);
   let dfRghGls: vec4<f32> = textureLoad(u_gbBaseColorRoughOrGloss, index, 0);
-  let nomMeshIdGlass: vec4<f32> = textureLoad(u_gbNormalMeshIndexGlass, index, 0);
-  let specMatIdMatType: vec4<f32> = textureLoad(u_gbSpecMatIndexMatType, index, 0);
+  let nomGlass: vec4<f32> = textureLoad(u_gbNormalGlass, index, 0);
+  let meshIdMatIdMatType: vec4<u32> = textureLoad(u_gbMeshIndexMatIndexMatType, index, 0);
 
-  let meshIndexGlass: u32 = u32(nomMeshIdGlass.w);
-  let meshIndex: u32 = (meshIndexGlass << 24u) >> 24u;
-  info.hit = meshIndex > 1u;
-  info.position = wPMtl.xyz;
-  info.metal = wPMtl.w;
+  info.position = wPMtlSpec.xyz;
+  info.metal = wPMtlSpec.w;
   info.baseColor = dfRghGls.xyz;
   info.rough = dfRghGls.w;
-  info.spec = specMatIdMatType.xyz;
+  info.spec = vec3<f32>(wPMtlSpec.w);
   info.gloss = dfRghGls.w;
-  info.normal = nomMeshIdGlass.xyz;
+  info.normal = nomGlass.xyz;
   info.sign = 1.;
-  info.meshIndex = meshIndex - 2u;
-  info.glass = f32((meshIndexGlass - meshIndex) >> 8u) / 255.;
-  let matIndexMatType: u32 = u32(specMatIdMatType.w);
-  let matType: u32 = matIndexMatType >> 12u;
-  info.matIndex = matIndexMatType - (matIndexMatType << 12u);
+  info.glass = nomGlass.w;
+  info.meshIndex = meshIdMatIdMatType.x - 2u;
+  info.matIndex = meshIdMatIdMatType.y;
+  let matType: u32 = meshIdMatIdMatType.z;
+  info.hit = meshIdMatIdMatType.x > 1u;
   info.isSpecGloss = isMatSpecGloss(matType);
   info.isGlass = isMatGlass(matType);
   info.pbrData = pbrPrepareData(info.isSpecGloss, info.baseColor, info.metal, info.rough, info.spec, info.gloss);
@@ -376,6 +373,7 @@ fn fillHitPoint(frag: FragmentInfo, ray: Ray) -> HitPoint {
   var info: HitPoint;
 
   info.hit = true;
+  info.hited = frag.t;
   info.meshIndex = frag.meshIndex;
   info.matIndex = frag.matIndex;
   let metallicRoughnessFactorNormalScaleMaterialType: vec4<f32> = material.u_metallicRoughnessFactorNormalScaleMaterialTypes[frag.matIndex];
@@ -494,6 +492,49 @@ fn hitTestShadow(ray: Ray, maxT: f32) -> FragmentInfo {
   return fragInfo;
 }
 
+fn hitTestXZPlane(ray: Ray, inverseMat: mat4x4<f32>) -> vec3<f32> {
+  let invDir: vec3<f32> = normalize((inverseMat * vec4<f32>(ray.dir, 0.)).xyz);
+  let normal: vec3<f32> = vec3<f32>(0., 0., 1.);
+  let dot: f32 = dot(invDir, normal);
+
+  if (abs(dot) < EPS) {
+    return vec3<f32>(MAX_RAY_LENGTH, MAX_RAY_LENGTH, MAX_RAY_LENGTH);
+  }
+  
+  let invOrigin: vec3<f32> = (inverseMat * vec4<f32>(ray.origin, 1.)).xyz;
+  let t: f32 = dot(-invOrigin, normal) / dot;
+
+
+  if (t < EPS) {
+    return vec3<f32>(MAX_RAY_LENGTH, MAX_RAY_LENGTH, MAX_RAY_LENGTH);
+  }
+
+  return vec3<f32>(invOrigin.xz + t * invDir.xz, t);
+}
+
+fn hitTestLights(ray: Ray) -> f32 {
+  let areaLight: LightInfo = global.u_lightInfos[0];
+  // only support one area light now
+  if (areaLight.lightType != LIGHT_TYPE_AREA) {
+    return MAX_RAY_LENGTH;
+  }
+
+  let xyt: vec3<f32> = hitTestXZPlane(ray, areaLight.worldTransformInverse);
+
+  var hit: bool = false;
+  if (areaLight.areaMode == LIGHT_AREA_DISC) {
+    hit = length(xyt.xy) < areaLight.areaSize.x;
+  } else {
+    hit = all(abs(xyt.xy) < areaLight.areaSize / 2.);
+  }
+
+  if (hit) {
+    return xyt.z;
+  }
+
+  return MAX_RAY_LENGTH;
+}
+
 // https://graphics.pixar.com/library/OrthonormalB/paper.pdf
 fn orthonormalBasis(normal: vec3<f32>) -> mat3x3<f32> {
   // sign function return 0 if x is 0
@@ -585,7 +626,6 @@ fn calcBrdfDir(ray: Ray, hit: HitPoint, isDiffuse: bool, random: vec2<f32>) -> v
 
 fn calcBsdfDir(ray: Ray, hit: HitPoint, reflectProbability: f32) -> vec3<f32> {
   // reflection or refraction
-
   let ior: f32 = 1. / hit.glass;
   var r0: f32 = (1. - ior) / (1. + ior);
   r0 = r0 * r0;
@@ -611,12 +651,12 @@ fn calcDirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>, debugIndex: i32) 
   // sample area lights, get radiance or shadow
   let areaLight: LightInfo = global.u_lightInfos[0];
 
-  var samplePoint2D: vec2<f32>;
   // only support one area light now
   if (areaLight.lightType != LIGHT_TYPE_AREA) {
     return vec3<f32>(0.);
   }
 
+  var samplePoint2D: vec2<f32>;
   let normal: vec3<f32> = normalize((areaLight.worldTransform * vec4<f32>(0., 0., -1., 0.)).xyz);
   var area: f32;
   if (areaLight.areaMode == LIGHT_AREA_DISC) {
@@ -630,6 +670,12 @@ fn calcDirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>, debugIndex: i32) 
 
   let samplePoint: vec4<f32> = areaLight.worldTransform * vec4<f32>(samplePoint2D.x, samplePoint2D.y, 0., 1.);
   var sampleDir: vec3<f32> = samplePoint.xyz - hit.position;
+
+  let cosine: f32 = dot(normal, sampleDir);
+  if (cosine > 0.) {
+    return vec3<f32>(0.);
+  }
+
   let maxT: f32 = length(sampleDir);
   sampleDir = normalize(sampleDir);
   let sampleLight: Ray = genRay(hit.position, sampleDir);
@@ -639,30 +685,19 @@ fn calcDirectLight(ray: Ray, hit: HitPoint, random: vec2<f32>, debugIndex: i32) 
     return vec3<f32>(0.);
   }
 
-  let cosine: f32 = abs(dot(normal, sampleDir));
-  let pdf: f32 = maxT * maxT / (area * cosine);
+  let pdf: f32 = maxT * maxT / (area * abs(cosine));
   let directLight: vec3<f32> = areaLight.color.rgb / pdf;
   let brdf = pbrCalculateLoRT(hit.pbrData, hit.normal, -ray.dir, sampleDir, true, false, 0.);
-
-  var hited: f32 = 0.;
-  if (shadowInfo.hit) {
-    hited = 1.;
-  } 
-  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(samplePoint.xyz, f32(hited));
-  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(sampleDir, f32(shadowInfo.meshIndex));
-  u_debugInfo.rays[debugIndex].origin = vec4<f32>(directLight, 0.);
-  u_debugInfo.rays[debugIndex].dir = vec4<f32>(brdf, pdf);
 
   return directLight * brdf;
 }
 
 fn getDiffuseProb(hit: HitPoint) -> f32 {
-  // let lumDiffuse: f32 = max(.01, dot(hit.pbrData.diffuseColor, vec3<f32>(0.2125, 0.7154, 0.0721)));
-  // let lumSpecular: f32 = max(.01, dot(hit.pbrData.specularColor, vec3<f32>(0.2125, 0.7154, 0.0721)));
+  let lumDiffuse: f32 = max(.01, dot(hit.pbrData.diffuseColor, vec3<f32>(0.2125, 0.7154, 0.0721)));
+  let lumSpecular: f32 = max(.01, dot(hit.pbrData.specularColor, vec3<f32>(0.2125, 0.7154, 0.0721)));
 
-  // return lumDiffuse / (lumDiffuse + lumSpecular);
-  // return mix(.5, 0., hit.metal);
-  return 1.;
+  return lumDiffuse / (lumDiffuse + lumSpecular);
+  // return 1.;
 }
 
 fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounds: u32, isOut: bool, debugIndex: i32) -> Light {
@@ -708,14 +743,22 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, baseUV: vec2<f32>, debugIndex: i3
   var throughEng: vec3<f32> = light.throughEng;
   var hit: HitPoint;
   var ray: Ray = light.next;
+  var lightMaxT: f32;
 
   for (var i: u32 = 1u; i < MAX_TRACE_COUNT; i = i + 1u) {
+    lightMaxT = hitTestLights(ray);
     hit = hitTest(ray);
     let isOut: bool = !hit.hit;
 
+    if (lightMaxT <= hit.hited) {
+      light.color = vec3<f32>(0.);
+      break;
+    }
+
     light = calcLight(ray, hit, baseUV, i, isOut, debugIndex);
     lightColor = lightColor + light.color * throughEng;
-    // throughEng = throughEng * light.throughEng;
+    throughEng = throughEng * light.throughEng;
+    u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, f32(gBInfo.matIndex));
     ray = light.next;
 
     if (max(throughEng.x, max(throughEng.y, throughEng.z)) < 0.01 || isOut) {
@@ -723,17 +766,17 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, baseUV: vec2<f32>, debugIndex: i3
     }
   }
 
-  // var hited: f32 = 0.;
-  // if (gBInfo.hit) {
-  //   hited = 1.;
-  // }
-  // u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(throughEng, hited);
-  // u_debugInfo.rays[debugIndex].preDir = vec4<f32>(light.color, f32(gBInfo.meshIndex));
-  // u_debugInfo.rays[debugIndex].origin = vec4<f32>(ray.origin, 0.);
-  // u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, gBInfo.sign);
-  // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(ray.origin, hited);
-  // u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(reflect(startRay.dir, ray.dir), f32(gBInfo.meshIndex));
-  // u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
+  var hited: f32 = 0.;
+  if (hit.hit) {
+    hited = 1.;
+  }
+  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(lightColor, hited);
+  u_debugInfo.rays[debugIndex].preDir = vec4<f32>(light.color, hit.hited);
+  u_debugInfo.rays[debugIndex].origin = vec4<f32>(lightMaxT, hit.hited, 0., f32(gBInfo.meshIndex));
+  // u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, f32(gBInfo.matIndex));
+  // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(hit.position, f32(hit.meshIndex));
+  // u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(f32(hit.meshIndex), f32(hit.matIndex), f32(gBInfo.meshIndex), f32(gBInfo.matIndex));
+  u_debugInfo.rays[debugIndex].normal = vec4<f32>(hit.position, 1.);
 
   return lightColor;
 }
@@ -743,11 +786,12 @@ fn main(
   [[builtin(workgroup_id)]] workGroupID : vec3<u32>,
   [[builtin(local_invocation_id)]] localInvocationID : vec3<u32>
 ) {
-  let screenSize: vec2<i32> = textureDimensions(u_gbPositionMetal, 0);
+  let screenSize: vec2<i32> = textureDimensions(u_gbPositionMetalOrSpec, 0);
   let groupOffset: vec2<i32> = vec2<i32>(workGroupID.xy) * 16;
   let baseIndex: vec2<i32> = groupOffset + vec2<i32>(localInvocationID.xy);
   let baseUV: vec2<f32> = vec2<f32>(baseIndex) / vec2<f32>(screenSize);
   let gBInfo: HitPoint = getGBInfo(baseIndex);
+  let debugIndex: i32 = baseIndex.x + baseIndex.y * screenSize.x;
 
   if (!gBInfo.hit) {
     let t: vec4<f32> = global.u_skyVP * vec4<f32>(baseUV.x * 2. - 1., 1. - baseUV.y * 2., 1., 1.);
@@ -758,7 +802,6 @@ fn main(
     return;
   }
 
-  let debugIndex: i32 = baseIndex.x + baseIndex.y * screenSize.x;
   let worldRay: Ray = genWorldRayByGBuffer(baseUV, gBInfo);
   let light: vec3<f32> = traceLight(worldRay, gBInfo, baseUV, debugIndex);
 

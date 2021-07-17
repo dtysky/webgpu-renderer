@@ -7,17 +7,13 @@ struct VertexOutput {
 fn main(vo: VertexOutput) -> [[location(0)]] vec4<f32> {
   let uv: vec2<f32> = vo.uv;
 
-  if (uv.x < .25) {
-    return vec4<f32>(textureSample(u_gbPositionMetal, u_sampler, uv).rgb, 1.);
+  if (uv.x < .33) {
+    return vec4<f32>(textureSample(u_gbPositionMetalOrSpec, u_sampler, uv).rgb, 1.);
   }
   
-  if (uv.x < .5) {
+  if (uv.x < .66) {
     return vec4<f32>(textureSample(u_gbBaseColorRoughOrGloss, u_sampler, uv).rgb, 1.);
   }
   
-  if (uv.x < .75) {
-    return vec4<f32>(textureSample(u_gbNormalMeshIndexGlass, u_sampler, uv).rgb, 1.);
-  }
-
-  return vec4<f32>(textureSample(u_gbSpecMatIndexMatType, u_sampler, uv).rgb, 1.);
+  return vec4<f32>(textureSample(u_gbNormalGlass, u_sampler, uv).rgb, 1.);
 }

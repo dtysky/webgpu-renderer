@@ -55,7 +55,7 @@ export default class Light extends Node {
     super();
 
     this._color = new Float32Array(color);
-    this._ubInfo = new Float32Array(24);
+    this._ubInfo = new Float32Array(40);
     const u32View = new Uint32Array(this._ubInfo.buffer);
     u32View[0] = _type;
     
@@ -80,5 +80,6 @@ export default class Light extends Node {
 
     this._ubInfo.set(this._color, 4);
     this._ubInfo.set(this._worldMat, 8);
+    this._ubInfo.set(mat4.invert(new Float32Array(16), this._worldMat), 24);
   }
 }
