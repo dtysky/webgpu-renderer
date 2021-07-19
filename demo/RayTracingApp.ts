@@ -109,15 +109,13 @@ export default class RayTracingApp {
 
     H.renderEnv.canvas.addEventListener('mouseup', async (e) => {
       const {clientX, clientY} = e;
+      // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([clientX, clientY], [clientX + 10, clientY + 10]);
       const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([clientX, clientY], [clientX + 10, clientY + 10]);
       console.log(rays);
+      this._rtDebugMesh = mesh;
       // rays.slice(0, 1).forEach(ray => debugRay(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
     })
-    
-    // setTimeout(async () => {
-    //   const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([610, 250], [620, 260]);
-    //   console.log(rays)
-    // }, 1000);
+
     // debugRayShadows(rays.filter(ray => ray.origin[3]).slice(0, 1), this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array);
     // const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([160, 360], [200, 400]);
     // console.log(rays)

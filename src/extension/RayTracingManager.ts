@@ -367,5 +367,6 @@ export default class RayTracingManager extends HObject {
     this._rtUnit.setUniform('u_normals', values.cpu as Float32Array, values.gpu);
     values = geometry.getValues('meshmatindex');
     this._rtUnit.setUniform('u_meshMatIndexes', values.cpu as Uint32Array, values.gpu);
+    console.log(this._materials)
   }
 }

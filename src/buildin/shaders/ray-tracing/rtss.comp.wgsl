@@ -1,6 +1,6 @@
 let PI: f32 = 3.14159265358979;
 let MAX_LIGHTS_COUNT: u32 = 4u;
-let MAX_TRACE_COUNT: u32 = 2u;
+let MAX_TRACE_COUNT: u32 = 3u;
 let MAX_RAY_LENGTH: f32 = 9999.;
 let BVH_DEPTH: i32 = ${BVH_DEPTH};
 let EPS: f32 = 0.005;
@@ -42,6 +42,7 @@ struct HitPoint {
   isSpecGloss: bool;
   isGlass: bool;
   pbrData: PBRData;
+  matType: u32;
 };
 
 struct Light {
@@ -396,6 +397,7 @@ fn fillHitPoint(frag: FragmentInfo, ray: Ray) -> HitPoint {
   info.glass = baseColor.a;
   info.isSpecGloss = isMatSpecGloss(frag.matType);
   info.isGlass = isMatGlass(frag.matType);
+  info.matType = frag.matType;
 
   if (info.isSpecGloss) {
     let specularGlossinessFactors: vec4<f32> = material.u_specularGlossinessFactors[frag.matIndex];
@@ -441,7 +443,9 @@ fn hitTest(ray: Ray) -> HitPoint {
     node = getBVHNodeInfo(child.offset);
     let hited: f32 = boxHitTest(ray, node.max, node.min);
 
-    if (hited < 0. || hited > fragInfo.t) {
+    // if ray.origin is in bvh box, the minT may be less than zero, hited will be maxT
+    // if (hited < 0. || hited > fragInfo.t) {
+    if (hited < 0.) {
       continue;
     }
 
@@ -738,7 +742,12 @@ fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounds: u32, isOut: boo
   }
 
   // avoid self intersection
-  light.next = genRay(hit.position + light.next.dir * RAY_DIR_OFFSET + RAY_NORMAL_OFFSET * hit.normal, nextDir);
+  if (hit.isGlass && hit.sign > 0.) {
+    // front face glass
+    light.next = genRay(hit.position + light.next.dir * RAY_DIR_OFFSET - RAY_NORMAL_OFFSET * hit.normal, nextDir);
+  } else {
+    light.next = genRay(hit.position + light.next.dir * RAY_DIR_OFFSET + RAY_NORMAL_OFFSET * hit.normal, nextDir);
+  }
 
   return light;
 }
@@ -774,25 +783,22 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, baseUV: vec2<f32>, debugIndex: i3
   // if (hit.hit) {
   //   hited = 1.;
   // }
-  // hit = gBInfo;
   // ray = startRay;
+  // hit = gBInfo;
   // light = calcLight(ray, hit, baseUV, 0u, false, debugIndex);
-  // u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(hit.position, hited);
-  // u_debugInfo.rays[debugIndex].preDir = vec4<f32>(f32(hit.meshIndex), f32(hit.matIndex), 0., f32(hit.matType));
+  // u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(ray.origin, hit.sign);
+  // u_debugInfo.rays[debugIndex].preDir = vec4<f32>(ray.dir, f32(hit.matIndex));
   // ray = light.next;
   // hit = hitTest(ray);
   // light = calcLight(ray, hit, baseUV, 1u, false, debugIndex);
-  // u_debugInfo.rays[debugIndex].origin = vec4<f32>(hit.position, f32(hit.meshIndex));
-  // u_debugInfo.rays[debugIndex].dir = vec4<f32>(f32(hit.meshIndex), f32(hit.matIndex), 0., f32(hit.matType));
+  // u_debugInfo.rays[debugIndex].origin = vec4<f32>(ray.origin, hit.sign);
+  // u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, f32(hit.matIndex));
   // ray = light.next;
   // hit = hitTest(ray);
   // light = calcLight(ray, hit, baseUV, 2u, false, debugIndex);
-  // if (hit.hit) {
-  //   hited = 1.;
-  // }
-  // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(hit.position, f32(hited));
-  // u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(f32(hit.meshIndex), f32(hit.matIndex), hit.hited, f32(hit.matType));
-  // u_debugInfo.rays[debugIndex].normal = vec4<f32>(light.color, 1.);
+  // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(ray.origin, hit.sign);
+  // u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(ray.dir, f32(hit.matIndex));
+  // u_debugInfo.rays[debugIndex].normal = vec4<f32>(gBInfo.normal, 1.);
 
   return lightColor;
 }
