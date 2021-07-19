@@ -45,14 +45,15 @@ export class DebugInfo {
 
   public async showDebugInfo(
     point1: [number, number],
-    point2: [number, number]
+    len: [number, number],
+    step: [number, number]
   ): Promise<{
     rays: IDebugPixel[],
     mesh: H.Mesh
   }> {
     await this._view.mapAsync(GPUMapMode.READ);
     const data = new Float32Array(this._view.getMappedRange());
-    const rays = this._decodeDebugInfo(data, point1, point2);
+    const rays = this._decodeDebugInfo(data, point1, len, step);
 
     const positions = new Float32Array(rays.length * 6 * 3);
     const colors = new Float32Array(rays.length * 6 * 3);
@@ -62,10 +63,10 @@ export class DebugInfo {
       const po = index * 3 * 6;
       const io = index * 6;
 
-      positions.set(preOrigin, po);
-      positions.set(origin, po + 3);
-      colors.set([1, 0, 0], po);
-      colors.set([1, 0, 0], po + 3);
+      // positions.set(preOrigin, po);
+      // positions.set(origin, po + 3);
+      // colors.set([1, 0, 0], po);
+      // colors.set([1, 0, 0], po + 3);
       positions.set(origin, po + 6);
       positions.set(nextOrigin, po + 9);
       colors.set([0, 1, 0], po + 6);
@@ -123,13 +124,14 @@ export class DebugInfo {
   protected _decodeDebugInfo(
     view: Float32Array,
     point1: [number, number],
-    point2: [number, number]
+    len: [number, number],
+    step: [number, number]
   ) {
     const res: IDebugPixel[] = [];
     const logs = [];
 
-    for (let y = point1[1]; y < point2[1]; y += 1) {
-      for (let x = point1[0]; x < point2[0]; x += 1) {
+    for (let y = point1[1]; y < point1[1] + len[1] * step[1]; y += step[1]) {
+      for (let x = point1[0]; x <  point1[0] + len[0] * step[0]; x += step[0]) {
         const index = y * H.renderEnv.width + x;
         const offset = index * this._size;
         res.push({

@@ -642,9 +642,9 @@ fn calcBsdfDir(ray: Ray, hit: HitPoint, reflectProbability: f32) -> vec3<f32> {
   let cosTheta: f32 = dot(hit.normal, -ray.dir);
   let F: f32 = fresnelSchlickTIR(cosTheta, r0, ior);
 
-  // if (F > reflectProbability) {
-  //   return reflect(ray.dir, hit.normal);
-  // }
+  if (F > reflectProbability) {
+    return reflect(ray.dir, hit.normal);
+  }
 
   var eta: f32;
   if (cosTheta < 0.) {
