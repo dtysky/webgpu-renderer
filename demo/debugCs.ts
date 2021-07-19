@@ -142,11 +142,11 @@ export class DebugInfo {
           normal: view.slice(offset + 24, offset + 28)
         } as IDebugPixel);
   
-        if (view[offset + 3]) {
-          logs.push(`'hited', ${[x, y]}, ${[view[offset + 19], view[offset + 23]]}, ${this._rtManager.meshes[view[offset + 11]].name}, ${view[offset + 15]}, ${this._rtManager.meshes[view[offset + 19]].name}, ${view[offset + 23]}, ${view.slice(offset + 16, offset + 19)}`);
-        } else {
-          logs.push(`'not hited', ${[x, y]}, ${[view[offset + 19], view[offset + 23]]}, ${view[offset + 7]}`);
-        }
+        // if (view[offset + 3]) {
+        //   logs.push(`'hited', ${[x, y]}, ${[view[offset + 19], view[offset + 23]]}, ${this._rtManager.meshes[view[offset + 11]].name}, ${view[offset + 15]}, ${this._rtManager.meshes[view[offset + 19]].name}, ${view[offset + 23]}, ${view.slice(offset + 16, offset + 19)}`);
+        // } else {
+        //   logs.push(`'not hited', ${[x, y]}, ${[view[offset + 19], view[offset + 23]]}, ${view[offset + 7]}`);
+        // }
       }
     }
 

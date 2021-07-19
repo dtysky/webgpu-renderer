@@ -9,15 +9,6 @@ struct PBRData {
   roughness: f32;
 };
 
-fn refract(I: vec3<f32>, N: vec3<f32>, eta: f32) -> vec3<f32> {
-  let k: f32 = 1.0 - eta * eta * (1.0 - dot(N, I) * dot(N, I));
-  if (k < 0.0) {
-    return vec3<f32>(0.);
-  }
-
-  return eta * I - (eta * dot(N, I) + sqrt(k)) * N;
-}
-
 fn pbrSpecularReflection(reflectance0: vec3<f32>, reflectance90: vec3<f32>, VdotH: f32)-> vec3<f32> {
   return reflectance0 + (reflectance90 - reflectance0) * pow(clamp(1.0 - VdotH, 0.0, 1.0), 5.0);
 }

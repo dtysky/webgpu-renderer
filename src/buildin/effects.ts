@@ -15,6 +15,7 @@ const effects: {
   rPBR: Effect,
   rSkybox: Effect,
   iBlit: Effect,
+  iTone: Effect,
   rRTGBuffer: Effect,
   iRTGShow: Effect,
   cRTSS: Effect,
@@ -482,6 +483,27 @@ struct DebugRay {
   effects.iBlit = new Effect('iBlit', {
     vs: require('./shaders/image/image.vert.wgsl'),
     fs: require('./shaders/image/blit.frag.wgsl'),
+    uniformDesc: {
+      uniforms: [],
+      textures: [
+        {
+          name: 'u_texture',
+          defaultValue: textures.white
+        }
+      ],
+      samplers: [
+        {
+          name: 'u_sampler',
+          defaultValue: {magFilter: 'linear', minFilter: 'linear'}
+        }
+      ]
+    },
+    marcos: {FLIP: false}
+  });
+
+  effects.iTone = new Effect('iTone', {
+    vs: require('./shaders/image/image.vert.wgsl'),
+    fs: require('./shaders/image/tone.frag.wgsl'),
     uniformDesc: {
       uniforms: [],
       textures: [

@@ -22,7 +22,7 @@ export default class RayTracingApp {
   protected _rtOutput: H.RenderTexture;
   protected _denoiseRTs: {current: H.RenderTexture, pre: H.RenderTexture};
   protected _denoiseUnit: H.ComputeUnit;
-  protected _rtBlit: H.ImageMesh;
+  protected _rtTone: H.ImageMesh;
   protected _rtDebugInfo: DebugInfo;
   protected _rtDebugMesh: H.Mesh;
   protected _frameCount: number = 0;
@@ -92,12 +92,12 @@ export default class RayTracingApp {
     );
     this._connectGBufferRenderTexture(this._denoiseUnit);
 
-    this._rtBlit = new H.ImageMesh(new H.Material(H.buildinEffects.iBlit, {u_texture: this._rtOutput}));
+    this._rtTone = new H.ImageMesh(new H.Material(H.buildinEffects.iTone, {u_texture: this._rtOutput}));
 
     this._rtDebugInfo = new DebugInfo();
 
     if (this._camera.isOrth) {
-      this._rtBlit.material.setMarcos({FLIP: true});
+      this._rtTone.material.setMarcos({FLIP: true});
     }
     
     this._camControl.control(this._camera, new H.Node());
@@ -111,6 +111,7 @@ export default class RayTracingApp {
       const {clientX, clientY} = e;
       const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([clientX, clientY], [clientX + 10, clientY + 10]);
       console.log(rays);
+      // rays.slice(0, 1).forEach(ray => debugRay(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
     })
     
     // setTimeout(async () => {
@@ -162,7 +163,7 @@ export default class RayTracingApp {
     this._scene.setRenderTarget(null);
     this._computeRTSS();
     this._computeDenoise();
-    this._scene.renderImages([this._rtBlit]);
+    this._scene.renderImages([this._rtTone]);
 
     if (first) {
       this._rtDebugInfo.run(_scene);
@@ -192,7 +193,7 @@ export default class RayTracingApp {
 
     this._scene.computeUnits([this._denoiseUnit]);
 
-    this._rtBlit.material.setUniform('u_texture', current);
+    this._rtTone.material.setUniform('u_texture', current);
 
     this._denoiseRTs.current = pre;
     this._denoiseRTs.pre = current;

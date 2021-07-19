@@ -80,7 +80,7 @@ export class RenderEnv {
     }
 
     this._canvas = canvas;
-    this._ctx = (canvas.getContext('gpu') as any || canvas.getContext('gpupresent')) as GPUCanvasContext;
+    this._ctx = (canvas.getContext('webgpu') as any || canvas.getContext('gpupresent')) as GPUCanvasContext;
 
     this._swapChain = this._ctx.configureSwapChain({
       device: this._device,

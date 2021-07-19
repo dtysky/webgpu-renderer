@@ -89,7 +89,8 @@ fn main(
   let pre: vec4<f32> = textureLoad(u_pre, baseIndex);
   var current: vec4<f32>;
   if (baseIndex.x > size.x / 2) {
-    current = blur(baseIndex, size);
+    // current = blur(baseIndex, size);
+    current = textureLoad(u_current, baseIndex);
   } else {
     current = textureLoad(u_current, baseIndex);
   }
