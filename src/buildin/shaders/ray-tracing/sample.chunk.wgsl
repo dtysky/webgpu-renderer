@@ -96,25 +96,25 @@ fn calcBrdfDir(ray: Ray, hit: HitPoint, isDiffuse: bool, random: vec2<f32>) -> v
 }
 
 // dir and (0. is brdf, 1. is btdf)
+// we suppose all glass are thick glass
 fn calcBsdfDir(ray: Ray, hit: HitPoint, reflectProbability: f32) -> vec4<f32> {
-  // reflection or refraction
-  let ior: f32 = 1. / hit.glass;
-  var r0: f32 = (1. - ior) / (1. + ior);
-  r0 = r0 * r0;
+  let nAir: f32 = 1.;
+  let nGlass: f32 = 1. / hit.glass;
+
+  if (hit.sign < 0.) {
+    // back face
+    return vec4<f32>(refract(ray.dir, hit.normal, hit.glass), 1.); // nAir / nGlass
+  }
+
   let cosTheta: f32 = dot(hit.normal, -ray.dir);
+  let ior: f32 = nGlass; // nGlass / nAir
+  var r0: f32 = (nAir - nGlass) / (nAir + nGlass);
+  r0 = r0 * r0;
   let F: f32 = fresnelSchlickTIR(cosTheta, r0, ior);
 
   if (F > reflectProbability) {
     return vec4<f32>(reflect(ray.dir, hit.normal), 0.);
   }
 
-  var eta: f32;
-  if (cosTheta < 0.) {
-    eta = ior;
-  } else {
-    eta = hit.glass;
-  }
-
-  // we suppose all glass are thick glass
-  return vec4<f32>(refract(ray.dir, sign(cosTheta) * hit.normal, eta), 1.);
+  return vec4<f32>(refract(ray.dir, hit.normal, ior), 1.); // nGlass / nAir
 }
