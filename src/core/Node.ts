@@ -71,11 +71,12 @@ export default class Node extends HObject {
     this.updateWorldMatrix();
   }
 
-  public updateWorldMatrix() {
+  public updateWorldMatrix(parent?: Node) {
     mat4.fromRotationTranslationScale(this._worldMat, this._quat, this._pos, this._scale);
+    parent = parent || this._parent;
 
-    if (this._parent) {
-      mat4.mul(this._worldMat, this._parent.worldMat, this._worldMat);
+    if (parent) {
+      mat4.mul(this._worldMat, parent.worldMat, this._worldMat);
     }
   }
 

@@ -17,6 +17,7 @@ const effects: {
   iBlit: Effect,
   iTone: Effect,
   rRTGBuffer: Effect,
+  rRTGBufferLight: Effect,
   iRTGShow: Effect,
   cRTSS: Effect,
   cRTDenoise: Effect,
@@ -242,6 +243,22 @@ export function init() {
     marcos: commonMarcos
   });
   
+  effects.rRTGBufferLight = new Effect('rRTGBufferLight', {
+    vs: require('./shaders/basic/model.vert.wgsl'),
+    fs: require('./shaders/ray-tracing/gbufferLight.frag.wgsl'),
+    uniformDesc: {
+      uniforms: [
+        {
+          name: 'u_lightColor',
+          type: 'vec4',
+          defaultValue: new Float32Array(4)
+        },
+      ],
+      textures: [],
+      samplers: [],
+    },
+    marcos: commonMarcos
+  });
 
   effects.cRTSS = new Effect('cRTSS', {
     cs: require('./shaders/ray-tracing/rtss.comp.wgsl'),

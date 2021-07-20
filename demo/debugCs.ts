@@ -63,16 +63,16 @@ export class DebugInfo {
       const po = index * 3 * 6;
       const io = index * 6;
 
-      // positions.set(preOrigin, po);
-      // positions.set(origin, po + 3);
-      // colors.set([1, 0, 0], po);
-      // colors.set([1, 0, 0], po + 3);
-      positions.set(origin, po + 6);
-      positions.set(nextOrigin, po + 9);
+      positions.set(preOrigin.slice(0, 3), po);
+      positions.set(preDir.slice(0, 3), po + 3);
+      colors.set([1, 0, 0], po);
+      colors.set([1, 0, 0], po + 3);
+      positions.set(origin.slice(0, 3), po + 6);
+      positions.set(dir.slice(0, 3), po + 9);
       colors.set([0, 1, 0], po + 6);
       colors.set([0, 1, 0], po + 9);
-      positions.set(nextOrigin, po + 12);
-      positions.set(H.math.vec3.add(new Float32Array(3), nextOrigin, H.math.vec3.scale(new Float32Array(3), nextDir, 10)), po + 15);
+      positions.set(nextOrigin.slice(0, 3), po + 12);
+      positions.set(nextDir.slice(0, 3), po + 15);
       colors.set([0, 0, 1], po + 12);
       colors.set([0, 0, 1], po + 15);
       indexes.set([index * 3, index * 3 + 1, index * 3 + 2, index * 3 + 3, index * 3 + 4, index * 3 + 5], io);

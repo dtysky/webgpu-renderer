@@ -17,15 +17,16 @@ export default class RayTracingApp {
   private _model: H.IGlTFResource;
   private _noiseTex: H.Texture;
   private _gBufferRT: H.RenderTexture;
+  private _gbufferLightMaterial: H.Material;
   private _gBufferDebugMesh: H.ImageMesh;
-  protected _rtManager: H.RayTracingManager;
-  protected _rtOutput: H.RenderTexture;
-  protected _denoiseRTs: {current: H.RenderTexture, pre: H.RenderTexture};
-  protected _denoiseUnit: H.ComputeUnit;
-  protected _rtTone: H.ImageMesh;
-  protected _rtDebugInfo: DebugInfo;
-  protected _rtDebugMesh: H.Mesh;
-  protected _frameCount: number = 0;
+  private _rtManager: H.RayTracingManager;
+  private _rtOutput: H.RenderTexture;
+  private _denoiseRTs: {current: H.RenderTexture, pre: H.RenderTexture};
+  private _denoiseUnit: H.ComputeUnit;
+  private _rtTone: H.ImageMesh;
+  private _rtDebugInfo: DebugInfo;
+  private _rtDebugMesh: H.Mesh;
+  private _frameCount: number = 0;
 
   public async init() {
     const {renderEnv} = H;
@@ -60,6 +61,7 @@ export default class RayTracingApp {
       depthStencil: {needStencil: false}
     });
 
+    this._gbufferLightMaterial = new H.Material(H.buildinEffects.rRTGBufferLight);
     this._gBufferDebugMesh = new H.ImageMesh(new H.Material(H.buildinEffects.iRTGShow));
     this._connectGBufferRenderTexture(this._gBufferDebugMesh.material);
 
@@ -105,13 +107,14 @@ export default class RayTracingApp {
       this._frameCount = 0;
     };
 
-    await this._frame(0);
+    await this._frame(16);
 
     H.renderEnv.canvas.addEventListener('mouseup', async (e) => {
       const {clientX, clientY} = e;
-      const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([clientX, clientY], [10, 10], [16, 8]);
+      const {rays, mesh} = await this._rtDebugInfo.showDebugInfo([clientX, clientY], [10, 10], [4, 2]);
       console.log(rays);
       // this._rtDebugMesh = mesh;
+      // await this._frame(16);
       // rays.slice(0, 1).forEach(ray => debugRay(ray, this._rtManager.bvh, this._rtManager.gBufferMesh.geometry.getValues('position').cpu as Float32Array));
     })
 
@@ -175,7 +178,11 @@ export default class RayTracingApp {
 
   private _renderGBuffer() {
     this._scene.setRenderTarget(this._gBufferRT);
-    this._scene.renderCamera(this._camera, [this._rtManager.gBufferMesh]);
+    const lightMeshes = this._scene.lights.map(light => light.requireLightMesh(this._gbufferLightMaterial)).filter(m => !!m);
+    this._scene.renderCamera(this._camera, [
+      this._rtManager.gBufferMesh,
+      ...lightMeshes
+    ]);
   }
 
   protected _computeRTSS() {

@@ -5,6 +5,9 @@
  * @Date    : 6/11/2021, 9:57:52 PM
 */
 import { mat4, vec3 } from 'gl-matrix';
+import geometries from '../buildin/geometries';
+import Material from './Material';
+import Mesh from './Mesh';
 import Node from './Node';
 
 export enum ELightType {
@@ -42,6 +45,7 @@ export default class Light extends Node {
   protected _worldPos: Float32Array = new Float32Array(3);
   protected _worldDir: Float32Array = new Float32Array(3);
   protected _ubInfo: Float32Array;
+  protected _mesh: Mesh;
 
   get ubInfo() {
     return this._ubInfo;
@@ -72,11 +76,35 @@ export default class Light extends Node {
     this._color.set(new Float32Array([r, g, b]));
   }
 
+  public requireLightMesh(material: Material) {
+    if (this._type !== ELightType.Area) {
+      throw new Error('Light mesh only support area!');
+    }
+
+    if (!this._mesh) {
+      this._mesh = new Mesh(
+        this._areaMode === EAreaLightMode.Rect ? geometries.rectLight : geometries.discLight,
+        material
+      );
+    }
+
+    return this._mesh;
+  }
+
   public updateMatrix() {
     super.updateMatrix();
     
     mat4.getTranslation(this._worldPos, this._worldMat);
     vec3.transformMat4(this._worldDir, [0, 0, 1], this._worldMat);
+
+    if (this._mesh) {
+      this._mesh.scale.set(this._areaMode === EAreaLightMode.Disc
+        ? [this._areaSize[0], this._areaSize[0], 0]
+        : [this._areaSize[0], this._areaSize[1], 0]
+      );
+      this._mesh.updateWorldMatrix(this);
+      this._mesh.material.setUniform('u_lightColor', this._color);
+    }
 
     this._ubInfo.set(this._color, 4);
     this._ubInfo.set(this._worldMat, 8);

@@ -41,6 +41,10 @@ export default class Scene extends HObject {
     return this._screen;
   }
 
+  get lights() {
+    return this._lights;
+  }
+
   constructor() {
     super();
 
