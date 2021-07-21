@@ -19,7 +19,7 @@ fn main(vo: VertexOutput) -> FragmentOutput {
   var fo: FragmentOutput;
 
   fo.baseColorRoughOrGloss = vec4<f32>(material.u_lightColor.rgb, 0.);
-  fo.meshIndexMatIndexMatType = vec4<u32>(0u, 0u, 4u, 0u);
+  fo.meshIndexMatIndexMatType = vec4<u32>(0u, 0u, 4u, 1u);
 
   return fo;
 }

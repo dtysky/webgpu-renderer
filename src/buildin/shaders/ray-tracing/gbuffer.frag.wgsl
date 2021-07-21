@@ -81,7 +81,8 @@ fn main(vo: VertexOutput) -> FragmentOutput {
     baseColor.a
   );
 
-  fo.meshIndexMatIndexMatType = vec4<u32>(meshId, matId, matType, 0u);
+  // alpha is used for judge hited
+  fo.meshIndexMatIndexMatType = vec4<u32>(meshId, matId, matType, 1u);
 
   return fo;
 }

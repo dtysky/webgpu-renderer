@@ -103,18 +103,18 @@ fn calcBsdfDir(ray: Ray, hit: HitPoint, reflectProbability: f32) -> vec4<f32> {
 
   if (hit.sign < 0.) {
     // back face
-    return vec4<f32>(refract(ray.dir, hit.normal, hit.glass), 1.); // nAir / nGlass
+    return vec4<f32>(refract(ray.dir, hit.normal, nGlass), 1.); // nGlass / nAir
   }
 
   let cosTheta: f32 = dot(hit.normal, -ray.dir);
-  let ior: f32 = nGlass; // nGlass / nAir
+  let ior: f32 = hit.glass; // nAir / nGlass
   var r0: f32 = (nAir - nGlass) / (nAir + nGlass);
   r0 = r0 * r0;
   let F: f32 = fresnelSchlickTIR(cosTheta, r0, ior);
 
-  if (F > reflectProbability) {
-    return vec4<f32>(reflect(ray.dir, hit.normal), 0.);
-  }
+  // if (F > reflectProbability) {
+  //   return vec4<f32>(reflect(ray.dir, hit.normal), 0.);
+  // }
 
   return vec4<f32>(refract(ray.dir, hit.normal, ior), 1.); // nGlass / nAir
 }

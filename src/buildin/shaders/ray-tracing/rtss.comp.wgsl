@@ -262,6 +262,7 @@ fn main(
   let baseUV: vec2<f32> = vec2<f32>(baseIndex) / vec2<f32>(screenSize);
   let gBInfo: HitPoint = getGBInfo(baseIndex);
   let debugIndex: i32 = baseIndex.x + baseIndex.y * screenSize.x;
+  u_debugInfo.rays[debugIndex].normal = vec4<f32>(f32(gBInfo.meshIndex), f32(gBInfo.matType), f32(gBInfo.hited), 1.);
 
   if (gBInfo.isLight) {
     textureStore(u_output, baseIndex, vec4<f32>(gBInfo.baseColor, 1.));
@@ -273,12 +274,14 @@ fn main(
     let cubeUV: vec3<f32> = normalize(t.xyz / t.w);
     let bgColor: vec4<f32> = textureSampleLevel(u_envTexture, u_sampler, cubeUV, 0.);
     // rgbd
-    textureStore(u_output, baseIndex, vec4<f32>(bgColor.rgb / bgColor.a * global.u_envColor.rgb, 1.));
+    // textureStore(u_output, baseIndex, vec4<f32>(bgColor.rgb / bgColor.a * global.u_envColor.rgb, 1.));
+    textureStore(u_output, baseIndex, vec4<f32>(0.,1.,0., 1.));
     return;
   }
 
   let worldRay: Ray = genWorldRayByGBuffer(baseUV, gBInfo);
   let light: vec3<f32> = traceLight(worldRay, gBInfo, baseUV, debugIndex);
 
+  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(light, gBInfo.hited);
   textureStore(u_output, baseIndex, vec4<f32>(light, 1.));
 }

@@ -23,13 +23,14 @@ fn getGBInfo(index: vec2<i32>) -> HitPoint {
   info.normal = nomGlass.xyz;
   info.sign = 1.;
   info.glass = nomGlass.w;
-  info.meshIndex = meshIdMatIdMatType.x - 2u;
+  info.meshIndex = meshIdMatIdMatType.x;
   info.matIndex = meshIdMatIdMatType.y;
   let matType: u32 = meshIdMatIdMatType.z;
-  info.hit = meshIdMatIdMatType.x > 1u;
+  info.hit = meshIdMatIdMatType.w == 1u;
+  info.hited = f32(meshIdMatIdMatType.w);
   info.isSpecGloss = isMatSpecGloss(matType);
   info.isGlass = isMatGlass(matType);
-  info.isLight = isMatLight(matType);
+  info.isLight = info.hit && isMatLight(matType);
   info.matType = matType;
   info.pbrData = pbrPrepareData(info.isSpecGloss, info.baseColor, info.metal, info.rough, info.spec, info.gloss);
 

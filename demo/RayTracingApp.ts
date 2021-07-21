@@ -162,7 +162,7 @@ export default class RayTracingApp {
     // this._showGBufferResult();
     this._scene.setRenderTarget(null);
     this._computeRTSS();
-    this._computeDenoise();
+    // this._computeDenoise();
     this._scene.renderImages([this._rtTone]);
 
     if (first) {

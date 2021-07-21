@@ -88,12 +88,12 @@ fn main(
 
   let pre: vec4<f32> = textureLoad(u_pre, baseIndex);
   var current: vec4<f32>;
-  if (baseIndex.x > size.x / 2) {
-    // current = blur(baseIndex, size);
-    current = textureLoad(u_current, baseIndex);
-  } else {
-    current = textureLoad(u_current, baseIndex);
-  }
+  // if (baseIndex.x > size.x / 2) {
+  //   current = blur(baseIndex, size);
+  // } else {
+  //   current = textureLoad(u_current, baseIndex);
+  // }
+  current = textureLoad(u_current, baseIndex);
 
   textureStore(u_output, baseIndex, vec4<f32>(mix(current.rgb, pre.rgb, vec3<f32>(material.u_preWeight)), current.a));
 }
