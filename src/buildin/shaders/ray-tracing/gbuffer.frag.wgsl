@@ -82,7 +82,7 @@ fn main(vo: VertexOutput) -> FragmentOutput {
   );
 
   // alpha is used for judge hited
-  fo.meshIndexMatIndexMatType = vec4<u32>(meshId, matId, matType, 1u);
+  fo.meshIndexMatIndexMatType = vec4<u32>(meshId, matId, matType, 2u);
 
   return fo;
 }

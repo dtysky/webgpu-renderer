@@ -26,7 +26,7 @@ fn getGBInfo(index: vec2<i32>) -> HitPoint {
   info.meshIndex = meshIdMatIdMatType.x;
   info.matIndex = meshIdMatIdMatType.y;
   let matType: u32 = meshIdMatIdMatType.z;
-  info.hit = meshIdMatIdMatType.w == 1u;
+  info.hit = meshIdMatIdMatType.w == 2u;
   info.hited = f32(meshIdMatIdMatType.w);
   info.isSpecGloss = isMatSpecGloss(matType);
   info.isGlass = isMatGlass(matType);

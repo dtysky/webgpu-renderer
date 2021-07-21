@@ -1,6 +1,5 @@
 let PI: f32 = 3.14159265358979;
 let MAX_LIGHTS_COUNT: u32 = 4u;
-let MAX_TRACE_COUNT: u32 = 3u;
 let MAX_RAY_LENGTH: f32 = 9999.;
 let BVH_DEPTH: i32 = ${BVH_DEPTH};
 let EPS: f32 = 0.005;
@@ -89,7 +88,7 @@ struct Child {
   offset: u32;
 };
 
-fn getRandom(uv: vec2<f32>, i: u32) -> vec4<f32> {
+fn getRandom(uv: vec2<f32>, i: i32) -> vec4<f32> {
   let noise: vec4<f32> = textureSampleLevel(u_noise, u_sampler, uv, 0.);
 
   return fract(material.u_randoms[i] + noise);
@@ -139,10 +138,9 @@ require('./hitTest.chunk.wgsl');
 require('./sample.chunk.wgsl');
 require('./lighting.chunk.wgsl');
 
-fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounds: u32, isOut: bool, debugIndex: i32) -> Light {
-  let isLast: bool = bounds == MAX_TRACE_COUNT;
+fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounce: i32, isLast: bool, isOut: bool, debugIndex: i32) -> Light {
   var light: Light;
-  let random = getRandom(baseUV, bounds);
+  let random = getRandom(baseUV, bounce);
 
   if (isOut) {
     // rgbd
@@ -198,55 +196,59 @@ fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounds: u32, isOut: boo
 }
 
 fn traceLight(startRay: Ray, gBInfo: HitPoint, baseUV: vec2<f32>, debugIndex: i32) -> vec3<f32> {
-  var light: Light = calcLight(startRay, gBInfo, baseUV, 0u, false, debugIndex);
+  var light: Light = calcLight(startRay, gBInfo, baseUV, 0, false, false, debugIndex);
   var lightColor: vec3<f32> = light.color;
   var throughEng: vec3<f32> = light.throughEng;
   var hit: HitPoint;
   var ray: Ray = light.next;
   var lightHited: vec4<f32>;
+  var bounce: i32 = 0;
 
-  for (var i: u32 = 1u; i < MAX_TRACE_COUNT; i = i + 1u) {
+  loop {
     let preIsGlass = hit.isGlass;
     lightHited = hitTestLights(ray);
     hit = hitTest(ray);
     let isHitLight: bool = lightHited.a <= hit.hited;
     let isOut: bool = !hit.hit || isHitLight;
+    // if hit none-glass material, finish tracing
+    let isLast: bool = !hit.isGlass;
 
     if (preIsGlass && isHitLight) {
       light.color = lightHited.rgb;
     } else {
-      light = calcLight(ray, hit, baseUV, i, isOut, debugIndex);
+      light = calcLight(ray, hit, baseUV, bounce, isLast, isOut, debugIndex);
       ray = light.next;
     }
 
     lightColor = lightColor + light.color * throughEng;
     throughEng = throughEng * light.throughEng;
+    bounce = bounce + 1;
 
     if (max(throughEng.x, max(throughEng.y, throughEng.z)) < 0.01 || isOut) {
       break;
     }
   }
 
-  var hited: f32 = 0.;
+  // var hited: f32 = 0.;
   // if (hit.hit) {
   //   hited = 1.;
   // }
   // ray = startRay;
   // hit = gBInfo;
-  // light = calcLight(ray, hit, baseUV, 0u, false, debugIndex);
+  // light = calcLight(ray, hit, baseUV, 0, false, false, debugIndex);
   // u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(ray.origin, hit.sign);
-  // u_debugInfo.rays[debugIndex].preDir = vec4<f32>(hit.position, f32(hit.matIndex));
+  // u_debugInfo.rays[debugIndex].preDir = vec4<f32>(ray.dir, f32(hit.matType));
   // ray = light.next;
   // hit = hitTest(ray);
-  // light = calcLight(ray, hit, baseUV, 1u, false, debugIndex);
-  // u_debugInfo.rays[debugIndex].origin = vec4<f32>(hit.normal, hit.sign);
-  // u_debugInfo.rays[debugIndex].dir = vec4<f32>(hit.position, f32(hit.matIndex));
+  // light = calcLight(ray, hit, baseUV, 1, false, false, debugIndex);
+  // u_debugInfo.rays[debugIndex].origin = vec4<f32>(ray.origin, hit.sign);
+  // u_debugInfo.rays[debugIndex].dir = vec4<f32>(ray.dir, f32(hit.matType));
+  // u_debugInfo.rays[debugIndex].normal = vec4<f32>(hit.normal, hit.glass);
   // ray = light.next;
   // hit = hitTest(ray);
-  // light = calcLight(ray, hit, baseUV, 2u, false, debugIndex);
+  // light = calcLight(ray, hit, baseUV, 2, false, false, debugIndex);
   // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(ray.origin, hit.sign);
-  // u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(ray.dir, f32(hit.matIndex));
-  // u_debugInfo.rays[debugIndex].normal = vec4<f32>(light.color, 1.);
+  u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(ray.dir, f32(bounce));
 
   return lightColor;
 }
@@ -262,7 +264,6 @@ fn main(
   let baseUV: vec2<f32> = vec2<f32>(baseIndex) / vec2<f32>(screenSize);
   let gBInfo: HitPoint = getGBInfo(baseIndex);
   let debugIndex: i32 = baseIndex.x + baseIndex.y * screenSize.x;
-  u_debugInfo.rays[debugIndex].normal = vec4<f32>(f32(gBInfo.meshIndex), f32(gBInfo.matType), f32(gBInfo.hited), 1.);
 
   if (gBInfo.isLight) {
     textureStore(u_output, baseIndex, vec4<f32>(gBInfo.baseColor, 1.));
@@ -274,14 +275,11 @@ fn main(
     let cubeUV: vec3<f32> = normalize(t.xyz / t.w);
     let bgColor: vec4<f32> = textureSampleLevel(u_envTexture, u_sampler, cubeUV, 0.);
     // rgbd
-    // textureStore(u_output, baseIndex, vec4<f32>(bgColor.rgb / bgColor.a * global.u_envColor.rgb, 1.));
-    textureStore(u_output, baseIndex, vec4<f32>(0.,1.,0., 1.));
+    textureStore(u_output, baseIndex, vec4<f32>(bgColor.rgb / bgColor.a * global.u_envColor.rgb, 1.));
     return;
   }
 
   let worldRay: Ray = genWorldRayByGBuffer(baseUV, gBInfo);
   let light: vec3<f32> = traceLight(worldRay, gBInfo, baseUV, debugIndex);
-
-  u_debugInfo.rays[debugIndex].preOrigin = vec4<f32>(light, gBInfo.hited);
   textureStore(u_output, baseIndex, vec4<f32>(light, 1.));
 }
