@@ -156,9 +156,9 @@ fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounce: i32, isLast: bo
       return light;
     }
     
-    let next: vec4<f32> = calcBsdfDir(ray, hit, random.x);
-    nextDir = next.xyz;
-    isBTDF = next.w > .5;
+    let next: BSDFDirRes = calcBsdfDir(ray, hit, random.x);
+    nextDir = next.dir;
+    isBTDF = next.isBTDF;
 
     if (isBTDF) {
       light.throughEng = calcTransmissionFactor(ray, hit, nextDir.xyz);
