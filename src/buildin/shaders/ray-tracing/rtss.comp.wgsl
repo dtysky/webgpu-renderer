@@ -19,8 +19,6 @@ struct Ray {
   origin: vec3<f32>;
   dir: vec3<f32>;
   invDir: vec3<f32>;
-  shear: vec3<f32>;
-  maxDim: i32;
 };
 
 struct HitPoint {
@@ -99,36 +97,6 @@ fn genRay(origin: vec3<f32>, dir: vec3<f32>) -> Ray {
   ray.origin = origin;
   ray.dir = dir;
   ray.invDir = 1. / ray.dir;
-
-  // var maxDim: i32 = 0;
-  
-  // if (dir.x > dir.y) {
-  //   if (dir.x <= dir.z) {
-  //     maxDim = 2;
-  //   }
-  // } else {
-  //   if (dir.y > dir.z) {
-  //     maxDim = 1;
-  //   } else {
-  //     maxDim = 2;
-  //   }
-  // }
-
-  // var shear: vec3<f32>;
-  // if (maxDim == 0) {
-  //   shear = vec3<f32>(-dir.y, -dir.z, 1.) * ray.invDir.x;
-  // }
-  // else {
-  //   if (maxDim == 1) {
-  //     shear = vec3<f32>(-dir.z, -dir.x, 1.) * ray.invDir.y;
-  //   }
-  //   else {
-  //     shear = vec3<f32>(-dir.x, -dir.y, 1.) * ray.invDir.z;
-  //   }
-  // }
-
-  // ray.maxDim = maxDim;
-  // ray.shear = shear;
 
   return ray;
 }
@@ -248,7 +216,7 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, baseUV: vec2<f32>, debugIndex: i3
   // hit = hitTest(ray);
   // light = calcLight(ray, hit, baseUV, 2, false, false, debugIndex);
   // u_debugInfo.rays[debugIndex].nextOrigin = vec4<f32>(ray.origin, hit.sign);
-  u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(ray.dir, f32(bounce));
+  // u_debugInfo.rays[debugIndex].nextDir = vec4<f32>(ray.dir, f32(bounce));
 
   return lightColor;
 }

@@ -103,9 +103,9 @@ export default class RenderTexture extends HObject {
         size: {width, height},
         format: info.format || (forCompute ? 'rgba8unorm' : renderEnv.swapChainFormat),
         usage: (
-          GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.SAMPLED
+          GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
         ) | (
-          forCompute ? GPUTextureUsage.STORAGE : 0
+          forCompute ? GPUTextureUsage.STORAGE_BINDING : 0
         )
       } as GPUTextureDescriptor);
 
@@ -124,7 +124,7 @@ export default class RenderTexture extends HObject {
         label: this.hash + '_depth',
         size: {width, height},
         format: depthStencil.format || (!depthStencil.needStencil ? 'depth24plus' : 'depth24plus-stencil8'),
-        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.SAMPLED,
+        usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
         
       } as GPUTextureDescriptor);
       this._depthStencilView = this._depthStencil.createView({label: this.hash + '_depth'});

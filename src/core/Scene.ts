@@ -150,7 +150,7 @@ export default class Scene extends HObject {
   }
 
   public endFrame() {
-    const view = renderEnv.swapChain.getCurrentTexture().createView();
+    const view = renderEnv.currentTexture.createView();
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: [{
         view,

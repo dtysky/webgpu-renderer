@@ -110,10 +110,10 @@ fn main([[builtin(vertex_index)]] VertexIndex : u32) -> VertexOutput {
   }
 
   protected _test() {
-    const {device, swapChain} = H.renderEnv;
+    const {device, currentTexture} = H.renderEnv;
 
     const commandEncoder = device.createCommandEncoder();
-    const textureView = swapChain.getCurrentTexture().createView();
+    const textureView = currentTexture.createView();
 
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: [

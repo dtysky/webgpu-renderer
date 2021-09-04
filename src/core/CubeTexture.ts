@@ -37,7 +37,7 @@ export default class CubeTexture extends HObject {
     this._gpuTexture = renderEnv.device.createTexture({
       size: {width: _width, height: _height, depthOrArrayLayers: 6},
       format: _format,
-      usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
     });
 
     this._view = this._gpuTexture.createView({

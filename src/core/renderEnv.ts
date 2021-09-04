@@ -16,7 +16,6 @@ export class RenderEnv {
   private _canvas: HTMLCanvasElement;
   private _ctx: GPUCanvasContext;
   private _swapChainFormat: GPUTextureFormat = 'bgra8unorm';
-  private _swapChain: GPUSwapChain;
   private _ubTemplate: UBTemplate;
   private _uniformBlock: IUniformBlock;
   private _bindingGroup: GPUBindGroup;
@@ -58,8 +57,8 @@ export class RenderEnv {
     return this._swapChainFormat;
   }
 
-  get swapChain() {
-    return this._swapChain;
+  get currentTexture() {
+    return this._ctx.getCurrentTexture();
   }
 
   public async init(canvas: HTMLCanvasElement) {
@@ -82,7 +81,7 @@ export class RenderEnv {
     this._canvas = canvas;
     this._ctx = (canvas.getContext('webgpu') as any || canvas.getContext('gpupresent')) as GPUCanvasContext;
 
-    this._swapChain = this._ctx.configureSwapChain({
+    this._ctx.configure({
       device: this._device,
       format: this._swapChainFormat,
     });

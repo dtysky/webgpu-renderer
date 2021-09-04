@@ -127,47 +127,6 @@ fn triangleHitTest(ray: Ray, leaf: BVHLeaf) -> FragmentInfo {
   info.weights = vec3<f32>(0., u, v) * invDet;
   info.weights.x = 1. - info.weights.y - info.weights.z;
 
-  // https://www.pbr-book.org/3ed-2018/Shapes/Triangle_Meshes#TriangleIntersection
-  // var p0t: vec3<f32> = info.p0 - ray.origin;
-  // var p1t: vec3<f32> = info.p1 - ray.origin;
-  // var p2t: vec3<f32> = info.p2 - ray.origin;
-  
-  // if (ray.maxDim == 0) {
-  //   p0t = p0t.yzx;
-  //   p1t = p1t.yzx;
-  //   p2t = p2t.yzx;
-  // }
-  // else {
-  //   if (ray.maxDim == 1) {
-  //     p0t = p0t.zxy;
-  //     p1t = p1t.zxy;
-  //     p2t = p2t.zxy;
-  //   }
-  // }
-
-  // p0t = vec3<f32>(p0t.xy + ray.shear.xy * p0t.z, p0t.z);
-  // p1t = vec3<f32>(p1t.xy + ray.shear.xy * p1t.z, p1t.z);
-  // p2t = vec3<f32>(p2t.xy + ray.shear.xy * p2t.z, p2t.z);
-
-  // let e: vec3<f32> = vec3<f32>(
-  //   p1t.x * p2t.y - p1t.y * p2t.x,
-  //   p2t.x * p0t.y - p2t.y * p0t.x,
-  //   p0t.x * p1t.y - p0t.y * p1t.x
-  // );
-
-  // if (any(e < vec3<f32>(0.)) && any(e > vec3<f32>(0.))) {
-  //   return info;
-  // }
-
-  // let det: f32 = e.x + e.y + e.z;
-
-  // p0t.z = p0t.z * ray.shear.z;
-  // p1t.z = p1t.z * ray.shear.z;
-  // p2t.z = p2t.z * ray.shear.z;
-  // let lt: f32 = e.x * p0t.z + e.y * p1t.z + e.z * p2t.z;
-  // let invDet: f32 = 1. / det;
-  // info.weights = e * invDet;
-
   info.hit = true;
   info.t = lt * invDet;
   info.hitPoint = ray.origin + ray.dir * info.t;

@@ -66,7 +66,7 @@ export default class Texture extends HObject {
       label: this.hash,
       size: {width: this._width, height: this._height, depthOrArrayLayers: this._arrayCount},
       format: _format || 'rgba8unorm',
-      usage: GPUTextureUsage.SAMPLED | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
+      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST | GPUTextureUsage.RENDER_ATTACHMENT
     });
 
     if (isTextureSourceArray(_src)) {
