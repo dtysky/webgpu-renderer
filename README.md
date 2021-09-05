@@ -6,7 +6,7 @@ A simple renderer implemented by WebGPU, includes a builtin path tracing pipelin
 
 ![demo](./demo.jpg)  
 
-Check here: [A simple demo]()  
+Check here: [Path tracing demo](https://dtysky.github.io/webgpu-renderer/)  
 
 >You must use the lasted version of [Chrome Canary](https://www.google.com/intl/en_us/chrome/canary/).
 
