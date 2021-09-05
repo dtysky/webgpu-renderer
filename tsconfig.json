@@ -20,6 +20,9 @@
     "types/**/*.d.ts",
     "node_modules/@webgpu/types"
   ],
+  "exclude": [
+    "node_modules/select-pure"
+  ],
   "lib": [
     "es5",
     "es2015.promise",

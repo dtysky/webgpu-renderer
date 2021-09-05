@@ -25,16 +25,14 @@ export class DebugInfo {
   protected _size: number;
   protected _rtManager: H.RayTracingManager
 
-  constructor() {
+  public setup(rtManager: H.RayTracingManager) {
     const {renderEnv} = H;
     const size = this._size = 4 * 7;
 
     this._cpu = new Float32Array(size * renderEnv.width * renderEnv.height);
     this._gpu = H.createGPUBuffer(this._cpu, GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC);
     this._view = H.createGPUBufferBySize(size * renderEnv.width * renderEnv.height * 4, GPUBufferUsage.MAP_READ | GPUBufferUsage.COPY_DST);
-  }
 
-  public setup(rtManager: H.RayTracingManager) {
     this._rtManager = rtManager;
     this._rtManager.rtUnit.setUniform('u_debugInfo', this._cpu, this._gpu)
   }

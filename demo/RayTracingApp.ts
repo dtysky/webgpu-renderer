@@ -4,11 +4,35 @@
  * @Author  : hikaridai(hikaridai@tencent.com)
  * @Date    : 6/11/2021, 5:56:30 PM
 */
+import 'select-pure/dist/index.js';
 import * as H from '../src/index';
 import {DebugInfo, debugRay, debugRayShadow, debugRayShadows, sampleCircle} from './debugCs';
 
 const MODEL_SRC = '/assets/models/walls/scene.gltf';
 const MAX_SAMPLERS = 256;
+
+function addSelect(onChange: (options: string) => void) {
+  const domText = `
+<select-pure name="View Mode" id="view-mode" style="position:absolute;right:0;width:128px;">
+  <option-pure value="result">Result</option-pure>
+  <option-pure value="bvh">Show BVH</option-pure>
+  <option-pure value="gbuffer">Show GBuffer</option-pure>
+  <option-pure value="origin">Origin</option-pure>
+</select-pure>
+  `;
+
+  const dom = document.createElement('div');
+  dom.innerHTML = domText;
+  document.body.appendChild(dom);
+
+  const selectPure = document.querySelector('select-pure') as any;
+  selectPure.addEventListener('change', (event: any) => {
+    const value: string = event.target.value;
+    onChange(value);
+  });
+
+  return dom;
+}
 
 export default class RayTracingApp {
   private _scene: H.Scene;
@@ -28,8 +52,15 @@ export default class RayTracingApp {
   private _rtDebugInfo: DebugInfo;
   private _rtDebugMesh: H.Mesh;
   private _frameCount: number = 0;
+  private _viewMode: string = 'result';
 
   public async init() {
+    addSelect((value) => {
+      console.log(value)
+      this._viewMode = value;
+      this._frameCount = 0;
+    });
+
     const {renderEnv} = H;
 
     const _scene = this._scene = new H.Scene();
@@ -48,7 +79,6 @@ export default class RayTracingApp {
       this._camera = model.cameras[0];
     }
     _scene.rootNode.addChild(model.rootNode);
-    console.log(model);
 
     this._gBufferRT = new H.RenderTexture({
       width: renderEnv.width,
@@ -148,7 +178,6 @@ export default class RayTracingApp {
     if (preWeight > .999) {
       return;
     }
-    // console.log(preWeight)
 
     _scene.startFrame(dt);
     
@@ -158,23 +187,36 @@ export default class RayTracingApp {
       this._rtManager.process(this._scene.cullCamera(this._camera), this._rtOutput);
       this._rtManager.rtUnit.setUniform('u_noise', this._noiseTex);
       this._connectGBufferRenderTexture(this._rtManager.rtUnit);
-      this._rtDebugInfo.setup(this._rtManager);
+      // this._rtDebugInfo.setup(this._rtManager);
     }
 
     this._rtManager.rtUnit.setUniform('u_randoms', new Float32Array(16).map(v => Math.random()));
     this._denoiseTemporUnit.setUniform('u_preWeight', new Float32Array([preWeight]));
 
-    // this._showBVH();
-    this._renderGBuffer();
-    // this._showGBufferResult();
-    this._scene.setRenderTarget(null);
-    this._computeRTSS();
-    this._computeDenoise();
-    this._scene.renderImages([this._rtBlit]);
+    if (this._viewMode === 'bvh') {
+      this._showBVH();
+    } else if (this._viewMode === 'gbuffer') {
+      this._renderGBuffer();
+      this._showGBufferResult();
+    } else {
+      this._renderGBuffer();
+      this._scene.setRenderTarget(null);  
+      this._computeRTSS();
 
-    if (first) {
-      this._rtDebugInfo.run(_scene);
+      if (this._viewMode === 'result') {
+        this._computeDenoise();
+        this._rtBlit.material.setUniform('u_texture', this._denoiseRTs.final);
+      } else {
+        this._rtBlit.material.setUniform('u_texture', this._rtOutput);
+      }
+
+      this._scene.renderImages([this._rtBlit]);
     }
+    
+
+    // if (first) {
+    //   this._rtDebugInfo.run(_scene);
+    // }
 
     if (this._rtDebugMesh) {
       _scene.renderCamera(this._camera, [this._rtDebugMesh], false);
