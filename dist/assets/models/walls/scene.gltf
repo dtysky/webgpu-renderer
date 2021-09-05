@@ -1,0 +1,1754 @@
+{
+  "extensionsUsed": [
+    "Sein_renderer",
+    "Sein_imageBasedLighting",
+    "Sein_textureImprove",
+    "KHR_materials_pbrSpecularGlossiness",
+    "Sein_skybox",
+    "Sein_cubeTexture",
+    "Sein_node",
+    "KHR_lights_punctual",
+    "Sein_physicBody"
+  ],
+  "extensionsRequired": [
+    "Sein_renderer",
+    "Sein_imageBasedLighting",
+    "Sein_textureImprove",
+    "KHR_materials_pbrSpecularGlossiness",
+    "Sein_skybox",
+    "Sein_cubeTexture",
+    "Sein_node",
+    "KHR_lights_punctual",
+    "Sein_physicBody"
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC3",
+      "max": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "min": [
+        -0.5,
+        -0.5,
+        -0.5
+      ],
+      "name": "Cube-primitives-POSITION"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 12,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC3",
+      "max": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "min": [
+        -1.0,
+        -1.0,
+        -1.0
+      ],
+      "name": "Cube-primitives-NORMAL"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 24,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC2",
+      "max": [
+        1.0,
+        1.0
+      ],
+      "min": [
+        0.0,
+        0.0
+      ],
+      "name": "Cube-primitives-TEXCOORD_0"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 32,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC2",
+      "max": [
+        0.9966580867767334,
+        0.65283584594726563
+      ],
+      "min": [
+        0.0040557663887739182,
+        0.0040557663887739182
+      ],
+      "name": "Cube-primitives-TEXCOORD_1"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 40,
+      "componentType": 5126,
+      "count": 24,
+      "type": "VEC4",
+      "max": [
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "min": [
+        -1.0,
+        0.0,
+        -1.0,
+        1.0
+      ],
+      "name": "Cube-primitives-TANGENT"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5123,
+      "count": 36,
+      "type": "SCALAR",
+      "max": [
+        23.0
+      ],
+      "min": [
+        0.0
+      ],
+      "name": "Cube-indices-0"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 515,
+      "type": "VEC3",
+      "max": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "min": [
+        -0.5,
+        -0.5,
+        -0.5
+      ],
+      "name": "Sphere-primitives-POSITION"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 12,
+      "componentType": 5126,
+      "count": 515,
+      "type": "VEC3",
+      "max": [
+        0.99997496604919434,
+        1.0,
+        0.99997353553771973
+      ],
+      "min": [
+        -0.99997496604919434,
+        -1.0,
+        -0.9999769926071167
+      ],
+      "name": "Sphere-primitives-NORMAL"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 24,
+      "componentType": 5126,
+      "count": 515,
+      "type": "VEC2",
+      "max": [
+        0.99833369255065918,
+        0.97589123249053955
+      ],
+      "min": [
+        -0.00092136859893798828,
+        0.017628978937864304
+      ],
+      "name": "Sphere-primitives-TEXCOORD_0"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 32,
+      "componentType": 5126,
+      "count": 515,
+      "type": "VEC2",
+      "max": [
+        1.0000003576278687,
+        0.65385353565216064
+      ],
+      "min": [
+        0.0,
+        0.0
+      ],
+      "name": "Sphere-primitives-TEXCOORD_1"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 40,
+      "componentType": 5126,
+      "count": 515,
+      "type": "VEC4",
+      "max": [
+        1.0,
+        0.056131001561880112,
+        1.0,
+        1.0
+      ],
+      "min": [
+        -1.0,
+        -0.065983392298221588,
+        -1.0,
+        -1.0
+      ],
+      "name": "Sphere-primitives-TANGENT"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5123,
+      "count": 2304,
+      "type": "SCALAR",
+      "max": [
+        514.0
+      ],
+      "min": [
+        0.0
+      ],
+      "name": "Sphere-indices-0"
+    },
+    {
+      "bufferView": 4,
+      "componentType": 5126,
+      "count": 158,
+      "type": "VEC3",
+      "max": [
+        2.4909470081329346,
+        2.0791900157928467,
+        1.9954680204391479
+      ],
+      "min": [
+        1.6518499851226807,
+        0.66881400346755981,
+        1.2413560152053833
+      ],
+      "name": "test_test_alpha-1-0-primitives-POSITION"
+    },
+    {
+      "bufferView": 4,
+      "byteOffset": 12,
+      "componentType": 5126,
+      "count": 158,
+      "type": "VEC3",
+      "max": [
+        0.88003933429718018,
+        0.95016151666641235,
+        0.999839723110199
+      ],
+      "min": [
+        -0.83878934383392334,
+        -0.82879865169525146,
+        -0.99951338768005371
+      ],
+      "name": "test_test_alpha-1-0-primitives-NORMAL"
+    },
+    {
+      "bufferView": 4,
+      "byteOffset": 24,
+      "componentType": 5126,
+      "count": 158,
+      "type": "VEC2",
+      "max": [
+        0.94878208637237549,
+        22.366001129150391
+      ],
+      "min": [
+        0.0040954621508717537,
+        -0.19726476073265076
+      ],
+      "name": "test_test_alpha-1-0-primitives-TEXCOORD_0"
+    },
+    {
+      "bufferView": 4,
+      "byteOffset": 32,
+      "componentType": 5126,
+      "count": 158,
+      "type": "VEC4",
+      "max": [
+        0.99965399503707886,
+        0.90253007411956787,
+        0.75290054082870483,
+        1.0
+      ],
+      "min": [
+        -0.999801754951477,
+        -0.48789966106414795,
+        -0.998623788356781,
+        -1.0
+      ],
+      "name": "test_test_alpha-1-0-primitives-TANGENT"
+    },
+    {
+      "bufferView": 5,
+      "componentType": 5123,
+      "count": 288,
+      "type": "SCALAR",
+      "max": [
+        157.0
+      ],
+      "min": [
+        0.0
+      ],
+      "name": "test_test_alpha-1-0-indices-0"
+    },
+    {
+      "bufferView": 6,
+      "componentType": 5126,
+      "count": 2019,
+      "type": "VEC3",
+      "max": [
+        3.4549198150634766,
+        3.5648601055145264,
+        2.4698119163513184
+      ],
+      "min": [
+        0.50084996223449707,
+        0.0,
+        0.48460006713867188
+      ],
+      "name": "test_test_te_000_r1-2-1-primitives-POSITION"
+    },
+    {
+      "bufferView": 6,
+      "byteOffset": 12,
+      "componentType": 5126,
+      "count": 2019,
+      "type": "VEC3",
+      "max": [
+        0.99982786178588867,
+        1.0,
+        1.0
+      ],
+      "min": [
+        -0.99949294328689575,
+        -0.99914723634719849,
+        -1.0
+      ],
+      "name": "test_test_te_000_r1-2-1-primitives-NORMAL"
+    },
+    {
+      "bufferView": 6,
+      "byteOffset": 24,
+      "componentType": 5126,
+      "count": 2019,
+      "type": "VEC2",
+      "max": [
+        2.3918764591217041,
+        0.99645382165908813
+      ],
+      "min": [
+        0.0008519559632986784,
+        0.0047447727993130684
+      ],
+      "name": "test_test_te_000_r1-2-1-primitives-TEXCOORD_0"
+    },
+    {
+      "bufferView": 6,
+      "byteOffset": 32,
+      "componentType": 5126,
+      "count": 2019,
+      "type": "VEC4",
+      "max": [
+        1.0,
+        1.0,
+        0.99992817640304565,
+        1.0
+      ],
+      "min": [
+        -1.0,
+        -1.0,
+        -0.99999278783798218,
+        -1.0
+      ],
+      "name": "test_test_te_000_r1-2-1-primitives-TANGENT"
+    },
+    {
+      "bufferView": 7,
+      "componentType": 5123,
+      "count": 4215,
+      "type": "SCALAR",
+      "max": [
+        2018.0
+      ],
+      "min": [
+        0.0
+      ],
+      "name": "test_test_te_000_r1-2-1-indices-0"
+    }
+  ],
+  "asset": {
+    "generator": "SEIN.JS Toolkit",
+    "version": "2.0",
+    "exporterVersion": "1.2.7"
+  },
+  "buffers": [
+    {
+      "uri": "scene.bin",
+      "byteLength": 148392
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 24,
+      "byteLength": 1344,
+      "byteStride": 56,
+      "name": "Cube-primitives"
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 1368,
+      "byteLength": 72,
+      "name": "Cube-indices"
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 1440,
+      "byteLength": 28840,
+      "byteStride": 56,
+      "name": "Sphere-primitives"
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 30280,
+      "byteLength": 4608,
+      "name": "Sphere-indices"
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 34888,
+      "byteLength": 7584,
+      "byteStride": 48,
+      "name": "test_test_alpha-1-0-primitives"
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 42472,
+      "byteLength": 576,
+      "name": "test_test_alpha-1-0-indices"
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 43048,
+      "byteLength": 96912,
+      "byteStride": 48,
+      "name": "test_test_te_000_r1-2-1-primitives"
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 139960,
+      "byteLength": 8430,
+      "name": "test_test_te_000_r1-2-1-indices"
+    }
+  ],
+  "cameras": [
+    {
+      "perspective": {
+        "aspectRatio": 1.7769339084625244,
+        "yfov": 1.0471975511965976,
+        "zfar": 1000.0,
+        "znear": 0.30000001192092896
+      },
+      "type": "perspective",
+      "name": "Main Camera",
+      "extensions": {
+        "Sein_skybox": {
+          "type": "Cube",
+          "factor": 4.549,
+          "color": [
+            1.0,
+            1.0,
+            1.0,
+            0.5
+          ],
+          "texture": {
+            "index": 0
+          },
+          "rotation": 1.59697628,
+          "exposure": 0.82
+        }
+      }
+    }
+  ],
+  "images": [
+    {
+      "uri": "assetsresourcesroom/0.png",
+      "extras": {
+        "type": "LDR",
+        "format": "RGB"
+      }
+    },
+    {
+      "uri": "assetsresourcesroom/2.png",
+      "extras": {
+        "type": "LDR",
+        "format": "RGB"
+      }
+    },
+    {
+      "uri": "assetsresourcesmiku-litetextures/test_test_alpha_basecolor_0_0.png",
+      "extras": {
+        "type": "LDR",
+        "format": "RGB"
+      }
+    },
+    {
+      "uri": "assetsresourcesmiku-litetextures/test_test_te_000_r1_basecolor_2_1.png",
+      "extras": {
+        "type": "LDR",
+        "format": "RGB"
+      }
+    },
+    {
+      "uri": "assetsresourcesskybox/white-0.png",
+      "extras": {
+        "type": "HDR",
+        "format": "RGBD"
+      }
+    },
+    {
+      "uri": "assetsresourcesskybox/white-1.png",
+      "extras": {
+        "type": "HDR",
+        "format": "RGBD"
+      }
+    },
+    {
+      "uri": "assetsresourcesskybox/white-2.png",
+      "extras": {
+        "type": "HDR",
+        "format": "RGBD"
+      }
+    },
+    {
+      "uri": "assetsresourcesskybox/white-3.png",
+      "extras": {
+        "type": "HDR",
+        "format": "RGBD"
+      }
+    },
+    {
+      "uri": "assetsresourcesskybox/white-4.png",
+      "extras": {
+        "type": "HDR",
+        "format": "RGBD"
+      }
+    },
+    {
+      "uri": "assetsresourcesskybox/white-5.png",
+      "extras": {
+        "type": "HDR",
+        "format": "RGBD"
+      }
+    }
+  ],
+  "materials": [
+    {
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.7770306,
+          1.0,
+          0.0,
+          1.0
+        ],
+        "metallicFactor": 0.0
+      },
+      "emissiveFactor": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "name": "5",
+      "extensions": {
+        "Sein_imageBasedLighting": {
+          "light": 0,
+          "type": "DIFFUSE"
+        }
+      }
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 0
+        },
+        "metallicFactor": 0.0
+      },
+      "emissiveFactor": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "name": "0",
+      "extensions": {
+        "Sein_imageBasedLighting": {
+          "light": 0,
+          "type": "DIFFUSE"
+        }
+      }
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 1
+        },
+        "metallicFactor": 0.0
+      },
+      "emissiveFactor": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "name": "2",
+      "extensions": {
+        "Sein_imageBasedLighting": {
+          "light": 0,
+          "type": "DIFFUSE"
+        }
+      }
+    },
+    {
+      "pbrMetallicRoughness": {
+        "metallicFactor": 0.0
+      },
+      "emissiveFactor": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "name": "4",
+      "extensions": {
+        "Sein_imageBasedLighting": {
+          "light": 0,
+          "type": "DIFFUSE"
+        }
+      }
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.0,
+          0.077311255,
+          0.725425839,
+          1.0
+        ],
+        "metallicFactor": 0.0
+      },
+      "emissiveFactor": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "name": "1",
+      "extensions": {
+        "Sein_imageBasedLighting": {
+          "light": 0,
+          "type": "DIFFUSE"
+        }
+      }
+    },
+    {
+      "emissiveFactor": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "name": "s1",
+      "extensions": {
+        "KHR_materials_pbrSpecularGlossiness": {
+          "diffuseFactor": [
+            1.0,
+            0.521053,
+            0.766589,
+            0.7607843
+          ],
+          "specularFactor": [
+            0.3691636,
+            0.3691636,
+            0.3691636
+          ],
+          "glossinessFactor": 0.53600001335144043
+        },
+        "Sein_imageBasedLighting": {
+          "light": 0,
+          "type": "DIFFUSE"
+        }
+      }
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.7835379,
+          0.7835379,
+          0.7835379,
+          1.0
+        ],
+        "metallicFactor": 0.55400002002716064,
+        "roughnessFactor": 0.31600001454353333
+      },
+      "emissiveFactor": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "name": "s2",
+      "extensions": {
+        "Sein_imageBasedLighting": {
+          "light": 0,
+          "type": "DIFFUSE"
+        }
+      }
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.09119517,
+          1.0,
+          0.900307238,
+          1.0
+        ],
+        "metallicFactor": 0.46599999070167542,
+        "roughnessFactor": 0.41200000047683716
+      },
+      "emissiveFactor": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "name": "s3",
+      "extensions": {
+        "Sein_imageBasedLighting": {
+          "light": 0,
+          "type": "DIFFUSE"
+        }
+      }
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 2
+        },
+        "metallicFactor": 0.7160000205039978,
+        "roughnessFactor": 0.609000027179718
+      },
+      "name": "test_test_alpha_2_0",
+      "extensions": {
+        "Sein_imageBasedLighting": {
+          "light": 0,
+          "type": "DIFFUSE"
+        }
+      }
+    },
+    {
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 3
+        },
+        "metallicFactor": 0.16899999976158142,
+        "roughnessFactor": 0.64899998903274536
+      },
+      "name": "test_test_te_000_r1_1_1",
+      "extensions": {
+        "Sein_imageBasedLighting": {
+          "light": 0,
+          "type": "DIFFUSE"
+        }
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3,
+            "TANGENT": 4
+          },
+          "indices": 5,
+          "material": 0
+        }
+      ],
+      "name": "Cube"
+    },
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3,
+            "TANGENT": 4
+          },
+          "indices": 5,
+          "material": 1
+        }
+      ],
+      "name": "Cube"
+    },
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3,
+            "TANGENT": 4
+          },
+          "indices": 5,
+          "material": 2
+        }
+      ],
+      "name": "Cube"
+    },
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3,
+            "TANGENT": 4
+          },
+          "indices": 5,
+          "material": 3
+        }
+      ],
+      "name": "Cube"
+    },
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3,
+            "TANGENT": 4
+          },
+          "indices": 5,
+          "material": 4
+        }
+      ],
+      "name": "Cube"
+    },
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 6,
+            "NORMAL": 7,
+            "TEXCOORD_0": 8,
+            "TEXCOORD_1": 9,
+            "TANGENT": 10
+          },
+          "indices": 11,
+          "material": 5
+        }
+      ],
+      "name": "Sphere"
+    },
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 6,
+            "NORMAL": 7,
+            "TEXCOORD_0": 8,
+            "TEXCOORD_1": 9,
+            "TANGENT": 10
+          },
+          "indices": 11,
+          "material": 6
+        }
+      ],
+      "name": "Sphere"
+    },
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2,
+            "TEXCOORD_1": 3,
+            "TANGENT": 4
+          },
+          "indices": 5,
+          "material": 7
+        }
+      ],
+      "name": "Cube"
+    },
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 12,
+            "NORMAL": 13,
+            "TEXCOORD_0": 14,
+            "TANGENT": 15
+          },
+          "indices": 16,
+          "material": 8
+        }
+      ],
+      "name": "test_test_alpha-1-0"
+    },
+    {
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 17,
+            "NORMAL": 18,
+            "TEXCOORD_0": 19,
+            "TANGENT": 20
+          },
+          "indices": 21,
+          "material": 9
+        }
+      ],
+      "name": "test_test_te_000_r1-2-1"
+    }
+  ],
+  "nodes": [
+    {
+      "camera": 0,
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        3.01,
+        14.77,
+        1.0
+      ],
+      "name": "Main Camera",
+      "extensions": {
+        "Sein_node": {
+          "selfType": 2,
+          "childrenType": 1,
+          "className": "",
+          "tag": "",
+          "layer": 268435455,
+          "persistent": false,
+          "emitComponentsDestroy": true,
+          "updateOnEverTick": true,
+          "isStatic": false,
+          "skipThisNode": false
+        }
+      }
+    },
+    {
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        -1.192093E-07,
+        -1.0,
+        0.0,
+        0.0,
+        1.0,
+        -1.192093E-07,
+        0.0,
+        0.0,
+        5.931,
+        6.82,
+        1.0
+      ],
+      "name": "Area Light Disc",
+      "extensions": {
+        "KHR_lights_punctual": {
+          "light": 0
+        },
+        "Sein_node": {
+          "selfType": 2,
+          "childrenType": 1,
+          "className": "",
+          "tag": "",
+          "layer": 268435455,
+          "persistent": false,
+          "emitComponentsDestroy": true,
+          "updateOnEverTick": true,
+          "isStatic": false,
+          "skipThisNode": false
+        }
+      }
+    },
+    {
+      "children": [
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "name": "room",
+      "extensions": {
+        "Sein_node": {
+          "selfType": 2,
+          "childrenType": 1,
+          "className": "",
+          "tag": "",
+          "layer": 268435455,
+          "persistent": false,
+          "emitComponentsDestroy": true,
+          "updateOnEverTick": true,
+          "isStatic": false,
+          "skipThisNode": false
+        }
+      }
+    },
+    {
+      "matrix": [
+        10.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        6.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.6,
+        0.0,
+        -0.0494527854,
+        3.02694368,
+        0.23,
+        1.0
+      ],
+      "mesh": 0,
+      "name": "wall",
+      "extensions": {
+        "Sein_renderer": {
+          "castShadows": false,
+          "receiveShadows": true
+        },
+        "Sein_physicBody": {
+          "mass": 1.0,
+          "friction": 0.0,
+          "restitution": 0.0,
+          "unControl": false,
+          "physicStatic": false,
+          "sleeping": true,
+          "colliders": [
+            {
+              "name": "box0",
+              "type": "BOX",
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "size": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "isTrigger": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "matrix": [
+        0.6,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        6.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        10.0,
+        0.0,
+        5.18,
+        3.031,
+        5.0,
+        1.0
+      ],
+      "mesh": 1,
+      "name": "wall-r",
+      "extensions": {
+        "Sein_renderer": {
+          "castShadows": false,
+          "receiveShadows": true
+        },
+        "Sein_physicBody": {
+          "mass": 1.0,
+          "friction": 0.0,
+          "restitution": 0.0,
+          "unControl": false,
+          "physicStatic": false,
+          "sleeping": true,
+          "colliders": [
+            {
+              "name": "box0",
+              "type": "BOX",
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "size": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "isTrigger": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "matrix": [
+        0.6,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        6.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        10.0,
+        0.0,
+        -5.21,
+        3.031,
+        5.0,
+        1.0
+      ],
+      "mesh": 2,
+      "name": "wall-l",
+      "extensions": {
+        "Sein_renderer": {
+          "castShadows": false,
+          "receiveShadows": true
+        },
+        "Sein_physicBody": {
+          "mass": 1.0,
+          "friction": 0.0,
+          "restitution": 0.0,
+          "unControl": false,
+          "physicStatic": false,
+          "sleeping": true,
+          "colliders": [
+            {
+              "name": "box0",
+              "type": "BOX",
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "size": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "isTrigger": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "matrix": [
+        11.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.6,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        10.0,
+        0.0,
+        -0.0494527854,
+        -0.273056269,
+        5.0,
+        1.0
+      ],
+      "mesh": 3,
+      "name": "ground",
+      "extensions": {
+        "Sein_renderer": {
+          "castShadows": false,
+          "receiveShadows": true
+        },
+        "Sein_physicBody": {
+          "mass": 1.0,
+          "friction": 0.0,
+          "restitution": 0.0,
+          "unControl": false,
+          "physicStatic": false,
+          "sleeping": true,
+          "colliders": [
+            {
+              "name": "box0",
+              "type": "BOX",
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "size": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "isTrigger": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "matrix": [
+        11.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.6,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        10.0,
+        0.0,
+        -0.0494527854,
+        6.27694368,
+        5.0,
+        1.0
+      ],
+      "mesh": 4,
+      "name": "celling",
+      "extensions": {
+        "Sein_renderer": {
+          "castShadows": false,
+          "receiveShadows": true
+        },
+        "Sein_physicBody": {
+          "mass": 1.0,
+          "friction": 0.0,
+          "restitution": 0.0,
+          "unControl": false,
+          "physicStatic": false,
+          "sleeping": true,
+          "colliders": [
+            {
+              "name": "box0",
+              "type": "BOX",
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "size": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "isTrigger": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "children": [
+        9,
+        10,
+        11
+      ],
+      "name": "spheres",
+      "extensions": {
+        "Sein_node": {
+          "selfType": 2,
+          "childrenType": 1,
+          "className": "",
+          "tag": "",
+          "layer": 268435455,
+          "persistent": false,
+          "emitComponentsDestroy": true,
+          "updateOnEverTick": true,
+          "isStatic": false,
+          "skipThisNode": false
+        }
+      }
+    },
+    {
+      "matrix": [
+        1.5,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.5,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.5,
+        0.0,
+        2.85,
+        0.77,
+        8.4,
+        1.0
+      ],
+      "mesh": 5,
+      "name": "Sphere",
+      "extensions": {
+        "Sein_renderer": {
+          "castShadows": true,
+          "receiveShadows": true
+        },
+        "Sein_physicBody": {
+          "mass": 1.0,
+          "friction": 0.0,
+          "restitution": 0.0,
+          "unControl": false,
+          "physicStatic": false,
+          "sleeping": true,
+          "colliders": [
+            {
+              "name": "sphere0",
+              "type": "SPHERE",
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "radius": 0.5,
+              "isTrigger": false
+            }
+          ]
+        },
+        "Sein_node": {
+          "selfType": 2,
+          "childrenType": 1,
+          "className": "",
+          "tag": "",
+          "layer": 268435455,
+          "persistent": false,
+          "emitComponentsDestroy": true,
+          "updateOnEverTick": true,
+          "isStatic": false,
+          "skipThisNode": false
+        }
+      }
+    },
+    {
+      "matrix": [
+        2.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        2.0,
+        0.0,
+        -3.55,
+        1.0,
+        4.02,
+        1.0
+      ],
+      "mesh": 6,
+      "name": "Sphere (1)",
+      "extensions": {
+        "Sein_renderer": {
+          "castShadows": true,
+          "receiveShadows": true
+        },
+        "Sein_physicBody": {
+          "mass": 1.0,
+          "friction": 0.0,
+          "restitution": 0.0,
+          "unControl": false,
+          "physicStatic": false,
+          "sleeping": true,
+          "colliders": [
+            {
+              "name": "sphere0",
+              "type": "SPHERE",
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "radius": 0.5,
+              "isTrigger": false
+            }
+          ]
+        },
+        "Sein_node": {
+          "selfType": 2,
+          "childrenType": 1,
+          "className": "",
+          "tag": "",
+          "layer": 268435455,
+          "persistent": false,
+          "emitComponentsDestroy": true,
+          "updateOnEverTick": true,
+          "isStatic": false,
+          "skipThisNode": false
+        }
+      }
+    },
+    {
+      "matrix": [
+        1.61304629,
+        0.0,
+        1.00403261,
+        0.0,
+        0.0,
+        5.389249,
+        0.0,
+        0.0,
+        -1.03616166,
+        0.0,
+        1.66466379,
+        0.0,
+        2.78,
+        2.72,
+        2.52,
+        1.0
+      ],
+      "mesh": 7,
+      "name": "Cube",
+      "extensions": {
+        "Sein_renderer": {
+          "castShadows": true,
+          "receiveShadows": true
+        },
+        "Sein_physicBody": {
+          "mass": 1.0,
+          "friction": 0.0,
+          "restitution": 0.0,
+          "unControl": false,
+          "physicStatic": false,
+          "sleeping": true,
+          "colliders": [
+            {
+              "name": "box0",
+              "type": "BOX",
+              "offset": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "size": [
+                1.0,
+                1.0,
+                1.0
+              ],
+              "isTrigger": false
+            }
+          ]
+        }
+      }
+    },
+    {
+      "children": [
+        13
+      ],
+      "matrix": [
+        1.5,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.5,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.5,
+        0.0,
+        -0.09,
+        2.53,
+        5.81,
+        1.0
+      ],
+      "name": "miku",
+      "extensions": {
+        "Sein_node": {
+          "selfType": 2,
+          "childrenType": 1,
+          "className": "",
+          "tag": "",
+          "layer": 268435455,
+          "persistent": false,
+          "emitComponentsDestroy": false,
+          "updateOnEverTick": true,
+          "isStatic": false,
+          "skipThisNode": false
+        }
+      }
+    },
+    {
+      "children": [
+        14,
+        15
+      ],
+      "matrix": [
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        0.0,
+        -2.05843,
+        -1.66864,
+        -1.627,
+        1.0
+      ],
+      "name": "root2"
+    },
+    {
+      "mesh": 8,
+      "name": "test_test_alpha",
+      "extensions": {
+        "Sein_renderer": {
+          "castShadows": false,
+          "receiveShadows": false
+        }
+      }
+    },
+    {
+      "mesh": 9,
+      "name": "test_test_te_000_r1",
+      "extensions": {
+        "Sein_renderer": {
+          "castShadows": false,
+          "receiveShadows": false
+        }
+      }
+    }
+  ],
+  "samplers": [
+    {
+      "minFilter": 9985
+    },
+    {
+      "minFilter": 9985
+    },
+    {
+      "minFilter": 9985
+    },
+    {
+      "minFilter": 9985
+    },
+    {
+      "minFilter": 9985,
+      "wrapS": 33071,
+      "wrapT": 33071
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "nodes": [
+        0,
+        1,
+        2,
+        8,
+        12
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "sampler": 0,
+      "source": 0,
+      "extensions": {
+        "Sein_textureImprove": {
+          "isImageCanRelease": false,
+          "anisotropic": 1,
+          "textureType": 5121
+        }
+      }
+    },
+    {
+      "sampler": 1,
+      "source": 1,
+      "extensions": {
+        "Sein_textureImprove": {
+          "isImageCanRelease": false,
+          "anisotropic": 1,
+          "textureType": 5121
+        }
+      }
+    },
+    {
+      "sampler": 2,
+      "source": 2,
+      "extensions": {
+        "Sein_textureImprove": {
+          "isImageCanRelease": false,
+          "anisotropic": 1,
+          "textureType": 5121
+        }
+      }
+    },
+    {
+      "sampler": 3,
+      "source": 3,
+      "extensions": {
+        "Sein_textureImprove": {
+          "isImageCanRelease": false,
+          "anisotropic": 1,
+          "textureType": 5121
+        }
+      }
+    }
+  ],
+  "extensions": {
+    "Sein_renderer": {
+      "gammaCorrection": true,
+      "useHDR": false,
+      "exposure": 0.0
+    },
+    "Sein_imageBasedLighting": {
+      "lights": [
+        {
+          "diffuse": {
+            "type": "SH",
+            "intensity": 1.0,
+            "coefficients": [
+              [
+                2.93164468,
+                2.93164468,
+                2.93164468
+              ],
+              [
+                -9.739968E-08,
+                -9.739968E-08,
+                -9.739968E-08
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                3.7254706E-09,
+                3.7254706E-09,
+                3.7254706E-09
+              ],
+              [
+                0.0,
+                0.0,
+                0.0
+              ],
+              [
+                -1.61600333E-08,
+                -1.61600333E-08,
+                -1.61600333E-08
+              ],
+              [
+                -2.98023224E-07,
+                -2.98023224E-07,
+                -2.98023224E-07
+              ],
+              [
+                -5.551115E-17,
+                -5.551115E-17,
+                -5.551115E-17
+              ],
+              [
+                2.749985E-07,
+                2.749985E-07,
+                2.749985E-07
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    "Sein_cubeTexture": {
+      "textures": [
+        {
+          "images": [
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ],
+          "sampler": 4,
+          "isImageCanRelease": true
+        }
+      ]
+    },
+    "KHR_lights_punctual": {
+      "lights": [
+        {
+          "name": "Area Light Disc",
+          "intensity": 8.06,
+          "color": [
+            1.0,
+            0.9439623,
+            0.767924547
+          ],
+          "type": "area",
+          "mode": "disc",
+          "size": [
+            1.2,
+            1.0
+          ]
+        }
+      ]
+    }
+  }
+}

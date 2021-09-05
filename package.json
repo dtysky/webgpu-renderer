@@ -19,7 +19,8 @@
     "webpack-dev-server": "^3.11.0"
   },
   "scripts": {
-    "dev": "webpack serve --config webpack.config.js"
+    "dev": "webpack serve --config webpack.config.js",
+    "demo": "webpack --config webpack.config.js"
   },
   "author": {
     "name": "dtysky",
