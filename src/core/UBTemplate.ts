@@ -213,7 +213,8 @@ export default class UBTemplate extends HObject {
     this._shaderPrefix += '\n';
 
     _uniformDesc.uniforms.forEach((ud, index) => {
-      this._uniformsBufferDefault.set(new Uint32Array(ud.defaultValue.buffer), this._uniformsInfo[ud.name].offset);
+      const info = this._uniformsInfo[ud.name];
+      this._uniformsBufferDefault.set(new Uint32Array((info.defaultValue as TUniformTypedArray).buffer), info.offset);
     });
 
     if (_uniformDesc.storages) {
@@ -292,7 +293,7 @@ export default class UBTemplate extends HObject {
     const value = new constructor(realLen * size) as typeof defaultValue;
 
     for (let index = 0; index < size; index += 1) {
-      value.set(defaultValue.slice(index * origLen, (index + 1) * origLen));
+      value.set(defaultValue.slice(index * origLen, (index + 1) * origLen), index * realLen);
     }
 
     return {

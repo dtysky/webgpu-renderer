@@ -20,7 +20,8 @@ const effects: {
   rRTGBufferLight: Effect,
   iRTGShow: Effect,
   cRTSS: Effect,
-  cRTDenoise: Effect,
+  cRTDenoiseTempor: Effect,
+  cRTDenoiseSpace: Effect,
   cCreateSimpleBlur: (radius: number) => Effect
 } = {} as any;
 
@@ -407,8 +408,8 @@ struct DebugRay {
     marcos: {BVH_DEPTH: 0}
   });
 
-  effects.cRTDenoise = new Effect('cRTDenoise', {
-    cs: require('./shaders/ray-tracing/denoise.comp.wgsl'),
+  effects.cRTDenoiseTempor = new Effect('cRTDenoiseTempor', {
+    cs: require('./shaders/ray-tracing/denoiseTempor.comp.wgsl'),
     uniformDesc: {
       uniforms: [
         {
@@ -416,13 +417,6 @@ struct DebugRay {
           type: 'number',
           format: 'f32',
           defaultValue: new Float32Array([1])
-        },
-        {
-          // [distance, color, depth, normal]
-          name: 'u_filterFactors',
-          type: 'vec2',
-          size: 4,
-          defaultValue: genGaussianParams(new Float32Array([1.5, 0.1, 2, 0.5]), [2, 3, 1, 3])
         }
       ],
       textures: [
@@ -440,6 +434,40 @@ struct DebugRay {
         },
         {
           name: 'u_current',
+          defaultValue: textures.empty,
+          storageAccess: 'read-only',
+          storageFormat: 'rgba16float'
+        }
+      ],
+      samplers: [
+        {
+          name: 'u_sampler',
+          defaultValue: {magFilter: 'linear', minFilter: 'linear', mipmapFilter: 'nearest'}
+        }
+      ]
+    }
+  });
+
+  effects.cRTDenoiseSpace = new Effect('cRTDenoiseSpace', {
+    cs: require('./shaders/ray-tracing/denoiseSpace.comp.wgsl'),
+    uniformDesc: {
+      uniforms: [
+        {
+          // [distance, color, depth, normal]
+          name: 'u_filterFactors',
+          type: 'vec2',
+          size: 4,
+          defaultValue: genGaussianParams(new Float32Array([1.5, 0.5, 1.5, 0.5]), [2, 3, 1, 3])
+        }
+      ],
+      textures: [
+        {
+          name: 'u_output',
+          defaultValue: textures.empty,
+          storageAccess: 'write-only'
+        },
+        {
+          name: 'u_mixed',
           defaultValue: textures.empty,
           storageAccess: 'read-only',
           storageFormat: 'rgba16float'

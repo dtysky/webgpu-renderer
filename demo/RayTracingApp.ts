@@ -21,9 +21,10 @@ export default class RayTracingApp {
   private _gBufferDebugMesh: H.ImageMesh;
   private _rtManager: H.RayTracingManager;
   private _rtOutput: H.RenderTexture;
-  private _denoiseRTs: {current: H.RenderTexture, pre: H.RenderTexture};
-  private _denoiseUnit: H.ComputeUnit;
-  private _rtTone: H.ImageMesh;
+  private _denoiseRTs: {current: H.RenderTexture, pre: H.RenderTexture, final: H.RenderTexture};
+  private _denoiseTemporUnit: H.ComputeUnit;
+  private _denoiseSpaceUnit: H.ComputeUnit;
+  private _rtBlit: H.ImageMesh;
   private _rtDebugInfo: DebugInfo;
   private _rtDebugMesh: H.Mesh;
   private _frameCount: number = 0;
@@ -84,23 +85,29 @@ export default class RayTracingApp {
         height: renderEnv.height,
         forCompute: true,
         colors: [{name: 'color', format: 'rgba16float'}]
-      })
+      }),
+      final: new H.RenderTexture({
+        width: renderEnv.width,
+        height: renderEnv.height,
+        forCompute: true,
+        colors: [{name: 'color'}]
+      }),
     };
-    this._denoiseUnit = new H.ComputeUnit(
-      H.buildinEffects.cRTDenoise,
+    this._denoiseTemporUnit = new H.ComputeUnit(
+      H.buildinEffects.cRTDenoiseTempor,
+      {x: Math.ceil(renderEnv.width / 16), y: Math.ceil(renderEnv.height / 16)}
+    );
+    this._denoiseSpaceUnit = new H.ComputeUnit(
+      H.buildinEffects.cRTDenoiseSpace,
       {x: Math.ceil(renderEnv.width / 16), y: Math.ceil(renderEnv.height / 16)},
-      undefined,
+      {u_output: this._denoiseRTs.final},
       {WINDOW_SIZE: 7}
     );
-    this._connectGBufferRenderTexture(this._denoiseUnit);
+    this._connectGBufferRenderTexture(this._denoiseSpaceUnit);
 
-    this._rtTone = new H.ImageMesh(new H.Material(H.buildinEffects.iTone, {u_texture: this._rtOutput}));
+    this._rtBlit = new H.ImageMesh(new H.Material(H.buildinEffects.iBlit, {u_texture: this._denoiseRTs.final}));
 
     this._rtDebugInfo = new DebugInfo();
-
-    if (this._camera.isOrth) {
-      this._rtTone.material.setMarcos({FLIP: true});
-    }
     
     this._camControl.control(this._camera, new H.Node());
     this._camControl.onChange = () => {
@@ -155,7 +162,7 @@ export default class RayTracingApp {
     }
 
     this._rtManager.rtUnit.setUniform('u_randoms', new Float32Array(16).map(v => Math.random()));
-    this._denoiseUnit.setUniform('u_preWeight', new Float32Array([preWeight]));
+    this._denoiseTemporUnit.setUniform('u_preWeight', new Float32Array([preWeight]));
 
     // this._showBVH();
     this._renderGBuffer();
@@ -163,7 +170,7 @@ export default class RayTracingApp {
     this._scene.setRenderTarget(null);
     this._computeRTSS();
     this._computeDenoise();
-    this._scene.renderImages([this._rtTone]);
+    this._scene.renderImages([this._rtBlit]);
 
     if (first) {
       this._rtDebugInfo.run(_scene);
@@ -191,13 +198,13 @@ export default class RayTracingApp {
 
   protected _computeDenoise() {
     const {current, pre} = this._denoiseRTs;
-    this._denoiseUnit.setUniform('u_output', current);
-    this._denoiseUnit.setUniform('u_pre', pre);
-    this._denoiseUnit.setUniform('u_current', this._rtOutput);
+    this._denoiseTemporUnit.setUniform('u_output', current);
+    this._denoiseTemporUnit.setUniform('u_pre', pre);
+    this._denoiseTemporUnit.setUniform('u_current', this._rtOutput);
 
-    this._scene.computeUnits([this._denoiseUnit]);
+    this._denoiseSpaceUnit.setUniform('u_mixed', current);
 
-    this._rtTone.material.setUniform('u_texture', current);
+    this._scene.computeUnits([this._denoiseTemporUnit, this._denoiseSpaceUnit]);
 
     this._denoiseRTs.current = pre;
     this._denoiseRTs.pre = current;

@@ -139,6 +139,6 @@ export function genGaussianParams(sigmas: Float32Array, dims: number[]): Float32
     res[i * 2] = Math.pow(1 / (Math.sqrt(2 * Math.PI) * s), dims[i]);
     res[i * 2 + 1] = -1 / (2 * s * s);
   }
-  
+
   return res;
 }
