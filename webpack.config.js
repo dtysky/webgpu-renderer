@@ -74,7 +74,7 @@ module.exports = {
 
   devServer: {
     contentBase: path.join(__dirname, './demo/assets'),
-    port: 8887,
+    port: 8888,
     contentBasePublicPath: '/assets',
     hot: true,
     host: '0.0.0.0'
