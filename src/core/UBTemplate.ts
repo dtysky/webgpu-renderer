@@ -162,6 +162,12 @@ export default class UBTemplate extends HObject {
       const isArray = (ud.defaultValue as Texture).isArray;
       const viewDimension = isCube ? (isArray ? 'cube-array' : 'cube') : (isArray ? '2d-array' : '2d');
 
+      // read-only storage texture is not supported anymore
+      if (ud.storageAccess === 'read-only') {
+        ud.storageAccess = undefined;
+        ud.format = /uint/.test(ud.storageFormat) ?  'uint' : /sint/.test(ud.storageFormat) ? 'sint' : 'float';
+      }
+
       entries.push({
         binding: bindingId,
         visibility,
@@ -169,11 +175,11 @@ export default class UBTemplate extends HObject {
           sampleType: ud.format || 'float',
           viewDimension
         } : undefined,
-        storageTexture: ud.storageAccess ? {
+        storageTexture: ud.storageAccess === 'write-only' ? Object.assign({
           format: ud.storageFormat || 'rgba8unorm',
           viewDimension,
           access: ud.storageAccess
-        } : undefined
+        }) : undefined
       });
 
       this._uniformsInfo[ud.name] = {

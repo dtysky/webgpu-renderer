@@ -26,7 +26,7 @@ fn blur(center: vec2<i32>, size: vec2<i32>) -> vec4<f32> {
   let zigmaC: vec2<f32> = material.u_filterFactors[1].xy;
   let zigmaZ: vec2<f32> = material.u_filterFactors[2].xy;
   let zigmaN: vec2<f32> = material.u_filterFactors[3].xy;
-  let centerColor: vec4<f32> = textureLoad(u_mixed, center);
+  let centerColor: vec4<f32> = textureLoad(u_mixed, center, 0);
   let centerPosition = textureLoad(u_gbPositionMetalOrSpec, center, 0).xyz;
   let centerNormal = textureLoad(u_gbNormalGlass, center, 0).xyz;
   var colors: array<array<vec3<f32>, ${WINDOW_SIZE}>, ${WINDOW_SIZE}>;
@@ -42,7 +42,7 @@ fn blur(center: vec2<i32>, size: vec2<i32>) -> vec4<f32> {
     localUV.y = 0;
     for (var c: i32 = minUV.y; c <= maxUV.y; c = c + 1) {
       let iuv: vec2<i32> = vec2<i32>(r, c);
-      let color: vec3<f32> = textureLoad(u_mixed, iuv).rgb;
+      let color: vec3<f32> = textureLoad(u_mixed, iuv, 0).rgb;
       let lum: f32 = calcLum(color);
       colors[localUV.x][localUV.y] = color;
       lums[localUV.x][localUV.y] = lum;

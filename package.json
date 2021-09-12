@@ -4,7 +4,6 @@
   "description": "",
   "main": "lib/index.js",
   "devDependencies": {
-    "@webgpu/types": "^0.1.6",
     "bluebird": "^3.7.2",
     "html-webpack-plugin": "^4.5.0",
     "json-schema-ref-parser": "^9.0.9",
@@ -28,6 +27,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@webgpu/types": "^0.1.6",
     "gl-matrix": "^3.3.0",
     "select-pure": "^2.1.1-alpha.1"
   }
