@@ -19,7 +19,6 @@ fn gammaCorrect(color: vec3<f32>) -> vec3<f32> {
 
 [[stage(fragment)]]
 fn main(vo: VertexOutput) -> [[location(0)]] vec4<f32> {
-  let gamma: f32 = 2.2;
   let hdrColor: vec4<f32> = textureSample(u_texture, u_sampler, vo.uv);
   var color = acesToneMapping(hdrColor.rgb);
 
