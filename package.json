@@ -19,7 +19,7 @@
   },
   "scripts": {
     "dev": "webpack serve --config webpack.config.js",
-    "demo": "webpack --config webpack.config.js"
+    "demo": "webpack --config webpack.demo.config.js"
   },
   "author": {
     "name": "dtysky",
