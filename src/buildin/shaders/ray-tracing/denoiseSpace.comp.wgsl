@@ -1,19 +1,17 @@
 let WINDOW_SIZE: i32 = ${WINDOW_SIZE};
 
-require('../basic/tone.chunk.wgsl');
-
-fn calcWeightNumber(params: vec2<f32>, a: f32, b: f32) -> f32 {
-  return params.x * exp(params.y * (a - b) * (a - b));
+fn calcWeightNumber(factor: f32, a: f32, b: f32) -> f32 {
+  return exp(factor * (a - b) * (a - b));
 }
 
-fn calcWeightVec2(params: vec2<f32>, a: vec2<i32>, b: vec2<i32>) -> f32 {
+fn calcWeightVec2(factor: f32, a: vec2<i32>, b: vec2<i32>) -> f32 {
   let diff: vec2<f32> = vec2<f32>(a - b);
-  return params.x * exp(params.y * dot(diff, diff));
+  return exp(factor * dot(diff, diff));
 }
 
-fn calcWeightVec3(params: vec2<f32>, a: vec3<f32>, b: vec3<f32>) -> f32 {
+fn calcWeightVec3(factor: f32, a: vec3<f32>, b: vec3<f32>) -> f32 {
   let diff: vec3<f32> = a - b;
-  return params.x * exp(params.y * dot(diff, diff));
+  return exp(factor * dot(diff, diff));
 }
 
 fn calcLum(color: vec3<f32>) -> f32 {
@@ -22,11 +20,12 @@ fn calcLum(color: vec3<f32>) -> f32 {
 
 fn blur(center: vec2<i32>, size: vec2<i32>) -> vec4<f32> {
   let radius: i32 = WINDOW_SIZE / 2;
-  let zigmaD: vec2<f32> = material.u_filterFactors[0].xy;
-  let zigmaC: vec2<f32> = material.u_filterFactors[1].xy;
-  let zigmaZ: vec2<f32> = material.u_filterFactors[2].xy;
-  let zigmaN: vec2<f32> = material.u_filterFactors[3].xy;
-  let centerColor: vec4<f32> = textureLoad(u_mixed, center, 0);
+  let sigmaD: f32 = material.u_filterFactors.x;
+  let sigmaC: f32 = material.u_filterFactors.y;
+  let sigmaZ: f32 = material.u_filterFactors.z;
+  let sigmaN: f32 = material.u_filterFactors.w;
+  var centerColor: vec4<f32> = textureLoad(u_preFilter, center, 0);
+  let alpha: f32 = centerColor.a;
   let centerPosition = textureLoad(u_gbPositionMetalOrSpec, center, 0).xyz;
   let centerNormal = textureLoad(u_gbNormalGlass, center, 0).xyz;
   var colors: array<array<vec3<f32>, ${WINDOW_SIZE}>, ${WINDOW_SIZE}>;
@@ -42,7 +41,7 @@ fn blur(center: vec2<i32>, size: vec2<i32>) -> vec4<f32> {
     localUV.y = 0;
     for (var c: i32 = minUV.y; c <= maxUV.y; c = c + 1) {
       let iuv: vec2<i32> = vec2<i32>(r, c);
-      let color: vec3<f32> = textureLoad(u_mixed, iuv, 0).rgb;
+      let color: vec3<f32> = textureLoad(u_preFilter, iuv, 0).rgb;
       let lum: f32 = calcLum(color);
       colors[localUV.x][localUV.y] = color;
       lums[localUV.x][localUV.y] = lum;
@@ -67,6 +66,11 @@ fn blur(center: vec2<i32>, size: vec2<i32>) -> vec4<f32> {
 
   let largestLum: f32 = max(meanLum + std * 2., 1.);
 
+  var lum: f32 = calcLum(centerColor.rgb);
+  if (lum > largestLum) {
+    centerColor = centerColor * largestLum / lum;
+  }
+
   localUV = vec2<i32>(0, 0);
   var weightsSum: f32 = 0.;
   var res: vec3<f32> = vec3<f32>(0., 0., 0.);
@@ -75,19 +79,19 @@ fn blur(center: vec2<i32>, size: vec2<i32>) -> vec4<f32> {
     localUV.y = 0;
     for (var c: i32 = minUV.y; c <= maxUV.y; c = c + 1) {
       var color: vec3<f32> = colors[localUV.x][localUV.y];
-      let lum: f32 = lums[localUV.x][localUV.y];
+      lum = lums[localUV.x][localUV.y];
 
       if (lum > largestLum) {
-        color = color * meanLum / lum;
+        color = color * largestLum / lum;
       }
 
       let iuv: vec2<i32> = vec2<i32>(r, c);
       let position: vec4<f32> = textureLoad(u_gbPositionMetalOrSpec, iuv, 0);
       let normal: vec4<f32> = textureLoad(u_gbNormalGlass, iuv, 0);
-      let weight: f32 = calcWeightVec2(zigmaD, iuv, center)
-        * calcWeightVec3(zigmaC, color.rgb, centerColor.rgb)
-        * calcWeightVec3(zigmaN, normal.xyz, centerNormal.xyz)
-        * calcWeightNumber(zigmaZ, position.z, centerPosition.z);
+      let weight: f32 = calcWeightVec2(sigmaD, iuv, center)
+        * calcWeightVec3(sigmaC, color.rgb, centerColor.rgb)
+        * calcWeightVec3(sigmaN, normal.xyz, centerNormal.xyz)
+        * calcWeightNumber(sigmaZ, position.z, centerPosition.z);
       weightsSum = weightsSum + weight;
       res = res + weight * color;
 
@@ -98,7 +102,7 @@ fn blur(center: vec2<i32>, size: vec2<i32>) -> vec4<f32> {
 
   res = res / weightsSum;
 
-  return vec4<f32>(res, centerColor.a);
+  return vec4<f32>(res, alpha);
 }
 
 [[stage(compute), workgroup_size(16, 16, 1)]]
@@ -106,14 +110,10 @@ fn main(
   [[builtin(workgroup_id)]] workGroupID : vec3<u32>,
   [[builtin(local_invocation_id)]] localInvocationID : vec3<u32>
 ) {
-  let size: vec2<i32> = textureDimensions(u_mixed);
+  let size: vec2<i32> = textureDimensions(u_preFilter);
   let groupOffset: vec2<i32> = vec2<i32>(workGroupID.xy) * 16;
   let baseIndex: vec2<i32> = groupOffset + vec2<i32>(localInvocationID.xy);
+  let result: vec4<f32> = blur(baseIndex, size);
 
-  var mixed: vec4<f32>;
-
-  mixed = blur(baseIndex, size);
-
-
-  textureStore(u_output, baseIndex, vec4<f32>(acesToneMapping(mixed.rgb), mixed.a));
+  textureStore(u_output, baseIndex, result);
 }

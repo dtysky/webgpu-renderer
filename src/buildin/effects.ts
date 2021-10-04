@@ -6,7 +6,7 @@
  */
 import {mat4} from 'gl-matrix';
 import Effect from '../core/Effect';
-import {createGPUBuffer, genGaussianParams} from '../core/shared';
+import {createGPUBuffer, genFilterParams} from '../core/shared';
 import textures from './textures';
 
 const effects: {
@@ -455,19 +455,19 @@ struct DebugRay {
         {
           // [distance, color, depth, normal]
           name: 'u_filterFactors',
-          type: 'vec2',
-          size: 4,
-          defaultValue: genGaussianParams(new Float32Array([1.5, 0.5, 1.5, 0.5]), [2, 3, 1, 3])
+          type: 'vec4',
+          defaultValue: genFilterParams(new Float32Array([3, 0.1, 2, 0.1]))
         }
       ],
       textures: [
         {
           name: 'u_output',
           defaultValue: textures.empty,
-          storageAccess: 'write-only'
+          storageAccess: 'write-only',
+          storageFormat: 'rgba16float'
         },
         {
-          name: 'u_mixed',
+          name: 'u_preFilter',
           defaultValue: textures.empty,
           storageAccess: 'read-only',
           storageFormat: 'rgba16float'

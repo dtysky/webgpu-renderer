@@ -131,14 +131,14 @@ function swap<T>(array: Array<T>, a: number, b: number) {
   array[a] = x;
 }
 
-export function genGaussianParams(sigmas: Float32Array, dims: number[]): Float32Array {
-  const res = new Float32Array(sigmas.length * 2);
+export function genFilterParams(sigmas: Float32Array): Float32Array {
+  const res = new Float32Array(sigmas.length);
 
   for (let i: number = 0; i < sigmas.length; i += 1) {
     const s = sigmas[i];
-    res[i * 2] = Math.pow(1 / (Math.sqrt(2 * Math.PI) * s), dims[i]);
-    res[i * 2 + 1] = -1 / (2 * s * s);
+    res[i] = -0.5 * s * s;
   }
 
+  console.log(res);
   return res;
 }
