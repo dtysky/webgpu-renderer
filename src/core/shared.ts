@@ -139,6 +139,5 @@ export function genFilterParams(sigmas: Float32Array): Float32Array {
     res[i] = -0.5 * s * s;
   }
 
-  console.log(res);
   return res;
 }
