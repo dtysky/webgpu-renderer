@@ -20,7 +20,7 @@ npm i
 npm run dev
 ```
 
-Then open url `http://locathost:8888` in your chrome canary.
+Then open url `http://127.0.0.1:8888` in your chrome canary.
 
 ## Tutorials
 
