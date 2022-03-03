@@ -1,0 +1,12 @@
+export { default as rayTracingCommonChunk } from './common.chunk.wgsl';
+export { default as denoiseSpaceComp } from './denoiseSpace.comp.wgsl';
+export { default as denoiseTemporComp} from './denoiseTempor.comp.wgsl';
+export { default as gbInfoChunk } from './gbInfo.chunk.wgsl';
+export { default as gbufferFrag } from './gbuffer.frag.wgsl';
+export { default as gbufferVert } from './gbuffer.vert.wgsl';
+export { default as gbufferLightFrag } from './gbufferLight.frag.wgsl';
+export { default as gshowFrag } from './gshow.frag.wgsl';
+export { default as hitTestChunk } from './hitTest.chunk.wgsl';
+export { default as lightingChunk } from './lighting.chunk.wgsl';
+export { default as rtssComp } from './rtss.comp.wgsl';
+export { default as sampleChunk } from './sample.chunk.wgsl';

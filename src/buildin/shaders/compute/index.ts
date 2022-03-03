@@ -1,0 +1,1 @@
+export { default as blurComp } from './blur.comp.wgsl';

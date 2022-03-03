@@ -72,7 +72,7 @@ export default class BasicTestApp {
     //   new Uint16Array([0, 1, 2, 2, 1, 3]),
     //   6
     // );
-    const texture = await H.resource.load({type: 'texture', name: 'uv-debug.tex', src: require('./assets/textures/uv-debug.png')});
+    const texture = await H.resource.load({type: 'texture', name: 'uv-debug.tex', src: './demo/assets/textures/uv-debug.png'});
     // const effect = new H.Effect('test', {
     //   vs: require('./assets/shaders/test/vertex.vert.wgsl'),
     //   fs: require('./assets/shaders/test/fragment.frag.wgsl'),

@@ -7,13 +7,14 @@ let RAY_DIR_OFFSET: f32 = .01;
 let RAY_NORMAL_OFFSET: f32 = .01;
 
 struct VertexOutput {
-  [[builtin(position)]] position: vec4<f32>;
-  [[location(0)]] uv: vec2<f32>;
+  @builtin(position) position: vec4<f32>;
+  @location(0) uv: vec2<f32>;
 };
 
-require('../basic/common.chunk.wgsl');
-require('./common.chunk.wgsl');
-require('../pbr/common.chunk.wgsl');
+
+#include ../basic/common.chunk.wgsl;
+#include common.chunk.wgsl;
+#include ../pbr/common.chunk.wgsl;
 
 struct Ray {
   origin: vec3<f32>;
@@ -101,10 +102,10 @@ fn genRay(origin: vec3<f32>, dir: vec3<f32>) -> Ray {
   return ray;
 }
 
-require('./gbInfo.chunk.wgsl');
-require('./hitTest.chunk.wgsl');
-require('./sample.chunk.wgsl');
-require('./lighting.chunk.wgsl');
+#include gbInfo.chunk.wgsl;
+#include hitTest.chunk.wgsl;
+#include sample.chunk.wgsl;
+#include lighting.chunk.wgsl;
 
 fn calcLight(ray: Ray, hit: HitPoint, baseUV: vec2<f32>, bounce: i32, isLast: bool, isOut: bool, debugIndex: i32) -> Light {
   var light: Light;
@@ -221,10 +222,10 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, baseUV: vec2<f32>, debugIndex: i3
   return lightColor;
 }
 
-[[stage(compute), workgroup_size(16, 16, 1)]]
+@stage(compute) @workgroup_size(16, 16, 1)
 fn main(
-  [[builtin(workgroup_id)]] workGroupID : vec3<u32>,
-  [[builtin(local_invocation_id)]] localInvocationID : vec3<u32>
+  @builtin(workgroup_id) workGroupID : vec3<u32>,
+  @builtin(local_invocation_id) localInvocationID : vec3<u32>
 ) {
   let screenSize: vec2<i32> = textureDimensions(u_gbPositionMetalOrSpec, 0);
   let groupOffset: vec2<i32> = vec2<i32>(workGroupID.xy) * 16;

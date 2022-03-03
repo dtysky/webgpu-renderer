@@ -62,9 +62,9 @@ fn getNormal(
 }
 
 // https://tavianator.com/2011/ray_box.html
-fn boxHitTest(ray: Ray, max: vec3<f32>, min: vec3<f32>) -> f32 {
-  let t1: vec3<f32> = (min - ray.origin) * ray.invDir;
-  let t2: vec3<f32> = (max - ray.origin) * ray.invDir;
+fn boxHitTest(ray: Ray, maxVal: vec3<f32>, minVal: vec3<f32>) -> f32 {
+  let t1: vec3<f32> = (minVal - ray.origin) * ray.invDir;
+  let t2: vec3<f32> = (maxVal - ray.origin) * ray.invDir;
   let tvmin: vec3<f32> = min(t1, t2);
   let tvmax: vec3<f32> = max(t1, t2);
   let tmin: f32 = max(tvmin.x, max(tvmin.y, tvmin.z));
@@ -294,14 +294,14 @@ fn hitTestShadow(ray: Ray, maxT: f32) -> FragmentInfo {
 fn hitTestXZPlane(ray: Ray, inverseMat: mat4x4<f32>) -> vec3<f32> {
   let invDir: vec3<f32> = normalize((inverseMat * vec4<f32>(ray.dir, 0.)).xyz);
   let normal: vec3<f32> = vec3<f32>(0., 0., 1.);
-  let dot: f32 = dot(invDir, normal);
+  let dotVal: f32 = dot(invDir, normal);
 
-  if (abs(dot) < EPS) {
+  if (abs(dotVal) < EPS) {
     return vec3<f32>(MAX_RAY_LENGTH, MAX_RAY_LENGTH, MAX_RAY_LENGTH);
   }
   
   let invOrigin: vec3<f32> = (inverseMat * vec4<f32>(ray.origin, 1.)).xyz;
-  let t: f32 = dot(-invOrigin, normal) / dot;
+  let t: f32 = dot(-invOrigin, normal) / dotVal;
 
   if (t < EPS) {
     return vec3<f32>(MAX_RAY_LENGTH, MAX_RAY_LENGTH, MAX_RAY_LENGTH);

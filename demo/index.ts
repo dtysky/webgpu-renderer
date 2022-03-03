@@ -34,7 +34,7 @@ async function update(dt: number) {
 }
 
 async function main() {
-  await H.init(document.querySelector<HTMLCanvasElement>('canvas#mainCanvas'));
+  await H.init((document.querySelector<HTMLCanvasElement>('canvas#mainCanvas')!));
   await app.init();
   
   let t = 0;

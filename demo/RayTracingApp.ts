@@ -8,7 +8,7 @@ import 'select-pure/dist/index.js';
 import * as H from '../src/index';
 import {DebugInfo, debugRay, debugRayShadow, debugRayShadows, sampleCircle} from './debugCs';
 
-const MODEL_SRC = '/assets/models/walls/scene.gltf';
+const MODEL_SRC = './demo/assets/models/walls/scene.gltf';
 const MAX_SAMPLERS = 256;
 
 function addSelect(onChange: (options: string) => void) {
@@ -73,7 +73,7 @@ export default class RayTracingApp {
     ));
     this._camera.pos.set([0, 0, 6]);
 
-    this._noiseTex = await H.resource.load({type: 'texture', name: 'noise.tex', src: '/assets/textures/noise-rgba.webp'});
+    this._noiseTex = await H.resource.load({type: 'texture', name: 'noise.tex', src: './demo/assets/textures/noise-rgba.webp'});
     const model = this._model = await H.resource.load({type: 'gltf', name: 'scene.gltf', src: MODEL_SRC});
     if (model.cameras.length) {
       this._camera = model.cameras[0];

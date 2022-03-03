@@ -94,8 +94,8 @@ export default class Effect extends HObject {
         this._marcosRegex[key] = new RegExp(`\\\$\\{${key}\\\}`, 'g');
       } else {
         this._marcosRegex[key] = {
-          hasElse: new RegExp(`#if defined\\(${key}\\)([\\s\\S]+?)#else([\\s\\S]+?)#endif`, 'g'),
-          noElse: new RegExp(`#if defined\\(${key}\\)([\\s\\S]+?)#endif`, 'g'),
+          hasElse: new RegExp(`#if *defined\\(${key}\\)([\\s\\S]+?)#else([\\s\\S]+?)#endif`, 'g'),
+          noElse: new RegExp(`#if *defined\\(${key}\\)([\\s\\S]+?)#endif`, 'g'),
         };
       }
     }

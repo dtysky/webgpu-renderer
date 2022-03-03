@@ -1,10 +1,10 @@
 let c_radius: i32 = ${RADIUS};
 let c_windowSize: i32 = ${WINDOW_SIZE};
 
-[[stage(compute), workgroup_size(c_windowSize, c_windowSize, 1)]]
+@stage(compute) @workgroup_size(c_windowSize, c_windowSize, 1)
 fn main(
-  [[builtin(workgroup_id)]] workGroupID : vec3<u32>,
-  [[builtin(local_invocation_id)]] localInvocationID : vec3<u32>
+  @builtin(workgroup_id) workGroupID : vec3<u32>,
+  @builtin(local_invocation_id) localInvocationID : vec3<u32>
 ) {
   let size: vec2<i32> = textureDimensions(u_input, 0);
   let windowSize: vec2<i32> = vec2<i32>(c_windowSize, c_windowSize);
