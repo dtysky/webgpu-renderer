@@ -1,32 +1,19 @@
 {
   "compilerOptions": {
-    "experimentalDecorators": true,
-    "target": "ES5",
-    "noImplicitAny": false,
-    "module": "commonjs",
-    "allowJs": true,
-    "noImplicitThis": true,
+    "target": "ESNext",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "lib": ["ESNext", "DOM"],
+    "moduleResolution": "Node",
+    "strict": true,
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "noEmit": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "noImplicitReturns": true,
-    "inlineSourceMap": true,
-    "inlineSources": true,
-    "noFallthroughCasesInSwitch": true,
-    "removeComments": true,
-    "pretty": true,
-    "allowSyntheticDefaultImports": true
+    "typeRoots": [ "./node_modules/@webgpu/types", "./node_modules/@types"]
   },
-  "include": [
-    "src/**/*.ts",
-    "demo/**/*.ts",
-    "types/**/*.d.ts",
-    "node_modules/@webgpu/types"
-  ],
-  "exclude": [
-    "node_modules/select-pure"
-  ],
-  "lib": [
-    "es5",
-    "es2015.promise",
-    "es2016",
-    "dom"
-  ]
+  "include": ["./src","./demo"]
 }

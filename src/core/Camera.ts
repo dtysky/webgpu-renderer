@@ -182,13 +182,15 @@ export default class Camera extends Node {
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: colorViews.map(view => ({
         view,
-        loadValue: clear ? { r, g, b, a } : 'load' as GPULoadOp,
+        loadOp: clear ? 'clear' : 'load' as GPULoadOp,
         storeOp: this.colorOp
       })),
       depthStencilAttachment: depthStencilView && {
         view: depthStencilView,
-        depthLoadValue: this.clearDepth,
-        stencilLoadValue: this.clearStencil,
+        depthClearValue: this.clearDepth,
+        depthLoadOp: 'clear',
+        stencilClearValue: this.clearStencil,
+        stencilLoadOp: 'clear',
         depthStoreOp: this.depthOp,
         stencilStoreOp: this.stencilOp
       }
@@ -206,7 +208,7 @@ export default class Camera extends Node {
       this._skyboxMesh.render(pass, rt);
     }
 
-    pass.endPass();
+    pass.end();
   }
 
   public cull(mesh: Mesh): number {

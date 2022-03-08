@@ -1,19 +1,19 @@
 struct VertexOutput {
-  [[builtin(position)]] position: vec4<f32>;
-  [[location(0)]] wPosition: vec4<f32>;
-  [[location(1)]] texcoord_0: vec2<f32>;
-  [[location(2)]] normal: vec3<f32>;
-  [[location(3)]] meshMatIndex: vec2<u32>;
-};
+  @builtin(position) Position: vec4<f32>;
+  @location(0) wPosition: vec4<f32>;
+  @location(1) texcoord_0: vec2<f32>;
+  @location(2) normal: vec3<f32>;
+  @location(3) @interpolate(flat) meshMatIndex: vec2<u32>;
+}
 
 struct FragmentOutput {
-  [[location(0)]] positionMetalOrSpec: vec4<f32>;
-  [[location(1)]] baseColorRoughOrGloss: vec4<f32>;
-  [[location(2)]] normalGlass: vec4<f32>;
-  [[location(3)]] meshIndexMatIndexMatType: vec4<u32>;
-};
+  @location(0) positionMetalOrSpec: vec4<f32>;
+  @location(1) baseColorRoughOrGloss: vec4<f32>;
+  @location(2) normalGlass: vec4<f32>;
+  @location(3) meshIndexMatIndexMatType: vec4<u32>;
+}
 
-require('./common.chunk.wgsl');
+#include common.chunk.wgsl;
 
 fn getFaceNormal(position: vec3<f32>) -> vec3<f32> {
   return normalize(cross(dpdy(position), dpdx(position)));
@@ -50,7 +50,7 @@ fn getNormal(
 }
 
 
-[[stage(fragment)]]
+@stage(fragment)
 fn main(vo: VertexOutput) -> FragmentOutput {
   var fo: FragmentOutput;
 

@@ -129,7 +129,7 @@ export default class UBTemplate extends HObject {
         }
       });
 
-      this._shaderPrefix += `[[block]] struct ${ubStruct} {\n`;
+      this._shaderPrefix += `struct ${ubStruct} {\n`;
       entries.push({
         binding: 0,
         visibility,
@@ -143,16 +143,16 @@ export default class UBTemplate extends HObject {
         this._uniformsInfo[ud.name] = {bindingId: 0, index, type: 'buffer', offset: uniforms32Length, defaultValue, origLen, realLen, size: ud.size || 1};
         uniforms32Length += defaultValue.length;
         const sym = ud.customType ? ud.customType.name : ud.type === 'number' ? `${ud.format || 'f32'}` : `${ud.type}<${ud.format || 'f32'}>`;
-        const pre = origLen !== realLen ? `[[stride(${realLen * 4})]]` : '';
+        const pre = origLen !== realLen ? `@stride(${realLen * 4})` : '';
         if (!ud.size) {
-          this._shaderPrefix += `  [[align(16)]] ${ud.name}: ${sym};\n`;
+          this._shaderPrefix += `  @align(16) ${ud.name}: ${sym};\n`;
         } else {
-          ud.size > 1 && (this._shaderPrefix += ` [[align(16)]] ${ud.name}: ${pre} array<${sym}, ${ud.size}>;\n`);
+          ud.size > 1 && (this._shaderPrefix += ` @align(16) ${ud.name}: ${pre} array<${sym}, ${ud.size}>;\n`);
         }
         index += 1;
       });
       this._uniformsBufferDefault = new Uint32Array(uniforms32Length);
-      this._shaderPrefix += `};\n[[group(${_groupId}), binding(0)]] var<uniform> ${ubName}: ${ubStruct};\n`
+      this._shaderPrefix += `};\n@group(${_groupId}) @binding(0) var<uniform> ${ubName}: ${ubStruct};\n`
 
       bindingId += 1;
     }
@@ -190,13 +190,13 @@ export default class UBTemplate extends HObject {
       let texFormat: string = ud.format === 'depth' ? 'depth' : ud.format === 'uint' ? 'u32' : ud.format === 'sint' ? 'i32' : 'f32';
 
       if (ud.storageAccess) {
-        this._shaderPrefix += `[[group(${_groupId}), binding(${bindingId})]] var ${ud.name}: texture_storage_2d<${ud.storageFormat || 'rgba8unorm'}, ${ud.storageAccess.replace('-only', '')}>;\n`
+        this._shaderPrefix += `@group(${_groupId}) @binding(${bindingId}) var ${ud.name}: texture_storage_2d<${ud.storageFormat || 'rgba8unorm'}, ${ud.storageAccess.replace('-only', '')}>;\n`
       } else if (isCube) {
-        this._shaderPrefix += `[[group(${_groupId}), binding(${bindingId})]] var ${ud.name}: texture_cube<${texFormat}>;\n`
+        this._shaderPrefix += `@group(${_groupId}) @binding(${bindingId}) var ${ud.name}: texture_cube<${texFormat}>;\n`
       } else if ((ud.defaultValue as Texture).isArray) {
-        this._shaderPrefix += `[[group(${_groupId}), binding(${bindingId})]] var ${ud.name}: texture_2d_array<${texFormat}>;\n`
+        this._shaderPrefix += `@group(${_groupId}) @binding(${bindingId}) var ${ud.name}: texture_2d_array<${texFormat}>;\n`
       } else {
-        this._shaderPrefix += `[[group(${_groupId}), binding(${bindingId})]] var ${ud.name}: texture_2d<${texFormat}>;\n`
+        this._shaderPrefix += `@group(${_groupId}) @binding(${bindingId}) var ${ud.name}: texture_2d<${texFormat}>;\n`
       }
       bindingId += 1;
       index += 1;
@@ -212,7 +212,7 @@ export default class UBTemplate extends HObject {
         bindingId, index, type: 'sampler',
         defaultGpuValue: device.createSampler(ud.defaultValue as GPUSamplerDescriptor)
       };
-      this._shaderPrefix += `[[group(${_groupId}), binding(${bindingId})]] var ${ud.name}: sampler;\n`
+      this._shaderPrefix += `@group(${_groupId}) @binding(${bindingId}) var ${ud.name}: sampler;\n`
       bindingId += 1;
       index += 1;
     });
@@ -243,7 +243,7 @@ export default class UBTemplate extends HObject {
         }
         const gpuValue = ud.gpuValue ? ud.gpuValue : createGPUBuffer(ud.defaultValue, GPUBufferUsage.STORAGE);
         this._uniformsInfo[ud.name] = {bindingId, index, type: 'storage', defaultValue: ud.defaultValue, defaultGpuValue: gpuValue};
-        this._shaderPrefix += `[[group(${_groupId}), binding(${bindingId})]] var<storage, ${ud.writable ? 'read_write' : 'read'}> ${ud.name}: ${hash};\n`
+        this._shaderPrefix += `@group(${_groupId}) @binding(${bindingId}) var<storage, ${ud.writable ? 'read_write' : 'read'}> ${ud.name}: ${hash};\n`
 
         index += 1;
         bindingId += 1;
@@ -315,11 +315,11 @@ export default class UBTemplate extends HObject {
     format: 'f32' | 'u32' | 'i32'
   ) {
     if (type === 'number') {
-      return `[[block]] struct ${hash} { value: array<${format}>; };`
+      return `struct ${hash} { value: array<${format}>; };`
     }
 
     if (type === 'vec2' || type === 'vec3' || type === 'vec4') {
-      return `[[block]] struct ${hash} { value: array<${type}<${format}>>; };`
+      return `struct ${hash} { value: array<${type}<${format}>>; };`
     }
 
     throw new Error('Not support type!');

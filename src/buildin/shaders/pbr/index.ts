@@ -1,0 +1,1 @@
+export { default as pbrCommonChunk } from './common.chunk.wgsl';

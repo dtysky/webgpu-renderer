@@ -5,6 +5,7 @@
  * @Date   : 6/25/2021, 12:02:19 AM
  */
 import * as H from '../src/index';
+import simpleVert from './simple.wgsl';
 
 export default class BasicTestApp {
   public pipeline: GPURenderPipeline;
@@ -40,29 +41,7 @@ export default class BasicTestApp {
 
       vertex: {
         module: device.createShaderModule({
-          code: `
-struct VertexOutput {
-  [[builtin(position)]] position: vec4<f32>;
-};
-
-let pos : array<vec2<f32>, 6> = array<vec2<f32>, 6>(
-  vec2<f32>(-1.0, -1.0),
-  vec2<f32>(1.0, -1.0),
-  vec2<f32>(-1.0, 1.0),
-  vec2<f32>(-1.0, 1.0),
-  vec2<f32>(1.0, -1.0),
-  vec2<f32>(1.0, 1.0)
-);
-
-[[stage(vertex)]]
-fn main([[builtin(vertex_index)]] VertexIndex : u32) -> VertexOutput {
-  var output: VertexOutput;
-
-  output.position = vec4<f32>(pos[VertexIndex], 0.0, 1.0);
-
-  return output;
-}
-          `,
+          code: simpleVert,
         }),
         entryPoint: 'main',
       },
@@ -70,26 +49,26 @@ fn main([[builtin(vertex_index)]] VertexIndex : u32) -> VertexOutput {
         module: device.createShaderModule({
           code: `${H.renderEnv.shaderPrefix}
   struct VertexOutput {
-    [[builtin(position)]] position: vec4<f32>;
+    @builtin(position) position: vec4<f32>;
   };
 
-  [[block]] struct UB0 {
+  struct UB0 {
     color: vec4<f32>;
   };
-  [[group(1), binding(0)]] var<uniform> ub0: UB0;
+  @group(1) @binding(0) var<uniform> ub0: UB0;
 
-  [[block]] struct UB1 {
+  struct UB1 {
     color: vec4<f32>;
   };
-  [[group(2), binding(0)]] var<uniform> ub1: UB1;
+  @group(2) @binding(0) var<uniform> ub1: UB1;
 
-  [[block]] struct UB2 {
+  struct UB2 {
     color: vec4<f32>;
   };
-  [[group(3), binding(0)]] var<uniform> ub2: UB2;
+  @group(3) @binding(0) var<uniform> ub2: UB2;
   
-  [[stage(fragment)]]
-  fn main(vo: VertexOutput) -> [[location(0)]] vec4<f32> {
+  @stage(fragment)
+  fn main(vo: VertexOutput) -> @location(0) vec4<f32> {
     return ub0.color + ub1.color + ub2.color;
   }          
           `,
@@ -119,7 +98,7 @@ fn main([[builtin(vertex_index)]] VertexIndex : u32) -> VertexOutput {
       colorAttachments: [
         {
           view: textureView,
-          loadValue: { r: 0.0, g: 0.0, b: 0.0, a: 1.0 },
+          loadOp: 'clear',
           storeOp: 'store' as GPUStoreOp,
         },
       ],
@@ -131,7 +110,7 @@ fn main([[builtin(vertex_index)]] VertexIndex : u32) -> VertexOutput {
     });
     passEncoder.setPipeline(this.pipeline);
     passEncoder.draw(6, 1, 0, 0);
-    passEncoder.endPass();
+    passEncoder.end();
 
     device.queue.submit([commandEncoder.finish()]);
   }

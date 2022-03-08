@@ -105,10 +105,10 @@ fn blur(center: vec2<i32>, size: vec2<i32>) -> vec4<f32> {
   return vec4<f32>(res, alpha);
 }
 
-[[stage(compute), workgroup_size(16, 16, 1)]]
+@stage(compute) @workgroup_size(16, 16, 1)
 fn main(
-  [[builtin(workgroup_id)]] workGroupID : vec3<u32>,
-  [[builtin(local_invocation_id)]] localInvocationID : vec3<u32>
+  @builtin(workgroup_id) workGroupID : vec3<u32>,
+  @builtin(local_invocation_id) localInvocationID : vec3<u32>
 ) {
   let size: vec2<i32> = textureDimensions(u_preFilter);
   let groupOffset: vec2<i32> = vec2<i32>(workGroupID.xy) * 16;

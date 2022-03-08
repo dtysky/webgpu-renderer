@@ -119,7 +119,7 @@ export default class Scene extends HObject {
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: [{
         view,
-        loadValue: clear ? {r: 0, g: 0, b: 0, a: 1} : 'load' as GPULoadOp,
+        loadOp: clear ? 'clear' : 'load',
         storeOp: 'store' as GPUStoreOp
       }]
     };
@@ -131,7 +131,7 @@ export default class Scene extends HObject {
       mesh.render(pass);
     }
 
-    pass.endPass();
+    pass.end();
   }
 
   public computeUnits(units: ComputeUnit[]) {
@@ -142,7 +142,7 @@ export default class Scene extends HObject {
       unit.compute(pass);
     }
 
-    pass.endPass();
+    pass.end();
   }
 
   public copyBuffer(src: GPUBuffer, dst: GPUBuffer, size: number) {
@@ -154,7 +154,7 @@ export default class Scene extends HObject {
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: [{
         view,
-        loadValue: {r: 0, g: 0, b: 0, a: 1},
+        loadOp: 'clear',
         storeOp: 'store' as GPUStoreOp
       }]
     };
@@ -162,7 +162,7 @@ export default class Scene extends HObject {
     const pass = this._command.beginRenderPass(renderPassDescriptor);
     pass.setBindGroup(0, renderEnv.bindingGroup);
     this._blit.render(pass);
-    pass.endPass();
+    pass.end();
 
     renderEnv.device.queue.submit([this._command.finish()]);
   }

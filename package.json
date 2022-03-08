@@ -4,6 +4,7 @@
   "description": "",
   "main": "lib/index.js",
   "devDependencies": {
+    "@rollup/plugin-typescript": "^8.3.1",
     "bluebird": "^3.7.2",
     "html-webpack-plugin": "^4.5.0",
     "json-schema-ref-parser": "^9.0.9",
@@ -13,12 +14,15 @@
     "ts-loader": "^9.2.2",
     "typescript": "^3.9.5",
     "url-loader": "^2.1.0",
+    "vite": "^2.8.6",
+    "vite-plugin-glsl": "^0.0.9",
+    "vite-plugin-string": "^1.1.2",
     "webpack": "^5.11.0",
     "webpack-cli": "^4.3.0",
     "webpack-dev-server": "^3.11.0"
   },
   "scripts": {
-    "dev": "webpack serve --config webpack.config.js"
+    "dev": "vite"
   },
   "author": {
     "name": "dtysky",
@@ -27,8 +31,8 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@webgpu/types": "^0.1.6",
-    "gl-matrix": "^3.3.0",
+    "@webgpu/types": "^0.1.13",
+    "gl-matrix": "^3.4.3",
     "select-pure": "^2.1.1-alpha.1"
   }
 }
