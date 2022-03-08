@@ -8,7 +8,7 @@ import 'select-pure/dist/index.js';
 import * as H from '../src/index';
 import {DebugInfo, debugRay, debugRayShadow, debugRayShadows, sampleCircle} from './debugCs';
 
-const MODEL_SRC = './assets/models/walls/scene.gltf';
+const MODEL_SRC = './demo/assets/models/walls/scene.gltf';
 const MAX_SAMPLERS = 256;
 
 function addSelect(onChange: (options: string) => void) {
@@ -48,7 +48,7 @@ export default class RayTracingApp {
   private _denoiseRTs: {current: H.RenderTexture, pre: H.RenderTexture, final: H.RenderTexture};
   private _denoiseTemporUnit: H.ComputeUnit;
   private _denoiseSpaceUnit: H.ComputeUnit;
-  private _rtBlit: H.ImageMesh;
+  private _rtTone: H.ImageMesh;
   private _rtDebugInfo: DebugInfo;
   private _rtDebugMesh: H.Mesh;
   private _frameCount: number = 0;
@@ -73,7 +73,7 @@ export default class RayTracingApp {
     ));
     this._camera.pos.set([0, 0, 6]);
 
-    this._noiseTex = await H.resource.load({type: 'texture', name: 'noise.tex', src: './assets/textures/noise-rgba.webp'});
+    this._noiseTex = await H.resource.load({type: 'texture', name: 'noise.tex', src: './demo/assets/textures/noise-rgba.webp'});
     const model = this._model = await H.resource.load({type: 'gltf', name: 'scene.gltf', src: MODEL_SRC});
     if (model.cameras.length) {
       this._camera = model.cameras[0];
@@ -120,22 +120,22 @@ export default class RayTracingApp {
         width: renderEnv.width,
         height: renderEnv.height,
         forCompute: true,
-        colors: [{name: 'color'}]
-      }),
+        colors: [{name: 'color', format: 'rgba16float'}]
+      })
     };
+    this._denoiseSpaceUnit = new H.ComputeUnit(
+      H.buildinEffects.cRTDenoiseSpace,
+      {x: Math.ceil(renderEnv.width / 16), y: Math.ceil(renderEnv.height / 16)},
+      undefined,
+      {WINDOW_SIZE: 7}
+    );
     this._denoiseTemporUnit = new H.ComputeUnit(
       H.buildinEffects.cRTDenoiseTempor,
       {x: Math.ceil(renderEnv.width / 16), y: Math.ceil(renderEnv.height / 16)}
     );
-    this._denoiseSpaceUnit = new H.ComputeUnit(
-      H.buildinEffects.cRTDenoiseSpace,
-      {x: Math.ceil(renderEnv.width / 16), y: Math.ceil(renderEnv.height / 16)},
-      {u_output: this._denoiseRTs.final},
-      {WINDOW_SIZE: 7}
-    );
     this._connectGBufferRenderTexture(this._denoiseSpaceUnit);
 
-    this._rtBlit = new H.ImageMesh(new H.Material(H.buildinEffects.iBlit, {u_texture: this._denoiseRTs.final}));
+    this._rtTone = new H.ImageMesh(new H.Material(H.buildinEffects.iTone));
 
     this._rtDebugInfo = new DebugInfo();
     
@@ -205,12 +205,11 @@ export default class RayTracingApp {
 
       if (this._viewMode === 'result') {
         this._computeDenoise();
-        this._rtBlit.material.setUniform('u_texture', this._denoiseRTs.final);
       } else {
-        this._rtBlit.material.setUniform('u_texture', this._rtOutput);
+        this._rtTone.material.setUniform('u_texture', this._rtOutput);
       }
 
-      this._scene.renderImages([this._rtBlit]);
+      this._scene.renderImages([this._rtTone]);
     }
     
 
@@ -239,17 +238,20 @@ export default class RayTracingApp {
   }
 
   protected _computeDenoise() {
-    const {current, pre} = this._denoiseRTs;
-    this._denoiseTemporUnit.setUniform('u_output', current);
+    const {current, pre, final} = this._denoiseRTs;
     this._denoiseTemporUnit.setUniform('u_pre', pre);
     this._denoiseTemporUnit.setUniform('u_current', this._rtOutput);
+    this._denoiseTemporUnit.setUniform('u_output', current);
 
-    this._denoiseSpaceUnit.setUniform('u_mixed', current);
+    this._denoiseSpaceUnit.setUniform('u_preFilter', current);
+    this._denoiseSpaceUnit.setUniform('u_output', final);
 
     this._scene.computeUnits([this._denoiseTemporUnit, this._denoiseSpaceUnit]);
 
-    this._denoiseRTs.current = pre;
-    this._denoiseRTs.pre = current;
+    this._denoiseRTs.pre = final;
+    this._denoiseRTs.final = pre;
+
+    this._rtTone.material.setUniform('u_texture', final);
   }
 
   private _showGBufferResult() {

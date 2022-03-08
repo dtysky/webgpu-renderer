@@ -6,8 +6,11 @@
  */
 import {mat4} from 'gl-matrix';
 import Effect from '../core/Effect';
-import {createGPUBuffer, genGaussianParams} from '../core/shared';
+import {createGPUBuffer, genFilterParams} from '../core/shared';
 import textures from './textures';
+import { modelVert, colorFrag,unlitFrag,skyboxVert,skyboxFrag,gbufferVert,
+  gbufferFrag,gbufferLightFrag,rtssComp,denoiseTemporComp,denoiseSpaceComp,imageVert,
+  blitFrag,toneFrag,gshowFrag,blurComp} from './shaders';
 
 const effects: {
   rColor: Effect,
@@ -42,8 +45,8 @@ export function init() {
   };
 
   effects.rColor = new Effect('rColor', {
-    vs: require('./shaders/basic/model.vert.wgsl'),
-    fs: require('./shaders/basic/color.frag.wgsl'),
+    vs: modelVert,
+    fs: colorFrag,
     uniformDesc: {
       uniforms: [
         {
@@ -57,8 +60,8 @@ export function init() {
   });
 
   effects.rUnlit = new Effect('rUnlit', {
-    vs: require('./shaders/basic/model.vert.wgsl'),
-    fs: require('./shaders/basic/unlit.frag.wgsl'),
+    vs: modelVert,
+    fs: unlitFrag,
     uniformDesc: {
       uniforms: [
         {
@@ -84,8 +87,8 @@ export function init() {
   });
 
   effects.rPBR = new Effect('rPBR', {
-    vs: require('./shaders/basic/model.vert.wgsl'),
-    fs: require('./shaders/basic/unlit.frag.wgsl'),
+    vs: modelVert,
+    fs: unlitFrag,
     uniformDesc: {
       uniforms: [
         {
@@ -148,8 +151,8 @@ export function init() {
   });
 
   effects.rSkybox = new Effect('rSkybox', {
-    vs: require('./shaders/basic/skybox.vert.wgsl'),
-    fs: require('./shaders/basic/skybox.frag.wgsl'),
+    vs: skyboxVert,
+    fs: skyboxFrag,
     uniformDesc: {
       uniforms: [
         {
@@ -189,8 +192,8 @@ export function init() {
   });
 
   effects.rRTGBuffer = new Effect('rRTGBuffer', {
-    vs: require('./shaders/ray-tracing/gbuffer.vert.wgsl'),
-    fs: require('./shaders/ray-tracing/gbuffer.frag.wgsl'),
+    vs: gbufferVert,
+    fs: gbufferFrag,
     uniformDesc: {
       uniforms: [
         // support materials up to 128
@@ -245,8 +248,8 @@ export function init() {
   });
   
   effects.rRTGBufferLight = new Effect('rRTGBufferLight', {
-    vs: require('./shaders/basic/model.vert.wgsl'),
-    fs: require('./shaders/ray-tracing/gbufferLight.frag.wgsl'),
+    vs: modelVert,
+    fs: gbufferLightFrag,
     uniformDesc: {
       uniforms: [
         {
@@ -262,7 +265,7 @@ export function init() {
   });
 
   effects.cRTSS = new Effect('cRTSS', {
-    cs: require('./shaders/ray-tracing/rtss.comp.wgsl'),
+    cs: rtssComp,
     uniformDesc: {
       uniforms: [
         {
@@ -344,7 +347,7 @@ struct DebugRay {
   normal: vec4<f32>;
 };
 
-[[block]] struct DebugInfo {
+struct DebugInfo {
   rays: array<DebugRay>;
 };`
           },
@@ -409,7 +412,7 @@ struct DebugRay {
   });
 
   effects.cRTDenoiseTempor = new Effect('cRTDenoiseTempor', {
-    cs: require('./shaders/ray-tracing/denoiseTempor.comp.wgsl'),
+    cs: denoiseTemporComp,
     uniformDesc: {
       uniforms: [
         {
@@ -429,13 +432,13 @@ struct DebugRay {
         {
           name: 'u_pre',
           defaultValue: textures.empty,
-          storageAccess: 'read-only',
+          // storageAccess: 'read-only',
           storageFormat: 'rgba16float'
         },
         {
           name: 'u_current',
           defaultValue: textures.empty,
-          storageAccess: 'read-only',
+          // storageAccess: 'read-only',
           storageFormat: 'rgba16float'
         }
       ],
@@ -449,27 +452,27 @@ struct DebugRay {
   });
 
   effects.cRTDenoiseSpace = new Effect('cRTDenoiseSpace', {
-    cs: require('./shaders/ray-tracing/denoiseSpace.comp.wgsl'),
+    cs: denoiseSpaceComp,
     uniformDesc: {
       uniforms: [
         {
           // [distance, color, depth, normal]
           name: 'u_filterFactors',
-          type: 'vec2',
-          size: 4,
-          defaultValue: genGaussianParams(new Float32Array([1.5, 0.5, 1.5, 0.5]), [2, 3, 1, 3])
+          type: 'vec4',
+          defaultValue: genFilterParams(new Float32Array([3, 0.1, 2, 0.1]))
         }
       ],
       textures: [
         {
           name: 'u_output',
           defaultValue: textures.empty,
-          storageAccess: 'write-only'
+          storageAccess: 'write-only',
+          storageFormat: 'rgba16float'
         },
         {
-          name: 'u_mixed',
+          name: 'u_preFilter',
           defaultValue: textures.empty,
-          storageAccess: 'read-only',
+          // storageAccess: 'read-only',
           storageFormat: 'rgba16float'
         },
         {
@@ -492,8 +495,8 @@ struct DebugRay {
   });
 
   effects.iRTGShow = new Effect('iRTGShow', {
-    vs: require('./shaders/image/image.vert.wgsl'),
-    fs: require('./shaders/ray-tracing/gshow.frag.wgsl'),
+    vs: imageVert,
+    fs: gshowFrag,
     uniformDesc: {
       uniforms: [],
       textures: [
@@ -526,8 +529,8 @@ struct DebugRay {
   });
 
   effects.iBlit = new Effect('iBlit', {
-    vs: require('./shaders/image/image.vert.wgsl'),
-    fs: require('./shaders/image/blit.frag.wgsl'),
+    vs: imageVert,
+    fs: blitFrag,
     uniformDesc: {
       uniforms: [],
       textures: [
@@ -547,8 +550,8 @@ struct DebugRay {
   });
 
   effects.iTone = new Effect('iTone', {
-    vs: require('./shaders/image/image.vert.wgsl'),
-    fs: require('./shaders/image/tone.frag.wgsl'),
+    vs: imageVert,
+    fs: toneFrag,
     uniformDesc: {
       uniforms: [],
       textures: [
@@ -573,7 +576,7 @@ struct DebugRay {
     const kernelSize = realKernelSize + (4 - mod);
 
     return new Effect('cSimpleBlur-' + radius, {
-      cs: require('./shaders/compute/blur.comp.wgsl'),
+      cs: blurComp,
       uniformDesc: {
         uniforms: [
           {

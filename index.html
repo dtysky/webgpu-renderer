@@ -21,14 +21,15 @@
   <canvas id="mainCanvas" class="full"></canvas>
   <script>
     var canvas = document.getElementById('mainCanvas');
-    // canvas.width = window.innerWidth * window.devicePixelRatio;
-    // canvas.height = window.innerHeight * window.devicePixelRatio;
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth * window.devicePixelRatio;
+    canvas.height = window.innerHeight * window.devicePixelRatio;
+    // canvas.width = window.innerWidth;
+    // canvas.height = window.innerHeight;
 
     canvas.addEventListener('mousedown', (e) => {
       console.log(e.clientX, e.clientY);
     })
   </script>
+  <script type="module" src="/demo/index.ts"></script>
 </body>
 </html>
