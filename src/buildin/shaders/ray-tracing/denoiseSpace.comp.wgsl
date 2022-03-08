@@ -113,6 +113,11 @@ fn main(
   let size: vec2<i32> = textureDimensions(u_preFilter);
   let groupOffset: vec2<i32> = vec2<i32>(workGroupID.xy) * 16;
   let baseIndex: vec2<i32> = groupOffset + vec2<i32>(localInvocationID.xy);
+
+  if (baseIndex.x >= size.x || baseIndex.y >= size.y) {
+    return;
+  }
+
   let result: vec4<f32> = blur(baseIndex, size);
 
   textureStore(u_output, baseIndex, result);

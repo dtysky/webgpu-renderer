@@ -1,8 +1,13 @@
-import { defineConfig } from 'vite';
-import glsl from 'vite-plugin-glsl'
+import {defineConfig} from 'vite';
+import glsl from 'vite-plugin-glsl';
 
 const config = defineConfig({
-    plugins: [glsl(undefined, /\.(wgsl)$/i)],
-})
+  server: {
+    port: 8888,
+  },
+  plugins: [
+    glsl(undefined, /\.(wgsl)$/i)
+  ]
+});
 
 export default config;
