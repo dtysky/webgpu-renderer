@@ -67,13 +67,13 @@ export function init() {
             len: 40,
             code: `
 struct LightInfo {
-  lightType: u32;
-  areaMode: u32;
-  areaSize: vec2<f32>;
-  color: vec4<f32>;
-  worldTransform: mat4x4<f32>;
-  worldTransformInverse: mat4x4<f32>;
-};`
+  lightType: u32,
+  areaMode: u32,
+  areaSize: vec2<f32>,
+  color: vec4<f32>,
+  worldTransform: mat4x4<f32>,
+  worldTransformInverse: mat4x4<f32>,
+}`
           },
           type: 'vec4',
           size: 4,

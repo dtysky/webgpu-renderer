@@ -1,4 +1,4 @@
-let WINDOW_SIZE: i32 = ${WINDOW_SIZE};
+const WINDOW_SIZE: i32 = ${WINDOW_SIZE};
 
 fn calcWeightNumber(factor: f32, a: f32, b: f32) -> f32 {
   return exp(factor * (a - b) * (a - b));
@@ -105,7 +105,7 @@ fn blur(center: vec2<i32>, size: vec2<i32>) -> vec4<f32> {
   return vec4<f32>(res, alpha);
 }
 
-@stage(compute) @workgroup_size(16, 16, 1)
+@compute @workgroup_size(16, 16, 1)
 fn main(
   @builtin(workgroup_id) workGroupID : vec3<u32>,
   @builtin(local_invocation_id) localInvocationID : vec3<u32>

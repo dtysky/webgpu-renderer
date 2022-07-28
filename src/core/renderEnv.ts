@@ -84,6 +84,7 @@ export class RenderEnv {
     this._ctx.configure({
       device: this._device,
       format: this._swapChainFormat,
+      alphaMode: 'premultiplied',
     });
   }
 

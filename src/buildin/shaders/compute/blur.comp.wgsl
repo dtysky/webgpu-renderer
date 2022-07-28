@@ -1,7 +1,7 @@
-let c_radius: i32 = ${RADIUS};
-let c_windowSize: i32 = ${WINDOW_SIZE};
+const c_radius: i32 = ${RADIUS};
+const c_windowSize: i32 = ${WINDOW_SIZE};
 
-@stage(compute) @workgroup_size(c_windowSize, c_windowSize, 1)
+@compute @workgroup_size(c_windowSize, c_windowSize, 1)
 fn main(
   @builtin(workgroup_id) workGroupID : vec3<u32>,
   @builtin(local_invocation_id) localInvocationID : vec3<u32>

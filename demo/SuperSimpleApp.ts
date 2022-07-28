@@ -35,7 +35,6 @@ export default class BasicTestApp {
         resource: {buffer: gpuBuffer}
       }]}));
     }
-
     this.pipeline = device.createRenderPipeline({
       layout: device.createPipelineLayout({bindGroupLayouts: this.bindingLayouts}),
 
@@ -49,25 +48,25 @@ export default class BasicTestApp {
         module: device.createShaderModule({
           code: `${H.renderEnv.shaderPrefix}
   struct VertexOutput {
-    @builtin(position) position: vec4<f32>;
-  };
+    @builtin(position) position: vec4<f32>,
+  }
 
   struct UB0 {
-    color: vec4<f32>;
-  };
+    color: vec4<f32>,
+  }
   @group(1) @binding(0) var<uniform> ub0: UB0;
 
   struct UB1 {
-    color: vec4<f32>;
-  };
+    color: vec4<f32>,
+  }
   @group(2) @binding(0) var<uniform> ub1: UB1;
 
   struct UB2 {
-    color: vec4<f32>;
-  };
+    color: vec4<f32>,
+  }
   @group(3) @binding(0) var<uniform> ub2: UB2;
   
-  @stage(fragment)
+  @fragment
   fn main(vo: VertexOutput) -> @location(0) vec4<f32> {
     return ub0.color + ub1.color + ub2.color;
   }          
