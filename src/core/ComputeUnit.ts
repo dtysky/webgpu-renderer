@@ -48,7 +48,7 @@ export default class ComputeUnit extends HObject {
 
     pass.setPipeline(this._pipeline);
     pass.setBindGroup(1, _material.bindingGroup);
-    pass.dispatch(_groups.x, _groups.y, _groups.z);
+    pass.dispatchWorkgroups(_groups.x, _groups.y, _groups.z);
   }
 
   public setUniform(name: string, value: TUniformValue, rtSubNameOrGPUBuffer?: string | GPUBuffer) {

@@ -1,15 +1,15 @@
-let PI: f32 = 3.14159265358979;
-let MAX_LIGHTS_COUNT: u32 = 4u;
-let MAX_RAY_LENGTH: f32 = 9999.;
-let BVH_DEPTH: i32 = ${BVH_DEPTH};
-let EPS: f32 = 0.005;
-let RAY_DIR_OFFSET: f32 = .01;
-let RAY_NORMAL_OFFSET: f32 = .01;
+const PI: f32 = 3.14159265358979;
+const MAX_LIGHTS_COUNT: u32 = 4u;
+const MAX_RAY_LENGTH: f32 = 9999.;
+const BVH_DEPTH: i32 = ${BVH_DEPTH};
+const EPS: f32 = 0.005;
+const RAY_DIR_OFFSET: f32 = .01;
+const RAY_NORMAL_OFFSET: f32 = .01;
 
 struct VertexOutput {
-  @builtin(position) position: vec4<f32>;
-  @location(0) uv: vec2<f32>;
-};
+  @builtin(position) position: vec4<f32>,
+  @location(0) uv: vec2<f32>,
+}
 
 
 #include ../basic/common.chunk.wgsl;
@@ -17,75 +17,75 @@ struct VertexOutput {
 #include ../pbr/common.chunk.wgsl;
 
 struct Ray {
-  origin: vec3<f32>;
-  dir: vec3<f32>;
-  invDir: vec3<f32>;
-};
+  origin: vec3<f32>,
+  dir: vec3<f32>,
+  invDir: vec3<f32>,
+}
 
 struct HitPoint {
-  hit: bool;
-  hited: f32;
-  position: vec3<f32>;
-  baseColor: vec3<f32>;
-  metal: f32;
-  rough: f32;
-  spec: vec3<f32>;
-  gloss: f32;
-  glass: f32;
-  normal: vec3<f32>;
+  hit: bool,
+  hited: f32,
+  position: vec3<f32>,
+  baseColor: vec3<f32>,
+  metal: f32,
+  rough: f32,
+  spec: vec3<f32>,
+  gloss: f32,
+  glass: f32,
+  normal: vec3<f32>,
   // sign: if render back, is -1, or 1
-  sign: f32;
-  meshIndex: u32;
-  matIndex: u32;
-  isSpecGloss: bool;
-  isGlass: bool;
-  isLight: bool;
-  matType: u32;
-  pbrData: PBRData;
-};
+  sign: f32,
+  meshIndex: u32,
+  matIndex: u32,
+  isSpecGloss: bool,
+  isGlass: bool,
+  isLight: bool,
+  matType: u32,
+  pbrData: PBRData,
+}
 
 struct Light {
-  color: vec3<f32>;
-  throughEng: vec3<f32>;
-  next: Ray;
-};
+  color: vec3<f32>,
+  throughEng: vec3<f32>,
+  next: Ray,
+}
 
 struct BVHNode {
-  child0Index: u32;
-  child1Index: u32;
-  max: vec3<f32>;
-  min: vec3<f32>;
-};
+  child0Index: u32,
+  child1Index: u32,
+  max: vec3<f32>,
+  min: vec3<f32>,
+}
 
 struct BVHLeaf {
-  primitives: u32;
-  indexes: vec3<u32>;
-};
+  primitives: u32,
+  indexes: vec3<u32>,
+}
 
 struct FragmentInfo {
-  hit: bool;
-  hitPoint: vec3<f32>;
-  t: f32;
+  hit: bool,
+  hitPoint: vec3<f32>,
+  t: f32,
   // areal coordinates
-  weights: vec3<f32>;
-  p0: vec3<f32>;
-  p1: vec3<f32>;
-  p2: vec3<f32>;
-  uv0: vec2<f32>;
-  uv1: vec2<f32>;
-  uv2: vec2<f32>;
-  n0: vec3<f32>;
-  n1: vec3<f32>;
-  n2: vec3<f32>;
-  meshIndex: u32;
-  matIndex: u32;
-  matType: u32;
-};
+  weights: vec3<f32>,
+  p0: vec3<f32>,
+  p1: vec3<f32>,
+  p2: vec3<f32>,
+  uv0: vec2<f32>,
+  uv1: vec2<f32>,
+  uv2: vec2<f32>,
+  n0: vec3<f32>,
+  n1: vec3<f32>,
+  n2: vec3<f32>,
+  meshIndex: u32,
+  matIndex: u32,
+  matType: u32,
+}
 
 struct Child {
-  isLeaf: bool;
-  offset: u32;
-};
+  isLeaf: bool,
+  offset: u32,
+}
 
 fn getRandom(uv: vec2<f32>, i: i32) -> vec4<f32> {
   let noise: vec4<f32> = textureSampleLevel(u_noise, u_sampler, uv, 0.);
@@ -222,7 +222,7 @@ fn traceLight(startRay: Ray, gBInfo: HitPoint, baseUV: vec2<f32>, debugIndex: i3
   return lightColor;
 }
 
-@stage(compute) @workgroup_size(16, 16, 1)
+@compute @workgroup_size(16, 16, 1)
 fn main(
   @builtin(workgroup_id) workGroupID : vec3<u32>,
   @builtin(local_invocation_id) localInvocationID : vec3<u32>
