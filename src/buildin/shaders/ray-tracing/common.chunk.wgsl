@@ -1,8 +1,8 @@
-let MAT_TYPE_METAL_ROUGH: u32 = 0u;
-let MAT_TYPE_SPEC_GLOSS: u32 = 1u;
-let MAT_TYPE_GLASS_METAL_ROUGH: u32 = 2u;
-let MAT_TYPE_GLASS_SPEC_GLOSS: u32 = 3u;
-let MAT_TYPE_LIGHT: u32 = 4u;
+const MAT_TYPE_METAL_ROUGH: u32 = 0u;
+const MAT_TYPE_SPEC_GLOSS: u32 = 1u;
+const MAT_TYPE_GLASS_METAL_ROUGH: u32 = 2u;
+const MAT_TYPE_GLASS_SPEC_GLOSS: u32 = 3u;
+const MAT_TYPE_LIGHT: u32 = 4u;
 
 fn isMatSpecGloss(matType: u32) -> bool {
   return matType == MAT_TYPE_SPEC_GLOSS || matType == MAT_TYPE_GLASS_SPEC_GLOSS;

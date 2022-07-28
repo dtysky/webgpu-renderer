@@ -145,9 +145,9 @@ export default class UBTemplate extends HObject {
         const sym = ud.customType ? ud.customType.name : ud.type === 'number' ? `${ud.format || 'f32'}` : `${ud.type}<${ud.format || 'f32'}>`;
         const pre = origLen !== realLen ? `@stride(${realLen * 4})` : '';
         if (!ud.size) {
-          this._shaderPrefix += `  @align(16) ${ud.name}: ${sym};\n`;
+          this._shaderPrefix += `  @align(16) ${ud.name}: ${sym},\n`;
         } else {
-          ud.size > 1 && (this._shaderPrefix += ` @align(16) ${ud.name}: ${pre} array<${sym}, ${ud.size}>;\n`);
+          ud.size > 1 && (this._shaderPrefix += ` @align(16) ${ud.name}: ${pre} array<${sym}, ${ud.size}>,\n`);
         }
         index += 1;
       });
@@ -319,7 +319,7 @@ export default class UBTemplate extends HObject {
     }
 
     if (type === 'vec2' || type === 'vec3' || type === 'vec4') {
-      return `struct ${hash} { value: array<${type}<${format}>>; };`
+      return `struct ${hash} { value: array<${type}<${format}>>, };`
     }
 
     throw new Error('Not support type!');

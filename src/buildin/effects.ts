@@ -338,18 +338,18 @@ export function init() {
           type: 'number',
           customStruct: {name: 'DebugInfo', code: `
 struct DebugRay {
-  preOrigin: vec4<f32>;
-  preDir: vec4<f32>;
-  origin: vec4<f32>;
-  dir: vec4<f32>;
-  nextOrigin: vec4<f32>;
-  nextDir: vec4<f32>;
-  normal: vec4<f32>;
-};
+  preOrigin: vec4<f32>,
+  preDir: vec4<f32>,
+  origin: vec4<f32>,
+  dir: vec4<f32>,
+  nextOrigin: vec4<f32>,
+  nextDir: vec4<f32>,
+  normal: vec4<f32>,
+}
 
 struct DebugInfo {
-  rays: array<DebugRay>;
-};`
+  rays: array<DebugRay>,
+}`
           },
           writable: true,
           defaultValue: emptyStorageBuffer.value,

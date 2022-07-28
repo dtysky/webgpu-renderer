@@ -101,7 +101,7 @@ export default class Geometry extends HObject {
 
       layout.attributes.forEach((attr) => {
         this._marcos[`USE_${attr.name.toUpperCase()}`] = true;
-        this._attributesDef += `  @location(${attr.shaderLocation}) ${attr.name}: ${this._convertFormat(attr.format)};\n`;
+        this._attributesDef += `  @location(${attr.shaderLocation}) ${attr.name}: ${this._convertFormat(attr.format)},\n`;
         this._vInfo[attr.name.toLowerCase()] = {
           data, index,
           offset: attr.offset / 4, stride: layout.arrayStride / 4, length: this._getLength(attr.format)
