@@ -35,7 +35,6 @@ export default class BasicTestApp {
         resource: {buffer: gpuBuffer}
       }]}));
     }
-
     this.pipeline = device.createRenderPipeline({
       layout: device.createPipelineLayout({bindGroupLayouts: this.bindingLayouts}),
 

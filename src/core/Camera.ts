@@ -189,9 +189,10 @@ export default class Camera extends Node {
         view: depthStencilView,
         depthClearValue: this.clearDepth,
         depthLoadOp: 'clear',
-        // stencilLoadOp: 'load',
+        stencilClearValue: this.clearStencil,
+        // stencilLoadOp: clear ? 'clear': "load" as GPULoadOp,
         depthStoreOp: this.depthOp,
-        // stencilStoreOp: this.stencilOp
+        // stencilStoreOp: clear ? this.stencilOp : "discard" as GPUStoreOp
       }
     };
 
