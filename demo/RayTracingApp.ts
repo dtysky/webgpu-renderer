@@ -99,7 +99,7 @@ export default class RayTracingApp {
     this._rtOutput = new H.RenderTexture({
       width: renderEnv.width,
       height: renderEnv.height,
-      forCompute: true,
+      isForCompute: true,
       colors: [{name: 'color', format: 'rgba16float'}]
     });
 
@@ -107,19 +107,19 @@ export default class RayTracingApp {
       current: new H.RenderTexture({
         width: renderEnv.width,
         height: renderEnv.height,
-        forCompute: true,
+        isForCompute: true,
         colors: [{name: 'color', format: 'rgba16float'}]
       }),
       pre: new H.RenderTexture({
         width: renderEnv.width,
         height: renderEnv.height,
-        forCompute: true,
+        isForCompute: true,
         colors: [{name: 'color', format: 'rgba16float'}]
       }),
       final: new H.RenderTexture({
         width: renderEnv.width,
         height: renderEnv.height,
-        forCompute: true,
+        isForCompute: true,
         colors: [{name: 'color', format: 'rgba16float'}]
       })
     };

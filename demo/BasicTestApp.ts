@@ -115,7 +115,7 @@ export default class BasicTestApp {
     //   colors: [{}]
     // });
 
-    this._csRT = new H.RenderTexture({width: H.renderEnv.width, height: H.renderEnv.height, forCompute: true, colors: [{}]});
+    this._csRT = new H.RenderTexture({width: H.renderEnv.width, height: H.renderEnv.height, isForCompute: true, colors: [{}]});
     this._blurUnit = new H.ComputeUnit(
       H.buildinEffects.cCreateSimpleBlur(2),
       {x: Math.ceil(H.renderEnv.width / 5), y: Math.ceil(H.renderEnv.height / 5)},

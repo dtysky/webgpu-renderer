@@ -1,13 +1,13 @@
 struct PBRData {
-  reflectance0: vec3<f32>;
-  reflectance90: vec3<f32>;
-  alphaRoughness: f32;
-  diffuseColor: vec3<f32>;
-  specularColor: vec3<f32>;
-  baseColor: vec3<f32>;
-  ao: vec3<f32>;
-  roughness: f32;
-};
+  reflectance0: vec3<f32>,
+  reflectance90: vec3<f32>,
+  alphaRoughness: f32,
+  diffuseColor: vec3<f32>,
+  specularColor: vec3<f32>,
+  baseColor: vec3<f32>,
+  ao: vec3<f32>,
+  roughness: f32
+}
 
 fn pbrSpecularReflection(reflectance0: vec3<f32>, reflectance90: vec3<f32>, VdotH: f32)-> vec3<f32> {
   return reflectance0 + (reflectance90 - reflectance0) * pow(clamp(1.0 - VdotH, 0.0, 1.0), 5.0);

@@ -12,7 +12,7 @@ import {hashCode} from './shared';
 export interface IRenderTextureOptions {
   width: number;
   height: number;
-  forCompute?: boolean;
+  isForCompute?: boolean;
   colors: {
     name?: string,
     format?: GPUTextureFormat
@@ -33,7 +33,7 @@ export default class RenderTexture extends HObject {
 
   protected _width: number;
   protected _height: number;
-  protected _forCompute: boolean;
+  protected _isForCompute: boolean;
   protected _colorDescs: GPUTextureDescriptor[];
   protected _depthDesc: GPUTextureDescriptor;
   protected _colors: GPUTexture[];
@@ -83,13 +83,13 @@ export default class RenderTexture extends HObject {
   constructor(protected _options: IRenderTextureOptions) {
     super();
 
-    const {width, height, colors, depthStencil, forCompute} = _options;
+    const {width, height, colors, depthStencil, isForCompute} = _options;
 
     this._width = width;
     this._height = height;
 
-    if (forCompute && depthStencil) {
-      throw new Error('RenderTexture with forCompute flag does not support depth!');
+    if (isForCompute && depthStencil) {
+      throw new Error('RenderTexture with isForCompute flag does not support depth!');
     }
 
     this._colorDescs = new Array(colors.length);
@@ -101,11 +101,11 @@ export default class RenderTexture extends HObject {
       const color = renderEnv.device.createTexture(this._colorDescs[index] = {
         label: this.hash + '_color_' + (info.name || index),
         size: {width, height},
-        format: info.format || (forCompute ? 'rgba8unorm' : renderEnv.swapChainFormat),
+        format: info.format || (isForCompute ? 'rgba8unorm' : renderEnv.swapChainFormat),
         usage: (
           GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING
         ) | (
-          forCompute ? GPUTextureUsage.STORAGE_BINDING : 0
+          isForCompute ? GPUTextureUsage.STORAGE_BINDING : 0
         )
       } as GPUTextureDescriptor);
 

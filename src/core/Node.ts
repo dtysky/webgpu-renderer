@@ -12,15 +12,14 @@ const VEC3_ONES = new Float32Array([1, 1, 1]);
 export default class Node extends HObject {
   public static CLASS_NAME: string = 'Node';
   public isNode: boolean = true;
-
-  public active: boolean = true;
+  public isActive: boolean = true;
 
   protected _mem: ArrayBuffer;
   protected _pos: Float32Array;
   protected _scale: Float32Array;
   protected _quat: Float32Array;
   protected _worldMat: Float32Array;
-  protected _parent: Node;
+  protected _parent: Node | undefined;
   protected _children: Node[] = [];
 
   get pos() {
@@ -59,7 +58,7 @@ export default class Node extends HObject {
 
     if (idx >= 0) {
       this._children.splice(idx, 1);
-      node._parent = null;
+      node._parent = undefined;
     }
   }
 
@@ -71,9 +70,8 @@ export default class Node extends HObject {
     this.updateWorldMatrix();
   }
 
-  public updateWorldMatrix(parent?: Node) {
+  public updateWorldMatrix(parent = this._parent) {
     mat4.fromRotationTranslationScale(this._worldMat, this._quat, this._pos, this._scale);
-    parent = parent || this._parent;
 
     if (parent) {
       mat4.mul(this._worldMat, parent.worldMat, this._worldMat);
@@ -84,14 +82,15 @@ export default class Node extends HObject {
     const params = callback(this, defaultParams);
     const children: Node[] = this._children;
 
-    for (let index = 0; index < children.length; index += 1) {
-      const node = children[index];
-      node.active && node.dfs(callback, params);
-    }
+    children.forEach(node=>{
+      if(node.isActive){
+        node.dfs(callback, params);
+      }
+    });
   }
 
   public updateSubTree(callback?: (node: Node) => void) {
-    if (!this.active) {
+    if (!this.isActive) {
       return;
     }
 

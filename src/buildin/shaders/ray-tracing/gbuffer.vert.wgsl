@@ -1,12 +1,12 @@
 struct VertexOutput {
-  @location(0) wPosition: vec4<f32>;
-  @location(1) texcoord_0: vec2<f32>;
-  @location(2) normal: vec3<f32>;
-  @location(3) @interpolate(flat) meshMatIndex: vec2<u32>;
-  @builtin(position) Position: vec4<f32>;
+  @location(0) wPosition: vec4<f32>,
+  @location(1) texcoord_0: vec2<f32>,
+  @location(2) normal: vec3<f32>,
+  @location(3) @interpolate(flat) meshMatIndex: vec2<u32>,
+  @builtin(position) Position: vec4<f32>
 }
 
-@stage(vertex)
+@vertex
 fn main(attrs: Attrs) -> VertexOutput {
   var output: VertexOutput;
   

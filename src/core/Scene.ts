@@ -20,10 +20,10 @@ export default class Scene extends HObject {
   public static CLASS_NAME: string = 'Scene';
   public isScene: boolean = true;
 
-  protected _gameTime: number;
+  protected _gameTime: number = 0;
   protected _rootNode: Node;
-  protected _meshes: Mesh[];
-  protected _lights: Light[];
+  protected _meshes: Mesh[] = [];
+  protected _lights: Light[] = [];
   protected _command: GPUCommandEncoder;
   protected _renderTarget: RenderTexture;
   protected _screen: RenderTexture;

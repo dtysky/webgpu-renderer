@@ -125,7 +125,7 @@ export class Bounds {
 
   public buildBox(mode: 'lines' | 'triangles'): {positions: number[], indexes: number[]} {
     const {max, min} = this;
-    const positions = [];
+    const positions:number[] = [];
     
     Bounds.BUILD_BOX_MAX_MIN_ORDER.forEach(order => {
       for (let i = 0; i < 3; i += 1) {
