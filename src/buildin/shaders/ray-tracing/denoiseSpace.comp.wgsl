@@ -55,16 +55,16 @@ fn blur(center: vec2<i32>, size: vec2<i32>) -> vec4<f32> {
 
   let meanLum: f32 = sumLum / count;
 
-  var std: f32 = 0.;
+  var stdx: f32 = 0.;
   for (var r: i32 = 0; r < localUV.x; r = r + 1) {
     for (var c: i32 = 0; c < localUV.y; c = c + 1) {
       let lum: f32 = lums[r][c];
-      std = std + (lum - meanLum) * (lum - meanLum);
+      stdx = stdx + (lum - meanLum) * (lum - meanLum);
     }
   }
-  std = sqrt(std / (count - 1.));
+  stdx = sqrt(stdx / (count - 1.));
 
-  let largestLum: f32 = max(meanLum + std * 2., 1.);
+  let largestLum: f32 = max(meanLum + stdx * 2., 1.);
 
   var lum: f32 = calcLum(centerColor.rgb);
   if (lum > largestLum) {
@@ -110,7 +110,7 @@ fn main(
   @builtin(workgroup_id) workGroupID : vec3<u32>,
   @builtin(local_invocation_id) localInvocationID : vec3<u32>
 ) {
-  let size: vec2<i32> = textureDimensions(u_preFilter);
+  let size: vec2<i32> = vec2<i32>(textureDimensions(u_preFilter));
   let groupOffset: vec2<i32> = vec2<i32>(workGroupID.xy) * 16;
   let baseIndex: vec2<i32> = groupOffset + vec2<i32>(localInvocationID.xy);
 

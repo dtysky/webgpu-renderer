@@ -227,7 +227,7 @@ fn main(
   @builtin(workgroup_id) workGroupID : vec3<u32>,
   @builtin(local_invocation_id) localInvocationID : vec3<u32>
 ) {
-  let screenSize: vec2<i32> = textureDimensions(u_gbPositionMetalOrSpec, 0);
+  let screenSize: vec2<i32> = vec2<i32>(textureDimensions(u_gbPositionMetalOrSpec, 0));
   let groupOffset: vec2<i32> = vec2<i32>(workGroupID.xy) * 16;
   let baseIndex: vec2<i32> = groupOffset + vec2<i32>(localInvocationID.xy);
   let baseUV: vec2<f32> = vec2<f32>(baseIndex) / vec2<f32>(screenSize);
