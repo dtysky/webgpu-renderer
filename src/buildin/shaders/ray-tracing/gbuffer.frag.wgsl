@@ -26,10 +26,6 @@ fn getNormal(
   var normal: vec3<f32> = normalize(vNormal);
   normal = normal * sign(dot(normal, faceNormal));
 
-  if (textureId == -1) {
-    return normal;
-  }
-
   // http://www.thetenthplanet.de/archives/1180
   let dp1: vec3<f32> = dpdx(position);
   let dp2: vec3<f32> = dpdy(position);
@@ -45,6 +41,10 @@ fn getNormal(
   let tbn: mat3x3<f32> = mat3x3<f32>(dpdu, dpdv, normal);
   var tNormal: vec3<f32> = 2. * textureSample(u_normalTextures, u_sampler, uv, textureId).xyz - 1.;
   tNormal = tNormal * vec3<f32>(normalScale, normalScale, 1.);
+
+  if (textureId == -1) {
+    return normal;
+  }
 
   return normalize(tbn * tNormal);
 }
