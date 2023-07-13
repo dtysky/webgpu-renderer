@@ -8,7 +8,7 @@ A simple renderer implemented by WebGPU, includes a builtin path tracing pipelin
 
 Check here: [Path tracing demo](https://dtysky.github.io/webgpu-renderer/)  
 
->You must use the lasted version of [Chrome Canary](https://www.google.com/intl/en_us/chrome/canary/) and enable the flag `--enable-unsafe-webgpu`.
+>You must use the lasted version of Chrome.
 
 ## Development
 
