@@ -177,7 +177,7 @@ export default class Camera extends Node {
   ) {
     const [r, g, b, a] = this.clearColor;
     const { x, y, w, h } = this.viewport;
-    const { width, height, colorViews, depthStencilView } = rt;
+    const { width, height, colorViews, depthStencilView, hasStencil } = rt;
 
     const renderPassDescriptor: GPURenderPassDescriptor = {
       colorAttachments: colorViews.map(view => ({
@@ -189,10 +189,11 @@ export default class Camera extends Node {
         view: depthStencilView,
         depthClearValue: this.clearDepth,
         depthLoadOp: 'clear',
-        stencilClearValue: this.clearStencil,
-        // stencilLoadOp: clear ? 'clear': "load" as GPULoadOp,
         depthStoreOp: this.depthOp,
-        // stencilStoreOp: clear ? this.stencilOp : "discard" as GPUStoreOp
+        stencilClearValue: this.clearStencil,
+        stencilReadOnly: !hasStencil,
+        stencilLoadOp: hasStencil ? (clear ? 'clear': "load" as GPULoadOp) : undefined,
+        stencilStoreOp: hasStencil ? (clear ? this.stencilOp : "discard" as GPUStoreOp) : undefined
       }
     };
 
