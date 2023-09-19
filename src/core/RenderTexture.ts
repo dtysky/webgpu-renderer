@@ -80,6 +80,10 @@ export default class RenderTexture extends HObject {
     return this._colorFormats;
   }
 
+  get hasStencil() {
+    return !!this._options.depthStencil?.needStencil;
+  }
+
   constructor(protected _options: IRenderTextureOptions) {
     super();
 
@@ -125,7 +129,6 @@ export default class RenderTexture extends HObject {
         size: {width, height},
         format: depthStencil.format || (!depthStencil.needStencil ? 'depth24plus' : 'depth24plus-stencil8'),
         usage: GPUTextureUsage.RENDER_ATTACHMENT | GPUTextureUsage.TEXTURE_BINDING,
-        
       } as GPUTextureDescriptor);
       this._depthStencilView = this._depthStencil.createView({label: this.hash + '_depth'});
     }

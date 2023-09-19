@@ -7,7 +7,7 @@ struct VertexOutput {
   @location(4) texcoord_1: vec2<f32>,
 }
 
-@stage(fragment)
+@fragment
 fn main(vo: VertexOutput) -> @location(0) vec4<f32> {
   return material.u_baseColorFactor * textureSample(u_baseColorTexture, u_sampler, vo.texcoord_0);
 }
